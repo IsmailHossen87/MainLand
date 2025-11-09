@@ -112,10 +112,40 @@ const myLiveEvent = async (userID: string) => {
   }
   return allEvents;
 };
+// Live
+const singleEvent = async (userID: string, eventId: string) => {
+  const user = await User.findById(userID);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+  }
+
+  // ✅ Corrected query syntax
+  const event = await Event.findById(eventId);
+  if (!event) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
+  }
+  return event;
+};
+// all draft
+const allDraftEvent = async (userID: string) => {
+  const user = await User.findById(userID);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+  }
+
+  // ✅ Corrected query syntax
+  const event = await Event.find({ isDraft: true });
+  if (!event) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
+  }
+  return event;
+};
 export const EventService = {
   createEvent,
   updateEvent,
   creteCategory,
   myEvents,
-  myLiveEvent
+  myLiveEvent,
+  singleEvent,
+  allDraftEvent
 };

@@ -112,11 +112,39 @@ const MyLiveEvent = catchAsync(
     });
   }
 );
+const singleEvent = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId= req.user?.id 
+    const eventId = req.params.id
+    const result = await EventService.singleEvent(userId as string,eventId as string)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message:"Event details Successfully",
+      data: result,
+    });
+  }
+);
+const allDraftEvent = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId= req.user?.id 
+
+    const result = await EventService.allDraftEvent(userId as string)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message:"Event All Draft Retrived Successfully",
+      data: result,
+    });
+  }
+);
 
 export const EventController = {
   createCategory,
   createEvent,
   updateEvent,
   myEvents,
-  MyLiveEvent
+  MyLiveEvent,
+  singleEvent,
+  allDraftEvent
 };

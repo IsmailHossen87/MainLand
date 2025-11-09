@@ -4,6 +4,7 @@ import { UserRoutes } from '../app/modules/user/user.route';
 import { NotificationRoutes } from '../app/modules/ADMIN/Notification/notification.route';
 import { PaymentRouter } from '../app/modules/Payment/Payment.route';
 import { EventRoutes } from '../app/modules/ORGANIZER/Event/Event.Route';
+import { ActionRouter } from '../app/modules/ADMIN/Action/Action.Router';
 
 const router = express.Router();
 
@@ -28,6 +29,10 @@ const apiRoutes = [
   {
     path: '/payment',
     route:PaymentRouter ,
+  },
+  {
+    path: '/action',
+    route:ActionRouter ,
   },
 ];
 

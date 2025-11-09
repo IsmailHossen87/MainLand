@@ -34,16 +34,23 @@ router.patch(
   dynamicEventValidation,
   EventController.updateEvent
 );
-// GET Pending
+router.get("/",auth(USER_ROLES.ORGANIZER),EventController.allDraftEvent)
+// GET Pending ✅✅
 router.get(
   "/myEvent",
   auth(USER_ROLES.ORGANIZER),
   EventController.myEvents
 )
-// Live Event
+// Live Event ✅
 router.get(
   "/liveEvent",
   auth(USER_ROLES.ORGANIZER),
   EventController.MyLiveEvent
+)
+// Details
+router.get(
+  "/:id",
+  auth(USER_ROLES.ADMIN,USER_ROLES.ORGANIZER,USER_ROLES.USER),
+  EventController.singleEvent
 )
 export const EventRoutes = router;

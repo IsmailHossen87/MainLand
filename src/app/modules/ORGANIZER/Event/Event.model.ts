@@ -1,5 +1,6 @@
 import { User } from './../../user/user.model';
 import { Schema, model, Types } from 'mongoose';
+import { IEvent, TicketType } from './Event.interface';
 
 interface IEventDoc extends Document {
   userId: Types.ObjectId;
@@ -26,36 +27,86 @@ const CategorySchema = new Schema(
 );
 
 // 🟩 Event Schema
-const EventSchema = new Schema(
+const EventSchema = new Schema<IEvent>(
   {
     userId: {
-      type: Types.ObjectId,
-      ref: 'User',
+      type: Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
-    eventName: {type: String, trim: true,},
-    title: {type: String,trim: true},
-    image: {type: String,},
+    eventName: { type: String, trim: true, required: true },
+    title: { type: String, trim: true },
+    image: { type: String },
     category: [
       {
-        type: Types.ObjectId,
-        ref: 'Category',
+        type: Schema.Types.ObjectId,
+        ref: "Category",
       },
     ],
-    location: { type: String, },
-    totalEarned: {type: Number,default: 0,},
-    startTime: {type: Date, },
-    endTime: {type: Date},
-    address: {
-      type: String,
-    },
-    totalReview: [
-      {type: Types.ObjectId,ref: 'Review'},
-    ],
-    isDraft: {type: Boolean,default: true},
+    tags: [{ type: String, trim: true }],
 
-    status: { type: String,enum: ['Pending' , 'Accepted' ,'Rejected'], default: 'Pending'},
-    description: {type: String},
+    // 🗓️ Event Schedule
+    eventDate: { type: Date },
+    startTime: { type: String },
+    endTime: { type: String },
+
+    // 📍 Location Details
+    address: { type: String },
+    streetAddress: { type: String },
+    streetAddress2: { type: String },
+    city: { type: String },
+    state: { type: String },
+    country: { type: String },
+
+    // 🎟️ Tickets Details
+    tickets: [
+      {
+        type: {
+          type: String,
+          enum: Object.values(TicketType),
+          required: true,
+        },
+        price: { type: Number, required: true },
+        availableUnits: { type: Number, required: true },
+      },
+    ],
+
+    // 🕒 Sale Details
+    ticketSaleStart: { type: Date },
+    ticketSaleEnd: { type: Date },
+    preSaleStart: { type: Date },
+    preSaleEnd: { type: Date },
+
+    // 💸 Discount Codes
+    discountCodes: [
+      {
+        code: { type: String, trim: true },
+        percentage: { type: Number, min: 0, max: 100 },
+      },
+    ],
+
+    // 👤 Organizer Details
+    organizerName: { type: String },
+    organizerType: { type: String },
+    organizerEmail: { type: String },
+    organizerPhone: { type: String },
+
+    // 📊 Other Info
+    locationName: { type: String },
+    totalEarned: { type: Number, default: 0 },
+    totalReview: [
+      {
+        type: Types.ObjectId,
+        ref: "Review",
+      },
+    ],
+    isDraft: { type: Boolean, default: true },
+    status: {
+      type: String,
+      enum: ["Pending", "Accepted", "Rejected"],
+      default: "Pending",
+    },
+    description: { type: String },
   },
   {
     timestamps: true,
