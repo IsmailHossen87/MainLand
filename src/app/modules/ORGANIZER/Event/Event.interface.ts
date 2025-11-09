@@ -19,7 +19,7 @@ export interface IEvent{
     endTime :Date,
     address :string,
     totalReview :Types.ObjectId[],
-    statusEnded :'Ongoing' | 'Ended' |'Cancelled',
+    status :'Pending' | 'Accepted' |'Rejected',
     description :string,
     isDraft:boolean
 }

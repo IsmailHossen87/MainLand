@@ -50,14 +50,11 @@ const EventSchema = new Schema(
       type: String,
     },
     totalReview: [
-      {
-        type: Types.ObjectId,
-        ref: 'Review',
-      },
+      {type: Types.ObjectId,ref: 'Review'},
     ],
     isDraft: {type: Boolean,default: true},
 
-    statusEnded: { type: String,enum: ['Ongoing', 'Ended', 'Cancelled'], default: 'Ongoing'},
+    status: { type: String,enum: ['Pending' , 'Accepted' ,'Rejected'], default: 'Pending'},
     description: {type: String},
   },
   {

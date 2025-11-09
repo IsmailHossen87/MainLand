@@ -86,8 +86,37 @@ const updateEvent = catchAsync(
   }
 );
 
+// ------------------------------------------------------------------
+// 2️⃣ Update Event (Draft update or Publish)
+const myEvents = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId= req.user?.id
+    const result = await EventService.myEvents(userId as string)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message:"My event Retrived Successfully",
+      data: result,
+    });
+  }
+);
+const MyLiveEvent = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId= req.user?.id
+    const result = await EventService.myLiveEvent(userId as string)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message:"My event Retrived Successfully",
+      data: result,
+    });
+  }
+);
+
 export const EventController = {
   createCategory,
   createEvent,
   updateEvent,
+  myEvents,
+  MyLiveEvent
 };

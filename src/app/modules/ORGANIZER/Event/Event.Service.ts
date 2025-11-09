@@ -4,7 +4,6 @@ import ApiError from '../../../../errors/ApiError';
 import { User } from '../../user/user.model';
 import { Category, Event } from './Event.model';
 import { USER_ROLES } from '../../../../enums/user';
-import { IEvent } from './Event.interface';
 
 const creteCategory = async (payload: JwtPayload) => {
   const isExistUser = await User.findById(payload.userId);
@@ -39,12 +38,10 @@ const createEvent = async (payload: any) => {
     }
   }
 
-  // ⭐ যদি draft হয়, eventName দিয়ে check করবে
   if (isDraft) {
     let event = await Event.findOne({ userId, eventName, isDraft: true });
 
     if (event) {
-      // Update existing draft
       event = await Event.findByIdAndUpdate(
         event._id,
         { $set: payload },
@@ -58,12 +55,8 @@ const createEvent = async (payload: any) => {
   return event;
 };
 
-
 // 2️⃣ Update Event
 const updateEvent = async (eventId: string, userId: string, payload: any) => {
-  const { isDraft } = payload;
-
-  // Event খুঁজুন
   const event = await Event.findOne({ _id: eventId, userId });
 
   if (!event) {
@@ -91,8 +84,38 @@ const updateEvent = async (eventId: string, userId: string, payload: any) => {
   return updatedEvent;
 };
 
+// -------------------------------------------------
+const myEvents = async (userID: string) => {
+  const user = await User.findById(userID);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+  }
+
+  // ✅ Corrected query syntax
+  const allEvents = await Event.find({ userId: userID, status: 'Pending' });
+  if (!allEvents) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
+  }
+  return allEvents;
+};
+// Live
+const myLiveEvent = async (userID: string) => {
+  const user = await User.findById(userID);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+  }
+
+  // ✅ Corrected query syntax
+  const allEvents = await Event.find({ userId: userID, status: 'Accepted' });
+  if (!allEvents) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
+  }
+  return allEvents;
+};
 export const EventService = {
   createEvent,
   updateEvent,
   creteCategory,
+  myEvents,
+  myLiveEvent
 };
