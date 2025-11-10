@@ -47,15 +47,15 @@ const webhookHandler = async (req: Request, res: Response): Promise<void> => {
         console.log("-----------------meta----------data-----------",metadata);
 
         
-        if (metadata.purchaseId && metadata.raffleId) {
-          // 🎟️ Raffle Payment
-          // await handlePayment.handleRaffleBuy(session);
-        } else if (metadata.doonerId && metadata.causeId) {
-          // 💝 Charity Donation
-          // await handlePayment.handleDonate(session);
-        } else {
-          console.log('⚠️ Unknown payment type received in webhook');
-        }
+        // if (metadata.purchaseId && metadata.raffleId) {
+        //   // 🎟️ Raffle Payment
+        //   // await handlePayment.handleRaffleBuy(session);
+        // } else if (metadata.doonerId && metadata.causeId) {
+        //   // 💝 Charity Donation
+        //   // await handlePayment.handleDonate(session);
+        // } else {
+        //   console.log('⚠️ Unknown payment type received in webhook');
+        // }
         break;
       }
 

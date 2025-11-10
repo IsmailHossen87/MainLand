@@ -138,7 +138,34 @@ const allDraftEvent = catchAsync(
     });
   }
 );
+// Closed Event ✅✅✅✅
+const closedEvent = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId= req.user?.id 
 
+    const result = await EventService.closedEvent(userId as string)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message:"Event All Closed Retrived Successfully",
+      data: result,
+    });
+  }
+);
+
+
+const AllLiveEvent = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId= req.user?.id
+    const result = await EventService.AllLiveEvent(userId as string)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message:"My event Retrived Successfully",
+      data: result,
+    });
+  }
+);
 export const EventController = {
   createCategory,
   createEvent,
@@ -146,5 +173,7 @@ export const EventController = {
   myEvents,
   MyLiveEvent,
   singleEvent,
-  allDraftEvent
+  allDraftEvent,
+  closedEvent,
+  AllLiveEvent
 };

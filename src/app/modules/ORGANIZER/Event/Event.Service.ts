@@ -104,8 +104,6 @@ const myLiveEvent = async (userID: string) => {
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
   }
-
-  // ✅ Corrected query syntax
   const allEvents = await Event.find({ userId: userID, status: 'Accepted' });
   if (!allEvents) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
@@ -140,6 +138,33 @@ const allDraftEvent = async (userID: string) => {
   }
   return event;
 };
+// all Closed ✅✅✅✅
+const closedEvent = async (userID: string) => {
+  const user = await User.findById(userID);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+  }
+ const todaysDate = new Date();
+
+  // ✅ Corrected query syntax
+  const events = await Event.find({userId:userID,eventDate: { $lt: todaysDate }});
+  if (!events || events.length === 0) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "No closed events found");
+  }
+  return events;
+};
+
+const AllLiveEvent = async (userID: string) => {
+  const user = await User.findById(userID);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+  }
+  const allEvents = await Event.find({ status: 'Accepted' });
+  if (!allEvents) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
+  }
+  return allEvents;
+};
 export const EventService = {
   createEvent,
   updateEvent,
@@ -147,5 +172,7 @@ export const EventService = {
   myEvents,
   myLiveEvent,
   singleEvent,
-  allDraftEvent
+  allDraftEvent,
+  closedEvent,
+  AllLiveEvent
 };

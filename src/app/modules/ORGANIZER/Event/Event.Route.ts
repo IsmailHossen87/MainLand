@@ -34,6 +34,9 @@ router.patch(
   dynamicEventValidation,
   EventController.updateEvent
 );
+// eventDate Expired Like Closed✅✅✅✅
+router.get("/closed",auth(USER_ROLES.ORGANIZER),EventController.closedEvent)
+// AllDraft ✅✅✅
 router.get("/",auth(USER_ROLES.ORGANIZER),EventController.allDraftEvent)
 // GET Pending ✅✅
 router.get(
@@ -46,6 +49,13 @@ router.get(
   "/liveEvent",
   auth(USER_ROLES.ORGANIZER),
   EventController.MyLiveEvent
+)
+
+// SHOW ALL Live event For User
+router.get(
+  "/AllliveEvent",
+  auth(USER_ROLES.ORGANIZER,USER_ROLES.ADMIN,USER_ROLES.USER),
+  EventController.AllLiveEvent
 )
 // Details
 router.get(

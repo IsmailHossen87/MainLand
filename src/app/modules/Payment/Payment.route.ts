@@ -1,11 +1,11 @@
 import { Router } from "express"
-// import { handlePayment } from "../../../handlers/handlePaymentSuccess";
+import { handlePayment } from "../../handlears/handlePaymentSuccess";
 
 
 const router = Router()
 
-// router.get('/success', handlePayment.paymentSuccess);
-// router.get('/cancel', handlePayment.paymentCancel);
+router.get('/success', handlePayment.paymentSuccess);
+router.get('/cancel', handlePayment.paymentCancel);
 
 
 
