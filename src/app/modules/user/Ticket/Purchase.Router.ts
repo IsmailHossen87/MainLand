@@ -7,7 +7,7 @@ import { PaymentController } from "../../Payment/paymentController";
 const router = Router();
 
 router
-  .route('/intentPayment/:id')
+  .route('/payment/:id')
   .post(
     auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.ORGANIZER),
     PaymentController.createPaymentIntentEvent

@@ -5,6 +5,24 @@ import stripe from '../../config/stripe.config';
 import { logger } from '../../../shared/logger';
 import ApiError from '../../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
+import { handlePayment } from '../../handlears/handlePaymentSuccess';
+
+export interface Ticket {
+  ticketType: string;
+  quantity: number;
+}
+
+export interface Metadata {
+  tickets: string;      
+  fullName: string;
+  attenPhone: string;
+  attenEmail: string;
+  totalAmount: string;
+  eventId: string;
+  userId: string;
+  discount: string;
+  mailLandFee: string;
+}
 
 
 const webhookHandler = async (req: Request, res: Response): Promise<void> => {
@@ -47,10 +65,11 @@ const webhookHandler = async (req: Request, res: Response): Promise<void> => {
         console.log("-----------------meta----------data-----------",metadata);
 
         
-        // if (metadata.purchaseId && metadata.raffleId) {
-        //   // 🎟️ Raffle Payment
-        //   // await handlePayment.handleRaffleBuy(session);
-        // } else if (metadata.doonerId && metadata.causeId) {
+        if (metadata.eventId && metadata.userId) {
+          // 🎟️ Raffle Payment
+          await handlePayment.handleEvent(session);
+        } 
+        // else if (metadata.doonerId && metadata.causeId) {
         //   // 💝 Charity Donation
         //   // await handlePayment.handleDonate(session);
         // } else {

@@ -3,6 +3,9 @@ import Stripe from 'stripe';
 import crypto from 'crypto';
 import ApiError from '../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
+import { Metadata, Ticket } from '../modules/stripeAccount/webhookHandler';
+
+
 
 const paymentSuccess = (req: Request, res: Response) => {
   res.status(200).json({
@@ -24,17 +27,25 @@ const generateTicketCode = (userId: string, raffleId: string): string => {
   return hash.substring(0, 6).toUpperCase();
 };
 
-// RAFFLE
-const handleRaffleBuy = async (session: Stripe.Checkout.Session) => {
-  console.log(session.metadata);
+
+const handleEvent = async (session: Stripe.Checkout.Session) => {
+  if (!session.metadata) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Metadata missing in session!');
+  }
+  const metadata = session.metadata as unknown as Metadata;
+  const allTickets: Ticket[] = JSON.parse(metadata.tickets);
+
+  console.log('Full Name:', metadata.fullName);
+  console.log('All Tickets:', allTickets); 
 
   try {
     console.log('✅ Raffle updated successfully for signed-up user!');
   } catch (error) {
-    console.error('❌ Error in handleRaffleBuy:', error);
+    console.error('❌ Error in handleEvent:', error);
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Raffle purchase failed');
   }
 };
+
 
 // DONATE - Payment Success Handler
 const handleDonate = async (session: Stripe.Checkout.Session) => {
@@ -52,6 +63,6 @@ const handleDonate = async (session: Stripe.Checkout.Session) => {
 export const handlePayment = {
   paymentSuccess,
   paymentCancel,
-  handleRaffleBuy,
+  handleEvent,
   handleDonate,
 };

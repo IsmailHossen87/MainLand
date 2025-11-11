@@ -2,10 +2,9 @@ import stripe from '../../config/stripe.config';
 import ApiError from '../../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import config from '../../../config';
-import { TicketPurchase } from '../user/Ticket/Purchase.Mode';
 import { ITicketRequest } from '../user/Ticket/Purchase.Interface';
-import { Types } from 'mongoose';
 import { Event } from '../ORGANIZER/Event/Event.model';
+import { User } from '../user/user.model';
 
 interface IUserInfo {
   fullName: string;
@@ -71,22 +70,26 @@ const createPaymentIntentEvent = async (
   const mainlandFee = 2;
   const totalAmount = totalTicketPrice + mainlandFee - discountAmount;
 
-  // ✅ Step 5: Create purchase record
-  const purchase = await TicketPurchase.create({
-    eventId,
-    userId,
-    attenInformation: { fullName, email, phone },
-    tickets: updatedTickets,
-    mailLandFee: mainlandFee,
-    totalAmount,
-    discount: discountAmount,
-  });
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, `User is not Avaiable`);
+  }
+
+  // // ✅ Step 5: Create purchase record
+  // const purchase = await TicketPurchase.create({
+  //   eventId,
+  //   userId,
+  //   attenInformation: { fullName, email, phone },
+  //   tickets: updatedTickets,
+  //   mailLandFee: mainlandFee,
+  //   totalAmount,
+  //   discount: discountAmount,
+  // });
 
   // ✅ Step 6: Create Stripe customer
   const stripeCustomer = await stripe.customers.create({
-    name: fullName,
-    email,
-    phone,
+    name: user?.name,
+    email: user?.email,
   });
 
   // ✅ Step 7: Create Stripe checkout session
@@ -107,23 +110,24 @@ const createPaymentIntentEvent = async (
       },
     ],
     metadata: {
-      purchaseId: purchase._id.toString(),
-      eventId: event._id.toString(),
+      eventId: eventId.toString(),
+      userId: user._id.toString(),
       totalAmount: String(totalAmount),
-    },
+      fullName: fullName,
+      attenEmail:email,
+      attenPhone:phone,
+      tickets: JSON.stringify(updatedTickets),
+      mailLandFee:String(mainlandFee) ,
+      discount:String(discountAmount) 
+    }, 
+    
     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${config.stripe.cancel_url}?purchase_id=${purchase._id}`,
-  });
-
-  // ✅ Step 8: Update purchase with session ID
-  await TicketPurchase.findByIdAndUpdate(purchase._id, {
-    stripeSessionId: stripeSession.id,
+    cancel_url: `${config.stripe.cancel_url}?purchase_id is Cancle`,
   });
 
   return {
     url: stripeSession.url,
     sessionId: stripeSession.id,
-    purchaseId: purchase._id,
   };
 };
 
@@ -146,7 +150,6 @@ const createPaymentIntentEvent = async (
 //   if (isNaN(DonateAmount)) {
 //     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid donation amount');
 //   }
-
 //   // Find or create donor
 //   let donner = await Dooner.findOne({ email: userData.email });
 //   if (!donner) {

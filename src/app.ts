@@ -43,7 +43,7 @@ app.use('/api/v1', router);
 app.get('/', (req: Request, res: Response) => {
   const date = new Date(Date.now());
   res.send(
-    `<h1 style="text-align:center; color:#173616; font-family:Verdana;">Beep-beep! The server is alive and kicking.</h1>
+    `<h1 style="text-align:center; color:#173616; font-family:Verdana;">The Mainland server is Runing .</h1>
     <p style="text-align:center; color:#173616; font-family:Verdana;">${date}</p>
     `
   );
