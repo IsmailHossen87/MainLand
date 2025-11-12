@@ -1,4 +1,43 @@
-import { ICreateAccount, IResetPassword } from '../types/emailTamplate';
+import {  IResetPassword } from '../types/emailTamplate';
+interface ITicket {
+  ticketType: string;
+  quantity: number;
+}
+
+interface IPurchaseEmail {
+  name: string;
+  email: string;
+  totalTicket: ITicket[];
+  TotalTaka: string;
+
+}
+
+
+const ticketPurchaseEmail = (values: IPurchaseEmail) => {
+  const ticketsHtml = values.totalTicket && values.totalTicket.length
+    ? `<ul style="padding-left:20px;">
+         ${values.totalTicket.map(ticket => `
+           <li>${ticket.ticketType} x ${ticket.quantity}</li>
+         `).join('')}
+       </ul>`
+    : '';
+
+  return {
+    to: values.email,
+    subject: `🎟️ Your Ticket Purchase Summary, ${values.name}`,
+    html: `
+      <div style="font-family:Arial,sans-serif; padding:20px; background:#f4f4f4;">
+        <h2>Hi ${values.name},</h2>
+        <p>Thank you for your ticket purchase! Here’s a summary of your order:</p>
+        ${ticketsHtml}
+        <p><strong>Total Amount Paid:</strong> $${values.TotalTaka}</p>
+        <p>We look forward to seeing you at the event!</p>
+        <p>— Event Team 🎉</p>
+      </div>
+    `,
+  };
+};
+
 
 const createAccount = (values: { name: string; email: string; otp: number }) => {
   const data = {
@@ -68,31 +107,13 @@ const donationConfirmation = (values: {
 };
 
 
-// const raffleConfirmation = (values: {name:string,email:string,totalTicket:string,raffleNumbers:string}) => { 
-//   const data = {
-//     to: values.email,
-//     subject: 'Raffle Purchase Confirmation',
-//     html: `<body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 50px; padding: 20px; color: #555;">
-//       <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-//           <img src="https://ibb.co.com/gLb5SyJ5" alt="FundRaise Logo" style="display: block; margin: 0 auto 20px; width:150px" />
-//           <h2 style="color: #277E16; font-size: 24px; margin-bottom: 20px;">Hello ${values.name}, Your Raffle Purchase is Confirmed!</h2>
-//           <div style="text-align: center;">
-//               <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px;">You have successfully purchased <strong>${values.totalTicket}</strong> raffle ticket(s) for <strong>${values.raffleName}</strong>.</p>
-//               <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Your raffle numbers: <strong>${values.raffleNumbers.join(', ')}</strong></p>
-//               <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Good luck! Keep an eye on your email for raffle results.</p>
-//           </div>
-//           <p style="color: #555; font-size: 14px; line-height: 1.5;">If you did not make this purchase, please contact our support immediately.</p>
-//       </div>
-//     </body>`,
-//   };
-//   return data;
-// };
+
 
 export const emailTemplate = {
   createAccount,
   resetPassword,
   donationConfirmation,
-  // raffleConfirmation,
+ ticketPurchaseEmail
 };
 
 

@@ -1,97 +1,106 @@
-import { FilterQuery, Query } from 'mongoose';
+import { FilterQuery, Query } from "mongoose";
+import { excludeField } from "../../shared/constrant";
 
-class QueryBuilder<T> {
+
+export class QueryBuilder<T> {
   public modelQuery: Query<T[], T>;
-  public query: Record<string, unknown>;
+  public readonly query: Record<string, string>;
 
-  constructor(modelQuery: Query<T[], T>, query: Record<string, unknown>) {
+  constructor(modelQuery: Query<T[], T>, query: Record<string, string>) {
     this.modelQuery = modelQuery;
     this.query = query;
   }
 
-  //searching
-  search(searchableFields: string[]) {
-    if (this?.query?.searchTerm) {
-      this.modelQuery = this.modelQuery.find({
-        $or: searchableFields.map(
-          field =>
-            ({
-              [field]: {
-                $regex: this.query.searchTerm,
-                $options: 'i',
-              },
-            } as FilterQuery<T>)
-        ),
-      });
+  // 🔍 Search
+  search(searchableField: string[]): this {
+    const searchTerm = this.query.searchTerm?.trim();
+    if (searchTerm) {
+      const searchQuery = {
+        $or: searchableField.map((field) => ({
+          [field]: { $regex: searchTerm, $options: "i" },
+        })),
+      };
+      this.modelQuery = this.modelQuery.find(searchQuery as FilterQuery<T>);
     }
     return this;
   }
 
-  //filtering
-  filter() {
-    const queryObj = { ...this.query };
-    const excludeFields = ['searchTerm', 'sort', 'page', 'limit', 'fields'];
-    excludeFields.forEach(el => delete queryObj[el]);
-
-    this.modelQuery = this.modelQuery.find(queryObj as FilterQuery<T>);
+  // 🧩 Filter
+  filter(): this {
+    const filter = { ...this.query };
+    for (const field of excludeField) delete filter[field];
+    this.modelQuery = this.modelQuery.find(filter as FilterQuery<T>);
     return this;
   }
 
-  //sorting
-  sort() {
-    let sort = (this?.query?.sort as string) || '-createdAt';
-    this.modelQuery = this.modelQuery.sort(sort);
+  // 📅 Date Range (weekly, monthly, yearly)
+dateRange(): this {
+  const now = new Date();
+  const range = this.query.dateRange;
 
-    return this;
+  if (range) {
+    let startDate: Date | null = null;
+
+    if (range === "weekly") {
+      startDate = new Date();
+      startDate.setDate(now.getDate() - 7);
+    } else if (range === "monthly") {
+      startDate = new Date();
+      startDate.setMonth(now.getMonth() - 1);
+    } else if (range === "yearly") {
+      startDate = new Date();
+      startDate.setFullYear(now.getFullYear() - 1);
+    }
+
+    if (startDate) {
+      const dateCondition = { createdAt: { $gte: startDate, $lte: now } };
+
+      this.modelQuery = this.modelQuery.find({
+        ...((this.modelQuery as any)._conditions || {}),
+        ...dateCondition,
+      } as FilterQuery<T>);
+    }
   }
 
-  //pagination
-  paginate() {
-    let limit = Number(this?.query?.limit) || 10;
-    let page = Number(this?.query?.page) || 1;
-    let skip = (page - 1) * limit;
-
-    this.modelQuery = this.modelQuery.skip(skip).limit(limit);
-
-    return this;
-  }
-
-  //fields filtering
-  fields() {
-    let fields =
-      (this?.query?.fields as string)?.split(',').join(' ') || '-__v';
-    this.modelQuery = this.modelQuery.select(fields);
-
-    return this;
-  }
-
-  //populating
-  populate(populateFields: string[], selectFields: Record<string, unknown>) {
-    this.modelQuery = this.modelQuery.populate(
-      populateFields.map(field => ({
-        path: field,
-        select: selectFields[field],
-      }))
-    );
-    return this;
-  }
-
-  //pagination information
-  async getPaginationInfo() {
-    const total = await this.modelQuery.model.countDocuments(
-      this.modelQuery.getFilter()
-    );
-    const limit = Number(this?.query?.limit) || 10;
-    const page = Number(this?.query?.page) || 1;
-    const totalPage = Math.ceil(total / limit);
-
-    return {
-      total,
-      limit,
-      page,
-      totalPage,
-    };
-  }
+  return this;
 }
 
-export default QueryBuilder;
+  // 🔃 Sort
+  sort(): this {
+    const sort = this.query.sort || "-createdAt";
+    this.modelQuery = this.modelQuery.sort(sort);
+    return this;
+  }
+
+  // 📋 Fields selection
+  fields(): this {
+    const fields = this.query.fields?.split(",").join(" ") || "";
+    if (fields) this.modelQuery = this.modelQuery.select(fields);
+    return this;
+  }
+
+  // 📄 Pagination
+  paginate(): this {
+    const page = Number(this.query.page) || 1;
+    const limit = Number(this.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    this.modelQuery = this.modelQuery.skip(skip).limit(limit);
+    return this;
+  }
+
+  // 🚀 Execute final query
+  async build() {
+    return await this.modelQuery.exec();
+  }
+
+  // 📊 Meta info (for pagination)
+  async getMeta() {
+    const totalDocuments = await this.modelQuery.model.countDocuments();
+    const page = Number(this.query.page) || 1;
+    const limit = Number(this.query.limit) || 10;
+    const totalPage = Math.ceil(totalDocuments / limit);
+
+    return { page, limit, total: totalDocuments, totalPage };
+  }
+}

@@ -4,6 +4,11 @@ import crypto from 'crypto';
 import ApiError from '../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import { Metadata, Ticket } from '../modules/stripeAccount/webhookHandler';
+import { TicketPurchase } from '../modules/user/Ticket/Purchase.Mode';
+import { User } from '../modules/user/user.model';
+import { emailHelper } from '../../helpers/emailHelper';
+import { emailTemplate } from '../../shared/emailTemplate';
+import { Event } from '../modules/ORGANIZER/Event/Event.model';
 
 
 
@@ -33,10 +38,42 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Metadata missing in session!');
   }
   const metadata = session.metadata as unknown as Metadata;
-  const allTickets: Ticket[] = JSON.parse(metadata.tickets);
+  const {userId,eventId,discount,attenEmail,mailLandFee,fullName,attenPhone,totalAmount} =session.metadata
+  const allTickets: Ticket[] = JSON.parse(metadata.tickets); 
 
-  console.log('Full Name:', metadata.fullName);
-  console.log('All Tickets:', allTickets); 
+   await TicketPurchase.create({
+    eventId,
+    userId,
+    attenInformation: { fullName, email:attenEmail, phone:attenPhone },
+    tickets: allTickets,
+    mailLandFee: Number(mailLandFee),
+    totalAmount:Number(totalAmount),
+    discount: Number(discount),
+  }); 
+
+await Event.updateOne(
+  { _id: eventId, "tickets.ticketType": allTickets[0].ticketType },
+  {
+    $inc: {
+      totalEarned: totalAmount,
+      "tickets.$.availableUnits": -allTickets[0].quantity
+    }
+  },
+  { runValidators: true }
+);
+
+
+// 📤📤📤
+      const value = {
+      name: fullName,
+      email: attenEmail,
+      totalTicket: allTickets,
+      TotalTaka: totalAmount,
+    };
+
+  const emailSend = emailTemplate.ticketPurchaseEmail(value)
+   await emailHelper.sendEmail(emailSend);
+
 
   try {
     console.log('✅ Raffle updated successfully for signed-up user!');

@@ -16,7 +16,7 @@ const BuyTicket = catchAsync(
     sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
-      message: 'User created successfully',
+      message: 'Ticket Purchase successfully',
       data: null,
     });
   }

@@ -61,10 +61,7 @@ const webhookHandler = async (req: Request, res: Response): Promise<void> => {
       case 'checkout.session.completed': {
         const session = event.data.object as any;
 
-        const metadata = session.metadata || {};
-        console.log("-----------------meta----------data-----------",metadata);
-
-        
+        const metadata = session.metadata || {}     
         if (metadata.eventId && metadata.userId) {
           // 🎟️ Raffle Payment
           await handlePayment.handleEvent(session);

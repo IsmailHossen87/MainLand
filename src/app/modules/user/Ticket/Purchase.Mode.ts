@@ -58,7 +58,7 @@ const TicketPurchaseSchema = new Schema<ITicketPurchase>(
     discount: { type: Number, default: 0 },
   },
   {
-    timestamps: true,
+    timestamps: true,versionKey:false
   }
 );
 

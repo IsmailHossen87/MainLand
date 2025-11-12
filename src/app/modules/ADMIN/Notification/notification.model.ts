@@ -6,27 +6,15 @@ const notificationSchema = new Schema<INotification>({
     type: Schema.Types.ObjectId,
     ref: 'User',
   },
-  type: {
-    type: String,
-    required: true,
-  },
   title: {
     type: String,
     required: true,
   },
-  recipientGroup: {
-    type: String,
-    required: true,
-  },
-  dateSent: {
-    type: Date,
-    default: Date.now,
-  },
-  status: {
-    type: String,
-    enum: ['Sent', 'Draft'],
-    default: 'Draft',
-  },
+
+  isDraft:{type:Boolean,default:true},
+  message:{type:String},
+  DeliveryMethod: {
+    type: String,enum: ['email', 'notification']},
   recipientType: {
     type: String,
     enum: ['Active', 'Closed', 'Winner Announced'],

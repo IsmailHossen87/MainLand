@@ -6,19 +6,20 @@ import { ITicketRequest } from '../user/Ticket/Purchase.Interface';
 import { Event } from '../ORGANIZER/Event/Event.model';
 import { User } from '../user/user.model';
 
-interface IUserInfo {
-  fullName: string;
-  email: string;
-  phone: string;
-  tickets: ITicketRequest[];
-  discountCode?: string;
-  userId?: string;
-}
 
-const createPaymentIntentEvent = async (
-  eventId: string,
-  userInfo: IUserInfo
-) => {
+interface TICKETS{
+  ticketType:string,
+  quantity:number
+}
+interface IUser{
+  fullName:string,
+  email:string,
+  discountCode?:string,
+  userId:string,
+  phone:string,
+  tickets:TICKETS[]
+}
+const createPaymentIntentEvent = async (eventId :string,userInfo:IUser) => {
   const { fullName, email, phone, tickets, discountCode, userId } = userInfo;
 
   // ✅ Step 1: Find the event
@@ -32,9 +33,7 @@ const createPaymentIntentEvent = async (
   const updatedTickets = [];
 
   for (const selected of tickets) {
-    const eventTicket = event.tickets?.find(
-      t => t.type === selected.ticketType
-    );
+    const eventTicket = event.tickets?.find(t => t.type === selected.ticketType ); //ইভেন্টের টিকিট লিস্টে (event.tickets) সেই টাইপের টিকিট আছে কিনা।
 
     if (!eventTicket) {
       throw new ApiError(
@@ -74,17 +73,6 @@ const createPaymentIntentEvent = async (
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, `User is not Avaiable`);
   }
-
-  // // ✅ Step 5: Create purchase record
-  // const purchase = await TicketPurchase.create({
-  //   eventId,
-  //   userId,
-  //   attenInformation: { fullName, email, phone },
-  //   tickets: updatedTickets,
-  //   mailLandFee: mainlandFee,
-  //   totalAmount,
-  //   discount: discountAmount,
-  // });
 
   // ✅ Step 6: Create Stripe customer
   const stripeCustomer = await stripe.customers.create({

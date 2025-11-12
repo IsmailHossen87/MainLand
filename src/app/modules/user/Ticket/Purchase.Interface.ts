@@ -15,9 +15,7 @@ export interface TicketPruchase {
     eventId:Types.ObjectId,
     userId:Types.ObjectId,
     attenInformation:IAttendInformation,
-    tickets:{
-        ticketType:ITicketRequest ,
-    }[];
+    tickets:{ticketType:ITicketRequest}[];
     mailLandFee:number;
     totalAmount:number,
     discount:number,

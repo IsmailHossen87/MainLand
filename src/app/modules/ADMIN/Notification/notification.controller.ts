@@ -1,41 +1,57 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { NotificationService } from './notification.service';
 import sendResponse from '../../../../shared/sendResponse';
 import catchAsync from '../../../../shared/catchAsync';
+import { JwtPayload } from 'jsonwebtoken';
 
 const createNotification = catchAsync(async (req: Request, res: Response) => {
 
-  const userId = req.user.id;
-  req.body.userId = userId
-  const result = await NotificationService.createNotification(req.body);
+  const userId = req.user?.id as string;
+  req.body.userId = userId 
+  const isDraft = req.body.isDraft === true || req.body.isDraft === 'true';
+  const result = await NotificationService.createNotification({...req.body,isDraft});
+
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
-    message: 'Notification created successfully',
+    message: isDraft
+        ? 'Draft saved successfully'
+        : 'Event created successfully',
     data: result,
   });
 });
-
-const getAllNotifications = catchAsync(async (req: Request, res: Response) => {
-  const { search, page, limit, ...query } = req.query;
-  const user = req.user;
-  
-  const result = await NotificationService.getAllNotifications(
-    { search, page, limit, ...query },
-    user
+const updateNotification = catchAsync(async (req: Request, res: Response) => { 
+  const isDraft = req.body.isDraft === true || req.body.isDraft === 'true';
+  const user = req?.user as JwtPayload;
+  const result = await NotificationService.updateNotification(
+    req.params.id,
+    user,
+    {...req.body,isDraft}
   );
-  
   sendResponse(res, {
-    pagination: {
-      ...result.meta,
-    }, 
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Notifications fetched successfully',
-    data: result.result,
+    message: isDraft
+        ? 'Notification updated successfully'
+        : 'Notification published successfully',
+    data: result,
   });
 });
+// GET ALL NOTIFICATION
+const getAllNotification = catchAsync(async(req:Request,res:Response)=>{
+  const query = req.query 
+  const user = req.user as JwtPayload
+  const result = await NotificationService.getAllNotifications(query as Record<string,string>,user) 
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Notification Retrived successfully',
+    meta:result.meta,
+    data: result.data,
+    
+  });
+})
 
 const getNotificationById = catchAsync(async (req: Request, res: Response) => {
   const result = await NotificationService.getNotificationById(req.params.id);
@@ -47,18 +63,6 @@ const getNotificationById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const updateNotification = catchAsync(async (req: Request, res: Response) => {
-  const result = await NotificationService.updateNotification(
-    req.params.id,
-    req.body
-  );
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Notification updated successfully',
-    data: result,
-  });
-});
 
 const deleteNotification = catchAsync(async (req: Request, res: Response) => {
   const result = await NotificationService.deleteNotification(req.params.id);
@@ -83,9 +87,9 @@ const getNotificationCount = catchAsync(async (req: Request, res: Response) => {
 
 export const NotificationController = {
   createNotification,
-  getAllNotifications,
   getNotificationById,
   updateNotification,
   deleteNotification,
   getNotificationCount,
+  getAllNotification
 };

@@ -7,7 +7,7 @@ import { parseFormDataMiddleware } from '../../../middlewares/ParseFormData';
 import { dynamicEventValidation } from './DaynamicEventValidation';
 
 const router = Router();
-
+// create Category
 router.post(
   '/category',
   auth(USER_ROLES.ADMIN),
@@ -15,6 +15,7 @@ router.post(
   parseFormDataMiddleware,
   EventController.createCategory
 );
+
 // saveDraft or Create
 router.post(
   '/',

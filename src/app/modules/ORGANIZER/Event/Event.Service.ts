@@ -14,9 +14,13 @@ const creteCategory = async (payload: JwtPayload) => {
   return createCategory;
 };
 
+
+
+
 // 1️⃣ Create Event (Draft or Full)
 const createEvent = async (payload: any) => {
   const { userId, eventName, isDraft } = payload;
+  
   const isExistUser = await User.findById(userId);
   if (!isExistUser) {
     throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");

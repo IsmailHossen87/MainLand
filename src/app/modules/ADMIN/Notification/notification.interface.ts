@@ -2,10 +2,9 @@ import { Types } from "mongoose";
 
 export interface INotification {
   userId:Types.ObjectId;
-  type: string;
   title: string;
-  recipientGroup: string;
-  dateSent: Date;
-  status: 'Sent' | 'Draft';
+  isDraft:boolean;
+  DeliveryMethod: 'email' | 'notification';
   recipientType: 'Active' | 'Closed' | 'Winner Announced';
+  message:string
 }
