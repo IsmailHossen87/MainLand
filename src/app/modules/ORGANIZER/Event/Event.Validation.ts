@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // 🎫 Enum for Ticket Type
-export const TicketTypeEnum = z.enum(['Premium', 'VIP', 'Standard']);
+export const TicketTypeEnum = z.enum(['Premium', 'VIP', 'Standard','Free']);
 
 // 🧾 Ticket Schema
 const TicketSchema = z.object({
@@ -34,7 +34,6 @@ const DraftEventZodSchema = z.object({
     image: z.string().optional(),
     category: z.array(z.string()).optional(),
     tags: z.array(z.string()).optional(),
-
     eventDate: validDate.optional(),
     startTime: z.string().optional(),
     endTime: z.string().optional(),

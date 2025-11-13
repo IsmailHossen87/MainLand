@@ -15,8 +15,7 @@ const authProviderSchema = new Schema<IAuthProvider>({
 const userSchema = new Schema<IUser, UserModal>(
   {
     name: {
-      type: String,
-      required: true,
+      type: String
     },
     role: {
       type: String,
@@ -45,10 +44,6 @@ const userSchema = new Schema<IUser, UserModal>(
       default: 'https://i.ibb.co/z5YHLV9/profile.png',
     },
     joinedDate:{type:Date,default:Date.now},
-    bio: {
-      type: String,
-      default: '',
-    },
     stripeAccountInfo: {
       stripeCustomerId: {
         type: String,

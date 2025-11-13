@@ -7,6 +7,10 @@ import { parseFormDataMiddleware } from '../../../middlewares/ParseFormData';
 import { dynamicEventValidation } from './DaynamicEventValidation';
 
 const router = Router();
+// create SubCategory
+router.post('/subcategory',auth(USER_ROLES.ADMIN), EventController.createSubCategory);
+
+
 // create Category
 router.post(
   '/category',
@@ -34,6 +38,13 @@ router.patch(
   parseFormDataMiddleware,
   dynamicEventValidation,
   EventController.updateEvent
+);
+// Update Category
+router.patch(
+  '/category/:id',
+  auth(USER_ROLES.ADMIN),
+  fileUploadHandler(),
+  EventController.updateCategory
 );
 // eventDate Expired Like Closed✅✅✅✅
 router.get("/closed",auth(USER_ROLES.ORGANIZER),EventController.closedEvent)
@@ -64,4 +75,8 @@ router.get(
   auth(USER_ROLES.ADMIN,USER_ROLES.ORGANIZER,USER_ROLES.USER),
   EventController.singleEvent
 )
+// UPDATE category
+router.put("/category/:id", auth(USER_ROLES.ADMIN), fileUploadHandler(),
+  parseFormDataMiddleware,EventController.updateCategory);
+
 export const EventRoutes = router;

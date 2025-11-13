@@ -1,46 +1,54 @@
-import { Types } from "mongoose"
+import { Types } from "mongoose";
 
-export interface ICategory{ 
-    userId:Types.ObjectId,
-    title:string,
-    coverImage:string
+export interface ICategory { 
+  userId: Types.ObjectId;
+  title: string;
+  coverImage: string;
+  subCategoryId?: Types.ObjectId[];
+}
+
+export interface ISubcategory {
+  userId: Types.ObjectId;
+  title: string;
 }
 
 export enum TicketType {
   PREMIUM = "Premium",
   VIP = "VIP",
   STANDARD = "Standard",
+  FREE = "Free",
 }
 
 export interface IEvent {
   userId: Types.ObjectId;
   eventName: string;
   title: string;
-  image: string;
-  category?: Types.ObjectId[]; 
-  tags?: string[]; 
-  description: string;
+  image?: string;
+  category?: Types.ObjectId[];
+  tags?: string[];
+  description?: string;
 
-  eventDate: Date;
-  startTime: string; 
-  endTime: string;  
+  eventDate?: Date;
+  startTime?: string;
+  endTime?: string;
 
   // Location
-  address: string;
+  address?: string;
   streetAddress?: string;
   streetAddress2?: string;
-  city: string;
-  state: string;
-  country: string;
+  city?: string;
+  state?: string;
+  country?: string;
 
-  // Tickets details
+  // Tickets
   tickets?: {
-    type: TicketType
+    type: TicketType;
     price: number;
     availableUnits: number;
+    ticketBuyerId?: Types.ObjectId[];
   }[];
 
-  // Sale details
+  // Sale
   ticketSaleStart?: Date;
   ticketSaleEnd?: Date;
   preSaleStart?: Date;
@@ -49,19 +57,19 @@ export interface IEvent {
   // Discount
   discountCodes?: {
     code: string;
-    percentage: number; // e.g. 10 means 10%
+    percentage: number;
   }[];
 
-  // Organizer info
+  // Organizer
   organizerName?: string;
-  organizerType?: string; // e.g. 'Event Organizer' or 'Company'
+  organizerType?: string;
   organizerEmail?: string;
   organizerPhone?: string;
 
   // Other
   locationName?: string;
   totalEarned: number;
-  totalReview: Types.ObjectId[];
+  totalReview?: Types.ObjectId[];
   status: "Pending" | "Accepted" | "Rejected";
   isDraft: boolean;
 }

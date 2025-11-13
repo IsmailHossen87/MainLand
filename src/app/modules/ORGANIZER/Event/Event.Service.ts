@@ -2,8 +2,17 @@ import { JwtPayload } from 'jsonwebtoken';
 import { StatusCodes } from 'http-status-codes';
 import ApiError from '../../../../errors/ApiError';
 import { User } from '../../user/user.model';
-import { Category, Event } from './Event.model';
+import { Category, Event, SubCategory } from './Event.model';
 import { USER_ROLES } from '../../../../enums/user';
+
+const creteSubCategory = async (payload: JwtPayload) => {
+  const isExistUser = await User.findById(payload.userId);
+  if (!isExistUser || isExistUser.role != 'ADMIN') {
+    throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");
+  }
+  const createCategory = await SubCategory.create(payload);
+  return createCategory;
+};
 
 const creteCategory = async (payload: JwtPayload) => {
   const isExistUser = await User.findById(payload.userId);
@@ -13,13 +22,26 @@ const creteCategory = async (payload: JwtPayload) => {
   const createCategory = await Category.create(payload);
   return createCategory;
 };
+// UPDATEcategory
+const updateCategory = async (categoryId: string, updateData: any) => {
+  const category = await Category.findByIdAndUpdate(
+    categoryId,
+    { $set: updateData },
+    { new: true, runValidators: true }
+  );
 
+  if (!category) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Category not found");
+  }
+
+  return category;
+};
 
 
 
 // 1️⃣ Create Event (Draft or Full)
 const createEvent = async (payload: any) => {
-  const { userId, eventName, isDraft } = payload;
+  const { userId, eventName, isDraft ,organizerEmail} = payload;
   
   const isExistUser = await User.findById(userId);
   if (!isExistUser) {
@@ -170,6 +192,7 @@ const AllLiveEvent = async (userID: string) => {
   return allEvents;
 };
 export const EventService = {
+  creteSubCategory,
   createEvent,
   updateEvent,
   creteCategory,
@@ -178,5 +201,6 @@ export const EventService = {
   singleEvent,
   allDraftEvent,
   closedEvent,
-  AllLiveEvent
+  AllLiveEvent,
+  updateCategory
 };

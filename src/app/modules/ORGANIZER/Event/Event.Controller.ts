@@ -5,6 +5,22 @@ import catchAsync from '../../../../shared/catchAsync';
 import sendResponse from '../../../../shared/sendResponse';
 import { EventService } from './Event.Service';
 
+// SubCategory
+const createSubCategory = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req?.user?.id;
+    req.body.userId = userId;
+
+    const result = await EventService.creteSubCategory(req.body);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: 'Sub-Category created successfully',
+      data: result,
+    });
+  }
+);
 const createCategory = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req?.user?.id;
@@ -25,6 +41,26 @@ const createCategory = catchAsync(
       statusCode: StatusCodes.OK,
       message: 'Category created successfully',
       data: result,
+    });
+  }
+);
+// UPDATEcategory
+ const updateCategory = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const categoryId = req.params.id;
+
+    // Handle image if uploaded
+    if (req.files && "image" in req.files && req.files.image[0]) {
+      req.body.coverImage = `/image/${req.files.image[0].filename}`;
+    }
+
+    const updatedCategory = await EventService.updateCategory(categoryId, req.body);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Category updated successfully",
+      data: updatedCategory,
     });
   }
 );
@@ -167,6 +203,7 @@ const AllLiveEvent = catchAsync(
   }
 );
 export const EventController = {
+  createSubCategory,
   createCategory,
   createEvent,
   updateEvent,
@@ -175,5 +212,6 @@ export const EventController = {
   singleEvent,
   allDraftEvent,
   closedEvent,
-  AllLiveEvent
+  AllLiveEvent,
+  updateCategory
 };

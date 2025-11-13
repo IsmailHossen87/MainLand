@@ -13,7 +13,6 @@ export type IUser = {
   email: string;
   password: string;
   image?: string;
-  bio?: string;
   status: 'Active' | 'Blocked';
   verified: boolean;
   auths:IAuthProvider[];
@@ -22,7 +21,6 @@ export type IUser = {
     firstName?: string;
     lastName?: string;
     phone?: string;
-    bio?: string;
   };
 
   address?: {

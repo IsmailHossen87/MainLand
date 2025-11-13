@@ -3,14 +3,16 @@ import Stripe from 'stripe';
 import crypto from 'crypto';
 import ApiError from '../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
-import { Metadata, Ticket } from '../modules/stripeAccount/webhookHandler';
+import { Metadata } from '../modules/stripeAccount/webhookHandler';
 import { TicketPurchase } from '../modules/user/Ticket/Purchase.Mode';
-import { User } from '../modules/user/user.model';
 import { emailHelper } from '../../helpers/emailHelper';
 import { emailTemplate } from '../../shared/emailTemplate';
 import { Event } from '../modules/ORGANIZER/Event/Event.model';
 
-
+interface ITicket {
+  ticketType: string;
+  quantity: number;
+}
 
 const paymentSuccess = (req: Request, res: Response) => {
   res.status(200).json({
@@ -32,48 +34,63 @@ const generateTicketCode = (userId: string, raffleId: string): string => {
   return hash.substring(0, 6).toUpperCase();
 };
 
-
 const handleEvent = async (session: Stripe.Checkout.Session) => {
   if (!session.metadata) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Metadata missing in session!');
   }
   const metadata = session.metadata as unknown as Metadata;
-  const {userId,eventId,discount,attenEmail,mailLandFee,fullName,attenPhone,totalAmount} =session.metadata
-  const allTickets: Ticket[] = JSON.parse(metadata.tickets); 
+  const {
+    userId,
+    eventId,
+    discount,
+    attenEmail,
+    mailLandFee,
+    fullName,
+    attenPhone,
+    totalAmount,
+  } = session.metadata;
+  const allTickets: ITicket[] = JSON.parse(metadata.tickets);
 
-   await TicketPurchase.create({
+ const ticketPurchase = await TicketPurchase.create({
     eventId,
     userId,
-    attenInformation: { fullName, email:attenEmail, phone:attenPhone },
+    attenInformation: { fullName, email: attenEmail, phone: attenPhone },
     tickets: allTickets,
     mailLandFee: Number(mailLandFee),
-    totalAmount:Number(totalAmount),
+    totalAmount: Number(totalAmount),
     discount: Number(discount),
-  }); 
+  });
 
-await Event.updateOne(
-  { _id: eventId, "tickets.ticketType": allTickets[0].ticketType },
-  {
-    $inc: {
-      totalEarned: totalAmount,
-      "tickets.$.availableUnits": -allTickets[0].quantity
-    }
-  },
-  { runValidators: true }
-);
+for (const ticket of allTickets) {
+   await Event.findOneAndUpdate(
+    { _id: eventId, "tickets.type": ticket.ticketType },
+    {
+      $inc: {
+        totalEarned: Number(totalAmount),
+        "tickets.$.availableUnits": -ticket.quantity,
+      },
+       $set: {
+      "tickets.$.ticketBuyerId": ticketPurchase.userId
+    },
+    },
+    { new: true ,runValidators: true }
+  );
+
+}
 
 
-// 📤📤📤
-      const value = {
-      name: fullName,
-      email: attenEmail,
-      totalTicket: allTickets,
-      TotalTaka: totalAmount,
-    };
 
-  const emailSend = emailTemplate.ticketPurchaseEmail(value)
-   await emailHelper.sendEmail(emailSend);
 
+  // 📤📤📤
+  const value = {
+    name: fullName,
+    email: attenEmail,
+    totalTicket: allTickets,
+    TotalTaka: totalAmount,
+  };
+
+  const emailSend = emailTemplate.ticketPurchaseEmail(value);
+  await emailHelper.sendEmail(emailSend);
 
   try {
     console.log('✅ Raffle updated successfully for signed-up user!');
@@ -82,7 +99,6 @@ await Event.updateOne(
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Raffle purchase failed');
   }
 };
-
 
 // DONATE - Payment Success Handler
 const handleDonate = async (session: Stripe.Checkout.Session) => {

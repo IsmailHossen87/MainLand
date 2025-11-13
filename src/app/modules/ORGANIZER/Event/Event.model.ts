@@ -1,17 +1,25 @@
 import { User } from './../../user/user.model';
 import { Schema, model, Types } from 'mongoose';
-import { IEvent, TicketType } from './Event.interface';
+import { IEvent, ISubcategory, TicketType } from './Event.interface';
 
 interface IEventDoc extends Document {
   userId: Types.ObjectId;
   eventName: String;
 }
 
+const SubCategorySchema = new Schema<ISubcategory>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', },
+    title: { type: String, required: true, trim: true },
+  },
+  { timestamps: true, versionKey: false }
+);
+
 // 🟦 Category Schema
 const CategorySchema = new Schema(
   {
     userId: { type: Types.ObjectId, ref: 'User', required: true },
-
+    subCategoryId: [{ type: Schema.Types.ObjectId, ref: 'SubCategory',required:true }],
     title: {
       type: String,
       trim: true,
@@ -20,10 +28,7 @@ const CategorySchema = new Schema(
       type: String,
     },
   },
-  {
-    timestamps: true,
-    versionKey: false,
-  }
+  { timestamps: true, versionKey: false }
 );
 
 // 🟩 Event Schema
@@ -31,7 +36,7 @@ const EventSchema = new Schema<IEvent>(
   {
     userId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     eventName: { type: String, trim: true, required: true },
@@ -40,7 +45,7 @@ const EventSchema = new Schema<IEvent>(
     category: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Category",
+        ref: 'Category',
       },
     ],
     tags: [{ type: String, trim: true }],
@@ -68,6 +73,7 @@ const EventSchema = new Schema<IEvent>(
         },
         price: { type: Number, required: true },
         availableUnits: { type: Number, required: true },
+        ticketBuyerId: [{ type: Schema.Types.ObjectId, ref: 'TicketPurchase' }],
       },
     ],
 
@@ -97,14 +103,14 @@ const EventSchema = new Schema<IEvent>(
     totalReview: [
       {
         type: Types.ObjectId,
-        ref: "Review",
+        ref: 'Review',
       },
     ],
     isDraft: { type: Boolean, default: true },
     status: {
       type: String,
-      enum: ["Pending", "Accepted", "Rejected"],
-      default: "Pending",
+      enum: ['Pending', 'Accepted', 'Rejected'],
+      default: 'Pending',
     },
     description: { type: String },
   },
@@ -132,5 +138,6 @@ EventSchema.pre('save', async function (next) {
   next();
 });
 // 🧩 Export Models
+export const SubCategory = model('SubCategory', SubCategorySchema);
 export const Category = model('Category', CategorySchema);
 export const Event = model('Event', EventSchema);
