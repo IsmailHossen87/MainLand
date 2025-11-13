@@ -5,11 +5,18 @@ import { USER_ROLES } from '../../../../enums/user';
 import fileUploadHandler from '../../../middlewares/fileUploadHandler';
 import { parseFormDataMiddleware } from '../../../middlewares/ParseFormData';
 import { dynamicEventValidation } from './DaynamicEventValidation';
+import { PaymentController } from '../../Payment/paymentController';
 
 const router = Router();
 // create SubCategory
 router.post('/subcategory',auth(USER_ROLES.ADMIN), EventController.createSubCategory);
-
+// paymentEVENT
+router
+  .route('/payment/:id')
+  .post(
+    auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.ORGANIZER),
+    PaymentController.createPaymentIntentEvent
+  )
 
 // create Category
 router.post(
@@ -65,7 +72,7 @@ router.get(
 
 // SHOW ALL Live event For User
 router.get(
-  "/AllliveEvent",
+  "/AllEvent",
   auth(USER_ROLES.ORGANIZER,USER_ROLES.ADMIN,USER_ROLES.USER),
   EventController.AllLiveEvent
 )

@@ -21,3 +21,6 @@ export interface TicketPruchase {
     discount:number,
 
 }
+
+
+
