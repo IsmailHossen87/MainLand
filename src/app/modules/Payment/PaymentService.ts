@@ -2,9 +2,9 @@ import stripe from '../../config/stripe.config';
 import ApiError from '../../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import config from '../../../config';
-import { ITicketRequest } from '../user/Ticket/Purchase.Interface';
 import { Event } from '../ORGANIZER/Event/Event.model';
 import { User } from '../user/user.model';
+import { ResellTicket } from '../user/Ticket/Purchase.Mode';
 
 
 interface TICKETS{
@@ -19,6 +19,8 @@ interface IUser{
   phone:string,
   tickets:TICKETS[]
 }
+
+
 const createPaymentIntentEvent = async (eventId :string,userInfo:IUser) => {
   const { fullName, email, phone, tickets, discountCode, userId } = userInfo;
 
@@ -33,8 +35,7 @@ const createPaymentIntentEvent = async (eventId :string,userInfo:IUser) => {
   const updatedTickets = [];
 
   for (const selected of tickets) {
-    const eventTicket = event.tickets?.find(t => t.type === selected.ticketType ); //ইভেন্টের টিকিট লিস্টে (event.tickets) সেই টাইপের টিকিট আছে কিনা।
-
+    const eventTicket = event.tickets?.find(t => t.type === selected.ticketType ); 
     if (!eventTicket) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
@@ -119,94 +120,67 @@ const createPaymentIntentEvent = async (eventId :string,userInfo:IUser) => {
   };
 };
 
-// const createPaymentIntentCarity = async (
-//   causeId: string,
-//   amount: string,
-//   userData: {
-//     firstName: string;
-//     surName: string;
-//     email: string;
-//     message?: string;
-//   }
-// ) => {
-//   const charity = await Charities.findById(causeId);
-//   if (!charity) {
-//     throw new ApiError(StatusCodes.NOT_FOUND, 'Charity not found!');
-//   }
 
-//   const DonateAmount = Number(amount);
-//   if (isNaN(DonateAmount)) {
-//     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid donation amount');
-//   }
-//   // Find or create donor
-//   let donner = await Dooner.findOne({ email: userData.email });
-//   if (!donner) {
-//     donner = await Dooner.create({
-//       email: userData.email,
-//       firstName: userData.firstName,
-//       surName: userData.surName,
-//       message: userData.message || '',
-//       totalAmount: "",
-//       paymentStatus: 'pending',
-//       causeId: new mongoose.Types.ObjectId(causeId),
-//     });
-//   } else {
-//     donner.totalAmount = 0;
-//     donner.paymentStatus = 'pending';
-//     donner.message = userData.message || donner.message;
-//     donner.causeId = new mongoose.Types.ObjectId(causeId);
-//     await donner.save();
-//   }
 
-//   // Create or reuse Stripe customer
-//   let stripeCustomerId = donner.stripeCustomerId;
-//   if (!stripeCustomerId) {
-//     const stripeCustomer = await stripe.customers.create({
-//       name: `${userData.firstName} ${userData.surName}`,
-//       email: userData.email,
-//     });
-//     stripeCustomerId = stripeCustomer.id;
-//     donner.stripeCustomerId = stripeCustomerId;
-//     await donner.save();
-//   }
 
-//   const stripeSession = await stripe.checkout.sessions.create({
-//     mode: 'payment',
-//     payment_method_types: ['card'],
-//     customer: stripeCustomerId,
-//     line_items: [
-//       {
-//         price_data: {
-//           currency: 'usd',
-//           product_data: {
-//             name: `Donation for - ${charity.pageTitle}`,
-//           },
-//           unit_amount: Math.round(DonateAmount * 100),
-//         },
-//         quantity: 1,
-//       },
-//     ],
-//     metadata: {
-//       doonerId: donner._id.toString(),
-//       causeId: causeId,
-//       totalAmount: DonateAmount.toString(),
-//     },
-//     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
-//     cancel_url: `${config.stripe.cancel_url}?purchase_id=${donner._id}`,
-//   });
+// Ticket Payment
+const createTicketPayment = async (payload:any) => {
+  const { id, fullName, email, phone, userId } = payload;
 
-//   await Dooner.findByIdAndUpdate(donner._id, {
-//     stripeSessionId: stripeSession.id,
-//   });
+  // ✅ Step 1: Find the event
+  const ticket = await ResellTicket.findById(id);
+  if (!ticket) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Ticket not found!');
+  }
+  const user = await User.findById(userId);
 
-//   return {
-//     url: stripeSession.url,
-//     sessionId: stripeSession.id,
-//     donnerId: donner._id,
-//   };
-// };
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, `User is not Avaiable`);
+  }
+
+  const stripeCustomer = await stripe.customers.create({
+    name: user?.name,
+    email:user.email,
+  });
+
+  // ✅ Step 7: Create Stripe checkout session
+  const stripeSession = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    mode: 'payment',
+    customer: stripeCustomer.id,
+    line_items: [
+      {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `Tickets for ${ticket.ticketType}`,
+          },
+          unit_amount: Math.round(ticket.resellPrice * 100),
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      ticketId: ticket._id.toString(),
+      userId: user._id.toString(),
+      totalAmount: String(ticket.resellPrice),
+      fullName: fullName,
+      attenEmail:email,
+      attenPhone:phone,  
+    }, 
+    
+    success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${config.stripe.cancel_url}?purchase_id is Cancle`,
+  });
+
+  return {
+    url: stripeSession.url,
+    sessionId: stripeSession.id,
+  };
+};
+
 
 export const createPaymentService = {
   createPaymentIntentEvent,
-  // createPaymentIntentCarity,
+  createTicketPayment,
 };

@@ -67,7 +67,7 @@ const userSchema = new Schema<IUser, UserModal>(
       firstName: { type: String, default: '' },
       lastName: { type: String, default: '' },
       phone: { type: String, default: '' },
-      bio: { type: String, default: '' },
+      dateOfBirth:{type:Date}
     },
     address: {
       country: { type: String, default: '' },

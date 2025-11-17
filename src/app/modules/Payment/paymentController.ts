@@ -6,7 +6,8 @@ import { createPaymentService } from "./PaymentService";
 
 
 
-export const createPaymentIntentEvent = catchAsync(
+// ================= Primary Event Ticket Purchase =================
+const createEventPayment   = catchAsync(
   async (req: Request, res: Response) => {
     const eventId = req.params.id;
     const userId = req.user?.id as string
@@ -23,24 +24,29 @@ export const createPaymentIntentEvent = catchAsync(
 );
 
 
-const createPaymentIntentRaffle = catchAsync(async (req: Request, res: Response) => {
-  const raffleId = req.params.id;
-  const { ticket, firstName, surName, email, message } = req.body;
 
-  // const paymentSession = await createPaymentService.createPaymentIntent(
-  //   raffleId,
-  //   ticket,
-  //   { firstName, surName, email, message }
-  // );
+// ================= Resell Ticket Payment =================
+const createTicketPayment = catchAsync(async (req: Request, res: Response) => {
+  const ticketId = req.params.id;
+  
+  const payload = {
+    id: ticketId,
+    fullName: req.body.fullName,
+    email: req.body.email,
+    phone: req.body.phone,
+  };
+
+  const paymentSession = await createPaymentService.createTicketPayment(payload);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: "Redirect to payment",
-    // data: paymentSession,
+    data: paymentSession,
   });
 });
 
-
-
-export const PaymentController = { createPaymentIntentRaffle,createPaymentIntentEvent };
+export const PaymentController = {
+  createEventPayment,
+  createTicketPayment,
+};

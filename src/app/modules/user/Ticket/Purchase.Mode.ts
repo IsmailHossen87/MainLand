@@ -1,5 +1,5 @@
 import { Schema, model, Types } from 'mongoose';
-import { IAttendInformation, ITicketRequest } from './Purchase.Interface';
+import { IAttendInformation, IResellTicket, ITicketRequest } from './Purchase.Interface';
 
 export interface ITicketPurchase {
   eventId: Types.ObjectId;
@@ -80,18 +80,6 @@ export const TicketPurchase = model<ITicketPurchase>(
 // RESELL TICKET MODEL
 // ============================================
 
-export interface IResellTicket {
-  originalTicketId: Types.ObjectId; 
-  sellerId: Types.ObjectId; 
-  eventId: Types.ObjectId;
-  ticketType: string; 
-  quantity: number;
-  originalPrice: number;
-  resellPrice: number;
-  status: 'available' | 'sold' | 'cancelled';
-  soldTo?: Types.ObjectId; // Buyer user ID (jodi bikri hoy)
-  soldAt?: Date;
-}
 
 const ResellTicketSchema = new Schema<IResellTicket>(
   {

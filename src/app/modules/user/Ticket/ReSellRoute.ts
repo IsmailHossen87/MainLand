@@ -17,7 +17,6 @@ router.post(
 // 🎟️ Get all available resale tickets
 router.get(
   "/available",
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER),
   ResellTicketController.getResellTickets
 );
 

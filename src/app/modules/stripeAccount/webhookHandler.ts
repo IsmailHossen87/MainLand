@@ -59,7 +59,8 @@ const webhookHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
-        const session = event.data.object as any;
+        const session = event.data.object as any; 
+        console.log(session.metadata);
 
         const metadata = session.metadata || {}     
         if (metadata.eventId && metadata.userId) {

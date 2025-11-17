@@ -15,7 +15,7 @@ router
   .route('/payment/:id')
   .post(
     auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.ORGANIZER),
-    PaymentController.createPaymentIntentEvent
+    PaymentController.createEventPayment
   )
 
 // create Category

@@ -45,7 +45,16 @@ const createResellListing = async (payload: any, user: JwtPayload) => {
     resellPrice,
     status: 'available',
   });
-//   ReSellKorle 
+//   ReSellKorle Avaailable Ticket kome jabe
+await TicketPurchase.updateOne(
+  {
+    _id: originalTicketId,
+    "tickets.ticketType": ticketType,
+  },
+  {
+    $inc: { "tickets.$.quantity": -quantity }
+  }
+);
 
   return resellTicket;
 };

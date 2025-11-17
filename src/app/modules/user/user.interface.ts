@@ -21,6 +21,7 @@ export type IUser = {
     firstName?: string;
     lastName?: string;
     phone?: string;
+    dateOfBirth?:Date
   };
 
   address?: {

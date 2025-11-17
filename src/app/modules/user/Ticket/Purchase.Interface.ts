@@ -23,4 +23,32 @@ export interface TicketPruchase {
 }
 
 
+export interface IResellTicket {
+  originalTicketId: Types.ObjectId; 
+  sellerId: Types.ObjectId; 
+  eventId: Types.ObjectId;
+  ticketType: string; 
+  quantity: number;
+  originalPrice: number;
+  resellPrice: number;
+  status: 'available' | 'sold' | 'cancelled';
+  soldTo?: Types.ObjectId; 
+  soldAt?: Date;
+}
+
+
+export interface ISecondaryTicketPurchase {
+  originalTicketId: Types.ObjectId; 
+  sellerId: Types.ObjectId; 
+  eventId: Types.ObjectId;
+  ticketType: string; 
+  quantity: number;
+  personalInfo:{
+    fullName:string,
+    email:string,
+    phoneNumber:string
+  };
+  resellPrice: number;
+  status: 'available' | 'sold' | 'cancelled';
+}
 
