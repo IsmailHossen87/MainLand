@@ -6,22 +6,20 @@ import { Event } from '../ORGANIZER/Event/Event.model';
 import { User } from '../user/user.model';
 import { ResellTicket } from '../user/Ticket/Purchase.Mode';
 
-
-interface TICKETS{
-  ticketType:string,
-  quantity:number
+interface TICKETS {
+  ticketType: string;
+  quantity: number;
 }
-interface IUser{
-  fullName:string,
-  email:string,
-  discountCode?:string,
-  userId:string,
-  phone:string,
-  tickets:TICKETS[]
+interface IUser {
+  fullName: string;
+  email: string;
+  discountCode?: string;
+  userId: string;
+  phone: string;
+  tickets: TICKETS[];
 }
 
-
-const createPaymentIntentEvent = async (eventId :string,userInfo:IUser) => {
+const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
   const { fullName, email, phone, tickets, discountCode, userId } = userInfo;
 
   // ✅ Step 1: Find the event
@@ -35,7 +33,9 @@ const createPaymentIntentEvent = async (eventId :string,userInfo:IUser) => {
   const updatedTickets = [];
 
   for (const selected of tickets) {
-    const eventTicket = event.tickets?.find(t => t.type === selected.ticketType ); 
+    const eventTicket = event.tickets?.find(
+      t => t.type === selected.ticketType
+    );
     if (!eventTicket) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
@@ -103,13 +103,13 @@ const createPaymentIntentEvent = async (eventId :string,userInfo:IUser) => {
       userId: user._id.toString(),
       totalAmount: String(totalAmount),
       fullName: fullName,
-      attenEmail:email,
-      attenPhone:phone,
+      attenEmail: email,
+      attenPhone: phone,
       tickets: JSON.stringify(updatedTickets),
-      mailLandFee:String(mainlandFee) ,
-      discount:String(discountAmount) 
-    }, 
-    
+      mailLandFee: String(mainlandFee),
+      discount: String(discountAmount),
+    },
+
     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${config.stripe.cancel_url}?purchase_id is Cancle`,
   });
@@ -120,28 +120,30 @@ const createPaymentIntentEvent = async (eventId :string,userInfo:IUser) => {
   };
 };
 
-
-
-
 // Ticket Payment
-const createTicketPayment = async (payload:any) => {
-  const { id, fullName, email, phone, userId } = payload;
+const createTicketPayment = async (payload: any) => {
+  const { id, fullName, email, phone, totalTicket, buyerId } = payload;
 
   // ✅ Step 1: Find the event
   const ticket = await ResellTicket.findById(id);
   if (!ticket) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Ticket not found!');
   }
-  const user = await User.findById(userId);
+  const user = await User.findById(buyerId);
 
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, `User is not Avaiable`);
   }
 
+  if (totalTicket > ticket.quantity) {
+    throw new ApiError(StatusCodes.NOT_FOUND, `Enough ticket is not available`);
+  }
+
   const stripeCustomer = await stripe.customers.create({
     name: user?.name,
-    email:user.email,
+    email: user.email,
   });
+  const ticketAmount = ticket.resellPrice * totalTicket;
 
   // ✅ Step 7: Create Stripe checkout session
   const stripeSession = await stripe.checkout.sessions.create({
@@ -155,20 +157,22 @@ const createTicketPayment = async (payload:any) => {
           product_data: {
             name: `Tickets for ${ticket.ticketType}`,
           },
-          unit_amount: Math.round(ticket.resellPrice * 100),
+          unit_amount: Math.round(ticketAmount * 100),
         },
         quantity: 1,
       },
     ],
     metadata: {
       ticketId: ticket._id.toString(),
-      userId: user._id.toString(),
-      totalAmount: String(ticket.resellPrice),
+      totalAmount: String(ticketAmount),
       fullName: fullName,
-      attenEmail:email,
-      attenPhone:phone,  
-    }, 
-    
+      attenEmail: email,
+      attenPhone: phone,
+      type: 'resellPurchase',
+      buyerId: buyerId.toString(),
+      totalTicket:totalTicket.toString()
+    },
+
     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${config.stripe.cancel_url}?purchase_id is Cancle`,
   });
@@ -178,7 +182,6 @@ const createTicketPayment = async (payload:any) => {
     sessionId: stripeSession.id,
   };
 };
-
 
 export const createPaymentService = {
   createPaymentIntentEvent,

@@ -36,25 +36,7 @@ import { JwtPayload } from "jsonwebtoken";
   }
 );
 
-// 🎟️ Buy resell ticket
- const buyResellTicket = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const { resellTicketId } = req.params;
-    const buyer = req.user as JwtPayload;
-    const result = await ResellTicketService.buyResellTicket(
-      resellTicketId,
-      buyer,
-      req.body
-    );
 
-    sendResponse(res, {
-      success: true,
-      statusCode: StatusCodes.OK,
-      message: "Ticket purchased successfully from resale",
-      data: result,
-    });
-  }
-);
 
 // 🎟️ Cancel resell listing
  const cancelResellListing = catchAsync(
@@ -75,4 +57,4 @@ import { JwtPayload } from "jsonwebtoken";
   }
 );
 
-export const ResellTicketController ={createResellListing,getResellTickets,buyResellTicket,cancelResellListing}
+export const ResellTicketController ={createResellListing,getResellTickets,cancelResellListing}

@@ -1,19 +1,11 @@
 import { Schema, model, Types } from 'mongoose';
-import { IAttendInformation, IResellTicket, ITicketRequest } from './Purchase.Interface';
-
-export interface ITicketPurchase {
-  eventId: Types.ObjectId;
-  userId: Types.ObjectId;
-  reeSellerUserId: Types.ObjectId[];
-  attenInformation: IAttendInformation;
-  tickets: {
-    ticketType: ITicketRequest;
-    quantity:number;
-  }[];
-  mailLandFee: number;
-  totalAmount: number;
-  discount: number;
-}
+import {
+  IAttendInformation,
+  IResellTicket,
+  ISecondaryTicketPurchase,
+  ITicketPurchase,
+  ITicketRequest,
+} from './Purchase.Interface';
 
 // Schema for attendee info
 const AttendInformationSchema = new Schema<IAttendInformation>(
@@ -48,7 +40,7 @@ const TicketPurchaseSchema = new Schema<ITicketPurchase>(
     reeSellerUserId: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
       },
     ],
     attenInformation: {
@@ -64,10 +56,7 @@ const TicketPurchaseSchema = new Schema<ITicketPurchase>(
     discount: { type: Number, default: 0 },
   },
 
-  {
-    timestamps: true,
-    versionKey: false,
-  }
+  { timestamps: true, versionKey: false }
 );
 
 export const TicketPurchase = model<ITicketPurchase>(
@@ -79,7 +68,6 @@ export const TicketPurchase = model<ITicketPurchase>(
 // ============================================
 // RESELL TICKET MODEL
 // ============================================
-
 
 const ResellTicketSchema = new Schema<IResellTicket>(
   {
@@ -104,9 +92,15 @@ const ResellTicketSchema = new Schema<IResellTicket>(
     resellPrice: { type: Number, required: true },
     status: {
       type: String,
-      enum: ['available', 'sold', 'cancelled'],
+      enum: ['available', 'NotAvailable'],
       default: 'available',
     },
+    secondaryBuyer: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     soldTo: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -118,8 +112,77 @@ const ResellTicketSchema = new Schema<IResellTicket>(
     versionKey: false,
   }
 );
+// ResellTicketSchema.pre('findOneAndUpdate', async function (next) {
+//   const query: any = this.getQuery();
+//   const update: any = this.getUpdate();
+
+//   const doc = await ResellTicket.findById(query._id);
+//   if (!doc) return next();
+
+//   const decreaseBy = update.$inc?.quantity ?? 0; 
+//   const finalQuantity = doc.quantity + decreaseBy;
+
+//   // If zero or negative → mark as NotAvailable
+//   if (finalQuantity <= 0) {
+//     this.setUpdate({
+//       ...update,
+//       $set: {
+//         ...(update.$set || {}),
+//         quantity: 0,
+//         status: 'NotAvailable',
+//       },
+//     });
+//   }
+
+//   next();
+// });
+
+
 
 export const ResellTicket = model<IResellTicket>(
   'ResellTicket',
   ResellTicketSchema
+);
+
+// Schema
+const secondaryTicketPurchaseSchema = new Schema<ISecondaryTicketPurchase>(
+  {
+    originalTicketId: {
+      type: Schema.Types.ObjectId,
+      ref: 'TicketPurchase',
+      required: true,
+    },
+    buyerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    eventId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Event',
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    personalInfo: {
+      fullName: { type: String, required: true },
+      email: { type: String, required: true },
+      phoneNumber: { type: String, required: true },
+    },
+    resellPrice: {
+      type: Number,
+      required: true,
+    },
+  },
+  {
+    timestamps: true,
+    versionKey: false,
+  }
+);
+
+// Model
+export const SecondaryTicketPurchase = model<ISecondaryTicketPurchase>(
+  'SecondaryTicketPurchase',
+  secondaryTicketPurchaseSchema
 );

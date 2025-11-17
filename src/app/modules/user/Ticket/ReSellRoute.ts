@@ -3,6 +3,7 @@ import auth from "../../../middlewares/auth";
 import { USER_ROLES } from "../../../../enums/user";
 
 import { ResellTicketController } from "./Purchase.Controllet";
+import { PaymentController } from "../../Payment/paymentController";
 
 const router = Router();
 
@@ -24,7 +25,7 @@ router.get(
 router.post(
   "/buy/:resellTicketId",
   auth(USER_ROLES.USER),
-  ResellTicketController.buyResellTicket
+  PaymentController.createTicketPayment
 );
 
 // 🎟️ Cancel a resell listing

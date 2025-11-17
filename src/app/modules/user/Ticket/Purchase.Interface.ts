@@ -22,6 +22,19 @@ export interface TicketPruchase {
 
 }
 
+export interface ITicketPurchase {
+  eventId: Types.ObjectId;
+  userId: Types.ObjectId;
+  reeSellerUserId: Types.ObjectId[];
+  attenInformation: IAttendInformation;
+  tickets: {
+    ticketType: ITicketRequest;
+    quantity:number;
+  }[];
+  mailLandFee: number;
+  totalAmount: number;
+  discount: number;
+}
 
 export interface IResellTicket {
   originalTicketId: Types.ObjectId; 
@@ -31,17 +44,17 @@ export interface IResellTicket {
   quantity: number;
   originalPrice: number;
   resellPrice: number;
-  status: 'available' | 'sold' | 'cancelled';
+  status: 'available'  | 'NotAvailable';
   soldTo?: Types.ObjectId; 
   soldAt?: Date;
+  secondaryBuyer:Types.ObjectId[];
 }
 
 
 export interface ISecondaryTicketPurchase {
   originalTicketId: Types.ObjectId; 
-  sellerId: Types.ObjectId; 
+  buyerId: Types.ObjectId; 
   eventId: Types.ObjectId;
-  ticketType: string; 
   quantity: number;
   personalInfo:{
     fullName:string,
@@ -49,6 +62,5 @@ export interface ISecondaryTicketPurchase {
     phoneNumber:string
   };
   resellPrice: number;
-  status: 'available' | 'sold' | 'cancelled';
 }
 

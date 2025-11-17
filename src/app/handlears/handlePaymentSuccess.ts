@@ -4,10 +4,15 @@ import crypto from 'crypto';
 import ApiError from '../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import { Metadata } from '../modules/stripeAccount/webhookHandler';
-import { TicketPurchase } from '../modules/user/Ticket/Purchase.Mode';
+import {
+  ResellTicket,
+  SecondaryTicketPurchase,
+  TicketPurchase,
+} from '../modules/user/Ticket/Purchase.Mode';
 import { emailHelper } from '../../helpers/emailHelper';
 import { emailTemplate } from '../../shared/emailTemplate';
 import { Event } from '../modules/ORGANIZER/Event/Event.model';
+import { Types } from 'mongoose';
 
 interface ITicket {
   ticketType: string;
@@ -51,7 +56,7 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
   } = session.metadata;
   const allTickets: ITicket[] = JSON.parse(metadata.tickets);
 
- const ticketPurchase = await TicketPurchase.create({
+  const ticketPurchase = await TicketPurchase.create({
     eventId,
     userId,
     attenInformation: { fullName, email: attenEmail, phone: attenPhone },
@@ -61,25 +66,21 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
     discount: Number(discount),
   });
 
-for (const ticket of allTickets) {
-   await Event.findOneAndUpdate(
-    { _id: eventId, "tickets.type": ticket.ticketType },
-    {
-      $inc: {
-        totalEarned: Number(totalAmount),
-        "tickets.$.availableUnits": -ticket.quantity,
+  for (const ticket of allTickets) {
+    await Event.findOneAndUpdate(
+      { _id: eventId, 'tickets.type': ticket.ticketType },
+      {
+        $inc: {
+          totalEarned: Number(totalAmount),
+          'tickets.$.availableUnits': -ticket.quantity,
+        },
+        $set: {
+          'tickets.$.ticketBuyerId': ticketPurchase.userId,
+        },
       },
-       $set: {
-      "tickets.$.ticketBuyerId": ticketPurchase.userId
-    },
-    },
-    { new: true ,runValidators: true }
-  );
-
-}
-
-
-
+      { new: true, runValidators: true }
+    );
+  }
 
   // 📤📤📤
   const value = {
@@ -101,15 +102,65 @@ for (const ticket of allTickets) {
 };
 
 // DONATE - Payment Success Handler
-const handleDonate = async (session: Stripe.Checkout.Session) => {
-  const { causeId, amount, firstName, surName, email, message }: any =
-    session.metadata;
-
+const handleTicket = async (session: Stripe.Checkout.Session) => {
   try {
-    console.log('✅ Donation successful, donor created & verified!');
+    const {
+      fullName,
+      attenPhone,
+      attenEmail,
+      totalAmount,
+      ticketId,
+      buyerId,
+      totalTicket,
+      eventId,
+    } = session.metadata as any;
+
+    // Create Secondary Ticket Purchase
+    const BuyTicket = await SecondaryTicketPurchase.create({
+      originalTicketId: ticketId,
+      userId: buyerId,
+      eventId: eventId,
+      quantity: Number(totalTicket),
+      personalInfo: {
+        fullName,
+        email: attenEmail,
+        phoneNumber: attenPhone,
+      },
+      resellPrice: Number(totalAmount),
+    });
+
+    const buyerObjectId = new Types.ObjectId(buyerId); 
+
+await ResellTicket.findOneAndUpdate(
+  { _id: ticketId },
+  [
+    {
+      $set: {
+        quantity: { $subtract: ['$quantity', Number(totalTicket)] },
+        status: {
+          $cond: {
+            if: {
+              $lte: [{ $subtract: ['$quantity', Number(totalTicket)] }, 0],
+            },
+            then: 'NotAvailable',
+            else: '$status',
+          },
+        },
+        secondaryBuyer: {
+          $cond: {
+            if: { $in: [buyerObjectId, '$secondaryBuyer'] }, // ObjectId check
+            then: '$secondaryBuyer',
+            else: { $concatArrays: ['$secondaryBuyer', [buyerObjectId]] }, // ObjectId push
+          },
+        },
+      },
+    },
+  ],
+  { new: true }
+);
   } catch (error) {
-    console.error('❌ Error in handleDonate:', error);
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Donation processing failed');
+    console.error('❌ Error in handleTicket:', error);
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Ticket processing failed');
   }
 };
 
@@ -117,5 +168,5 @@ export const handlePayment = {
   paymentSuccess,
   paymentCancel,
   handleEvent,
-  handleDonate,
+  handleTicket,
 };
