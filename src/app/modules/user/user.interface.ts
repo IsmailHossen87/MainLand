@@ -42,6 +42,7 @@ export type IUser = {
     oneTimeCode: number | null;
     expireAt: Date | null;
   };
+  terAndCondition:boolean;
 };
 
 export type UserModal = {

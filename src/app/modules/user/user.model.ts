@@ -63,6 +63,10 @@ const userSchema = new Schema<IUser, UserModal>(
       type: Boolean,
       default: false,
     },
+    terAndCondition: {
+      type: Boolean,
+      default: false,
+    },
     personalInfo: {
       firstName: { type: String, default: '' },
       lastName: { type: String, default: '' },

@@ -18,15 +18,14 @@ import { ResetToken } from '../resetToken/resetToken.model';
 import { User } from '../user/user.model';
 import { redisClient } from '../../../config/radisConfig';
 
-
 const OTP_EXPIRATION = 5 * 60; // 5 minutes
-
 
 // Login User
 
 const loginUserFromDB = async (payload: ILoginData) => {
   const { email, password } = payload;
-  const isExistUser = await User.findOne({ email }).select('+password');
+
+  const isExistUser = await User.findOne({ email }).select("+password");
   if (!isExistUser) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
   }
@@ -34,29 +33,33 @@ const loginUserFromDB = async (payload: ILoginData) => {
   if (!isExistUser.verified) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'Please verify your account, then try to login again'
+      "Please verify your account, then try to login again"
     );
   }
 
-  // if (isExistUser.status === 'delete') {
-  //   throw new ApiError(
-  //     StatusCodes.BAD_REQUEST,
-  //     'Your account has been deactivated. Contact support for help.'
-  //   );
-  // }
-
   const isMatch = await User.isMatchPassword(password, isExistUser.password);
   if (!isMatch) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Password is incorrect!');
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Password is incorrect!");
   }
 
-  const createToken = jwtHelper.createToken(
+  // Create Access Token
+  const accessToken = jwtHelper.createToken(
     { id: isExistUser._id, role: isExistUser.role, email: isExistUser.email },
     config.jwt.jwt_secret as Secret,
     config.jwt.jwt_expire_in as string
   );
 
-  return { createToken };
+  // Create Refresh Token
+  const refreshToken = jwtHelper.refreshToken(
+    { id: isExistUser._id, role: isExistUser.role, email: isExistUser.email },
+    config.jwt.jwt_secret as Secret,
+    config.jwt.jwt_refresh_in as string
+  );
+
+  return {
+    accessToken,
+    refreshToken
+  };
 };
 
 
@@ -119,8 +122,7 @@ const verifyEmailToDB = async (payload: IVerifyEmail) => {
       token: createToken,
       expireAt: new Date(Date.now() + 5 * 60000),
     });
-    message =
-      'Verification successful. Use this token to reset your password.';
+    message = 'Verification successful. Use this token to reset your password.';
     data = createToken;
   }
   return { data, message };
@@ -198,7 +200,6 @@ const resetPasswordToDB = async (
   });
 };
 
-
 // Change Password
 
 const changePasswordToDB = async (
@@ -245,8 +246,7 @@ const changePasswordToDB = async (
   );
 };
 
-
- export const AuthService = {
+export const AuthService = {
   verifyEmailToDB,
   loginUserFromDB,
   forgetPasswordToDB,

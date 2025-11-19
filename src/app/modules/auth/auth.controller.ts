@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 import config from '../../../config';
 import { jwtHelper } from '../../../helpers/jwtHelper';
 import ApiError from '../../../errors/ApiError';
-import httpStatus from "http-status-codes";
+import httpStatus from 'http-status-codes';
 import { JwtPayload } from 'jsonwebtoken';
 
 const verifyEmail = catchAsync(async (req: Request, res: Response) => {
@@ -29,7 +29,10 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     success: true,
     statusCode: StatusCodes.OK,
     message: 'User logged in successfully.',
-    data: result.createToken,
+    data: {
+      Token: result.accessToken,
+      RefreshToken: result.refreshToken,
+    },
   });
 });
 
@@ -74,14 +77,14 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
 // 🔁 Google OAuth2 Callback
 const googleCallbackController = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    let redirectTo = req.query.state ? (req.query.state as string) : "/";
-    if (redirectTo.startsWith("/")) {
+    let redirectTo = req.query.state ? (req.query.state as string) : '/';
+    if (redirectTo.startsWith('/')) {
       redirectTo = redirectTo.slice(1);
     }
 
-    const user = req.user as any; 
+    const user = req.user as any;
     if (!user) {
-      throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+      throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
     }
 
     // 🔐 Create JWT token for the logged-in user
@@ -116,5 +119,5 @@ export const AuthController = {
   forgetPassword,
   resetPassword,
   changePassword,
-  googleCallbackController
+  googleCallbackController,
 };

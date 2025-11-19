@@ -1,5 +1,6 @@
-const generateOTP = () => {
-  return Math.floor(Math.random() * (9999 - 1000 + 1) + 1000);
+export const generateOTP = (): number => {
+  return Math.floor(100000 + Math.random() * 900000); 
 };
+
 
 export default generateOTP;
