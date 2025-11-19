@@ -25,7 +25,6 @@ export interface TicketPruchase {
 export interface ITicketPurchase {
   eventId: Types.ObjectId;
   userId: Types.ObjectId;
-  reeSellerUserId: Types.ObjectId[];
   attenInformation: IAttendInformation;
   tickets: {
     ticketType: ITicketRequest;
@@ -52,7 +51,8 @@ export interface IResellTicket {
 
 
 export interface ISecondaryTicketPurchase {
-  originalTicketId: Types.ObjectId; 
+  resellTicketId: Types.ObjectId; 
+  resellersUserId: Types.ObjectId; 
   buyerId: Types.ObjectId; 
   eventId: Types.ObjectId;
   quantity: number;

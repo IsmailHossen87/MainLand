@@ -5,7 +5,8 @@ import { NotificationRoutes } from '../app/modules/ADMIN/Notification/notificati
 import { PaymentRouter } from '../app/modules/Payment/Payment.route';
 import { EventRoutes } from '../app/modules/ORGANIZER/Event/Event.Route';
 import { ActionRouter } from '../app/modules/ADMIN/Action/Action.Router';
-import { ReSellRoute } from '../app/modules/user/Ticket/ReSellRoute';
+import { TicketRoute } from '../app/modules/user/Ticket/TicketRoute';
+
 
 const router = express.Router();
 
@@ -36,8 +37,8 @@ const apiRoutes = [
     route:ActionRouter ,
   },
   {
-    path: '/resell',
-    route:ReSellRoute ,
+    path: '/ticket',
+    route:TicketRoute ,
   },
 ];
 

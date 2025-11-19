@@ -23,14 +23,39 @@ import { JwtPayload } from "jsonwebtoken";
 
 
 // 🎟️ Get all available resell tickets
- const getResellTickets = catchAsync(
+ const availAbleTicket = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const result = await ResellTicketService.getResellTickets(req.query);
+    const result = await ResellTicketService.availAbleTicket(req.query);
 
     sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
       message: "All available resell tickets fetched successfully",
+      data: result,
+    });
+  }
+);
+ const getLiveTicket = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const result = await ResellTicketService.getLiveTicket(req.query);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "All Live ticket fetched successfully",
+      data: result,
+    });
+  }
+);
+ const getSoldedTicket = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => { 
+    const userId = req.user?.id
+    const result = await ResellTicketService.getSoldedTicket( userId,req.query);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "All Sold tikcet retrived successfully",
       data: result,
     });
   }
@@ -57,4 +82,4 @@ import { JwtPayload } from "jsonwebtoken";
   }
 );
 
-export const ResellTicketController ={createResellListing,getResellTickets,cancelResellListing}
+export const ResellTicketController ={createResellListing,availAbleTicket,cancelResellListing,getLiveTicket,getSoldedTicket}

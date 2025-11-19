@@ -18,7 +18,18 @@ router.post(
 // 🎟️ Get all available resale tickets
 router.get(
   "/available",
-  ResellTicketController.getResellTickets
+  ResellTicketController.availAbleTicket
+);
+// 🎟️ Get all live  tickets
+router.get(
+  "/live",
+  ResellTicketController.getLiveTicket
+);
+// 🎟️ Get all sold tickets
+router.get(
+  "/solded",
+  auth(USER_ROLES.USER),
+  ResellTicketController.getSoldedTicket
 );
 
 // 🎟️ Buy a resell ticket
@@ -28,12 +39,7 @@ router.post(
   PaymentController.createTicketPayment
 );
 
-// 🎟️ Cancel a resell listing
-router.patch(
-  "/cancel/:resellTicketId",
-  auth(USER_ROLES.USER),
-  ResellTicketController.cancelResellListing
-);
 
 
-export const ReSellRoute = router;
+
+export const TicketRoute = router;

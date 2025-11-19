@@ -167,6 +167,7 @@ const createTicketPayment = async (payload: any) => {
       totalAmount: String(ticketAmount),
       fullName: fullName,
       attenEmail: email,
+      originalTicketId:ticket.originalTicketId.toString(),
       attenPhone: phone,
       type: 'resellPurchase',
       buyerId: buyerId.toString(),

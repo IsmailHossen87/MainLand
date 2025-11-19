@@ -113,11 +113,12 @@ const handleTicket = async (session: Stripe.Checkout.Session) => {
       buyerId,
       totalTicket,
       eventId,
-    } = session.metadata as any;
+    } = session.metadata as any; 
+
 
     // Create Secondary Ticket Purchase
     const BuyTicket = await SecondaryTicketPurchase.create({
-      originalTicketId: ticketId,
+      resellTicketId: ticketId,
       userId: buyerId,
       eventId: eventId,
       quantity: Number(totalTicket),
@@ -129,35 +130,40 @@ const handleTicket = async (session: Stripe.Checkout.Session) => {
       resellPrice: Number(totalAmount),
     });
 
-    const buyerObjectId = new Types.ObjectId(buyerId); 
+    const buyerObjectId = new Types.ObjectId(buyerId);
 
-await ResellTicket.findOneAndUpdate(
-  { _id: ticketId },
-  [
-    {
-      $set: {
-        quantity: { $subtract: ['$quantity', Number(totalTicket)] },
-        status: {
-          $cond: {
-            if: {
-              $lte: [{ $subtract: ['$quantity', Number(totalTicket)] }, 0],
+    await ResellTicket.findOneAndUpdate(
+      { _id: ticketId },
+      [
+        {
+          $set: {
+            quantity: { $subtract: ['$quantity', Number(totalTicket)] },
+            status: {
+              $cond: {
+                if: {
+                  $lte: [{ $subtract: ['$quantity', Number(totalTicket)] }, 0],
+                },
+                then: 'NotAvailable',
+                else: '$status',
+              },
             },
-            then: 'NotAvailable',
-            else: '$status',
+            secondaryBuyer: {
+              $cond: {
+                if: { $in: [buyerObjectId, '$secondaryBuyer'] },
+                then: '$secondaryBuyer',
+                else: { $concatArrays: ['$secondaryBuyer', [buyerObjectId]] },
+              },
+            },
           },
         },
-        secondaryBuyer: {
-          $cond: {
-            if: { $in: [buyerObjectId, '$secondaryBuyer'] }, // ObjectId check
-            then: '$secondaryBuyer',
-            else: { $concatArrays: ['$secondaryBuyer', [buyerObjectId]] }, // ObjectId push
-          },
-        },
-      },
-    },
-  ],
-  { new: true }
-);
+      ],
+      { new: true }
+    ); 
+
+
+    // await TicketPurchase.findByIdAndUpdate(
+
+    // )
   } catch (error) {
     console.error('❌ Error in handleTicket:', error);
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Ticket processing failed');

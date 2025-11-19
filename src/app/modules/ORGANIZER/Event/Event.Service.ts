@@ -185,7 +185,8 @@ const AllLiveEvent = async (userID: string) => {
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
   }
-  const allEvents = await Event.find({ status: 'Accepted' });
+const allEvents = await Event.find({ status: 'Accepted' }).sort({ createdAt: -1 });
+
   if (!allEvents) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
   }

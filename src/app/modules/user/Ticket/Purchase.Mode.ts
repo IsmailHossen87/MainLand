@@ -37,12 +37,6 @@ const TicketPurchaseSchema = new Schema<ITicketPurchase>(
       ref: 'User',
       required: true,
     },
-    reeSellerUserId: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-      },
-    ],
     attenInformation: {
       type: AttendInformationSchema,
       required: true,
@@ -147,10 +141,14 @@ export const ResellTicket = model<IResellTicket>(
 // Schema
 const secondaryTicketPurchaseSchema = new Schema<ISecondaryTicketPurchase>(
   {
-    originalTicketId: {
+    resellTicketId: {
       type: Schema.Types.ObjectId,
       ref: 'TicketPurchase',
       required: true,
+    },
+    resellersUserId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
     },
     buyerId: {
       type: Schema.Types.ObjectId,
