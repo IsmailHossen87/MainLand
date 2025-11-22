@@ -1,26 +1,28 @@
 import { Types } from "mongoose"
+import { EventTicket } from "../../ORGANIZER/Event/Event.Service";
 
 export interface IAttendInformation{
     fullName:string,
     email:string,
     phone:string
 }
+export type IStatus = "available" | "sold" | "cancelled";
 
 export interface ITicketRequest {
-  ticketType: string;
+  ticketType: string | EventTicket;
   quantity: number;
 }
 
-export interface TicketPruchase {
-    eventId:Types.ObjectId,
-    userId:Types.ObjectId,
-    attenInformation:IAttendInformation,
-    tickets:{ticketType:ITicketRequest}[];
-    mailLandFee:number;
-    totalAmount:number,
-    discount:number,
-
-}
+// export interface TicketPruchase {
+//     eventId:Types.ObjectId,
+//     userId:Types.ObjectId,
+//     attenInformation:IAttendInformation,
+//     tickets:{ticketType:ITicketRequest}[];
+//     mailLandFee:number;
+//     totalAmount:number,
+//     discount:number,
+//     status:IStatus
+// }
 
 export interface ITicketPurchase {
   eventId: Types.ObjectId;
@@ -33,6 +35,7 @@ export interface ITicketPurchase {
   mailLandFee: number;
   totalAmount: number;
   discount: number;
+  status:IStatus
 }
 
 export interface IResellTicket {

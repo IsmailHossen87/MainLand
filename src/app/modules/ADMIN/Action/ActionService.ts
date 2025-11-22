@@ -153,34 +153,44 @@ const AllTicketBuyer = async (user: JwtPayload) => {
 };
 
 
-const statusChange = async (userId: string, eventId: String) => {
+const statusChange = async (userId: string, eventId: string) => {
+  // ✅ Check user
   const isExistUser = await User.findById(userId);
-  if (isExistUser?.role != USER_ROLES.ADMIN) {
-    throw new ApiError(StatusCodes.FORBIDDEN, 'Only admin can update it');
-  }
   if (!isExistUser) {
     throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");
   }
-  const event = await Event.findById(eventId);
-  if (!event) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Event doesn't exist!");
-  }
-  const eventStatus = event.status;
-  let newStatus;
-  if (eventStatus === 'Pending') {
-    newStatus = 'Accepted';
-  } else if (eventStatus === 'Accepted') {
-    newStatus = 'Pending';
-  } else {
-    newStatus = 'Pending';
+  if (isExistUser.role !== USER_ROLES.ADMIN) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can update it");
   }
 
-  const updateStatus = await Event.findByIdAndUpdate(
+  // ✅ Check event
+  const event = await Event.findById(eventId);
+  if (!event) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Event doesn't exist!");
+  }
+
+  // ✅ Determine new status
+  let newStatus;
+  switch (event.EventStatus) {
+    case "UnderReview":
+      newStatus = "Live";
+      break;
+    case "Live":
+      newStatus = "UnderReview";
+      break;
+    default:
+      newStatus = "UnderReview";
+      break;
+  }
+
+  // ✅ Update the correct field
+  const updatedEvent = await Event.findByIdAndUpdate(
     eventId,
-    { status: newStatus },
-    { new: true }
+    { EventStatus: newStatus }, 
+    { new: true, runValidators: true }
   );
-  return updateStatus;
+
+  return updatedEvent;
 };
 
 export const ActionService = { DashBoard, AllTicketBuyer, statusChange };

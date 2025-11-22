@@ -1,6 +1,6 @@
 import { User } from './../../user/user.model';
 import { Schema, model, Types } from 'mongoose';
-import { IEvent, ISubcategory, TicketType } from './Event.interface';
+import { IEvent, IEventStatus, ISubcategory, TicketType } from './Event.interface';
 
 interface IEventDoc extends Document {
   userId: Types.ObjectId;
@@ -10,6 +10,7 @@ interface IEventDoc extends Document {
 const SubCategorySchema = new Schema<ISubcategory>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', },
+    categoryId: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
     title: { type: String, required: true, trim: true },
   },
   { timestamps: true, versionKey: false }
@@ -19,7 +20,6 @@ const SubCategorySchema = new Schema<ISubcategory>(
 const CategorySchema = new Schema(
   {
     userId: { type: Types.ObjectId, ref: 'User', required: true },
-    subCategoryId: [{ type: Schema.Types.ObjectId, ref: 'SubCategory',required:true }],
     title: {
       type: String,
       trim: true,
@@ -42,12 +42,21 @@ const EventSchema = new Schema<IEvent>(
     eventName: { type: String, trim: true, required: true },
     title: { type: String, trim: true },
     image: { type: String },
-    category: [
+   category: [
+  {
+    categoryId: {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
+    subCategory: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'Category',
-      },
-    ],
+        ref: "SubCategory",
+      }
+    ]
+  }
+],
     tags: [{ type: String, trim: true }],
 
     // 🗓️ Event Schedule
@@ -62,7 +71,7 @@ const EventSchema = new Schema<IEvent>(
     city: { type: String },
     state: { type: String },
     country: { type: String },
-
+    EventStatus: { type: String, enum: Object.values(IEventStatus), default: IEventStatus.UnderReview},
     // 🎟️ Tickets Details
     tickets: [
       {
@@ -107,11 +116,11 @@ const EventSchema = new Schema<IEvent>(
       },
     ],
     isDraft: { type: Boolean, default: true },
-    status: {
-      type: String,
-      enum: ['Pending', 'Accepted', 'Rejected'],
-      default: 'Pending',
-    },
+    // status: {
+    //   type: String,
+    //   enum: ['Pending', 'Accepted', 'Rejected'],
+    //   default: 'Pending',
+    // },
     description: { type: String },
   },
   {

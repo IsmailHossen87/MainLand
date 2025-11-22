@@ -1,22 +1,36 @@
 import { Types } from "mongoose";
 
-export interface ICategory { 
+export interface ICategory {
   userId: Types.ObjectId;
   title: string;
   coverImage: string;
-  subCategoryId?: Types.ObjectId[];
 }
 
 export interface ISubcategory {
   userId: Types.ObjectId;
+  categoryId: Types.ObjectId;
   title: string;
 }
-
+export interface ICategoryItem {
+  categoryId: Types.ObjectId;
+  subCategory: Types.ObjectId[];
+}
 export enum TicketType {
   PREMIUM = "Premium",
   VIP = "VIP",
   STANDARD = "Standard",
   FREE = "Free",
+}
+export enum IEventStatus {
+  Live = "Live", //✅
+  UnderReview = "UnderReview",//✅
+  Closed = "Closed",//✅
+  Sold = "Sold",
+  Expired = "Expired",
+  Upcoming = "Upcoming",
+  Used = "Used",
+  Available = "Available",
+  Draft = "Draft",
 }
 
 export interface IEvent {
@@ -24,7 +38,7 @@ export interface IEvent {
   eventName: string;
   title: string;
   image?: string;
-  category?: Types.ObjectId[];
+  category?: ICategoryItem[];
   tags?: string[];
   description?: string;
 
@@ -53,7 +67,7 @@ export interface IEvent {
   ticketSaleEnd?: Date;
   preSaleStart?: Date;
   preSaleEnd?: Date;
-
+  EventStatus?: IEventStatus;
   // Discount
   discountCodes?: {
     code: string;
@@ -70,6 +84,6 @@ export interface IEvent {
   locationName?: string;
   totalEarned: number;
   totalReview?: Types.ObjectId[];
-  status: "Pending" | "Accepted" | "Rejected";
+  // status: "Pending" | "Accepted" | "Rejected";
   isDraft: boolean;
 }

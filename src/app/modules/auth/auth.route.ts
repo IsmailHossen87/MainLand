@@ -8,12 +8,18 @@ import passport from 'passport';
 import config from '../../../config';
 const router = express.Router();
 
+
+
+
 router.post(
   '/login',
   validateRequest(AuthValidation.createLoginZodSchema),
   AuthController.loginUser
 );
 
+
+
+// router.post("/refresh-token", AuthValidation.getNewAccessToken)
 router.post(
   '/forget-password',
   validateRequest(AuthValidation.createForgetPasswordZodSchema),
@@ -25,6 +31,12 @@ router.post(
   validateRequest(AuthValidation.createVerifyEmailZodSchema),
   AuthController.verifyEmail
 );
+router.post(
+"/resend-otp",
+  AuthController.resendOtp
+);
+
+
 
 router.post(
   '/reset-password',
@@ -54,5 +66,11 @@ router.get(
   }),
   AuthController.googleCallbackController
 );
+
+
+// router.patch(
+//   '/resend-otp',
+//   AuthController.resendOtp
+// );
 
 export const AuthRoutes = router;

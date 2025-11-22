@@ -15,25 +15,23 @@ import stripe from '../../config/stripe.config';
 const OTP_EXPIRATION = 2 * 60;
 
 const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
-  payload.role = USER_ROLES.USER;
-
   const createUser = await User.create(payload);
   if (!createUser) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create user');
   }
 
-  const otp = generateOTP();
-  const redisKey = `otp:verify:${createUser.email}`;
-  await redisClient.setEx(redisKey, OTP_EXPIRATION, otp.toString());
+  // const otp = generateOTP();
+  // const redisKey = `otp:verify:${createUser.email}`;
+  // await redisClient.setEx(redisKey, OTP_EXPIRATION, otp.toString());
 
-  const values = {
-    name: createUser.name,
-    otp,
-    email: createUser.email!,
-  };
+  // const values = {
+  //   name: createUser.name,
+  //   otp,
+  //   email: createUser.email!,
+  // };
 
-  const createAccountTemplate = emailTemplate.createAccount(values);
-  await emailHelper.sendEmail(createAccountTemplate);
+  // const createAccountTemplate = emailTemplate.createAccount(values);
+  // await emailHelper.sendEmail(createAccountTemplate);
 
   let stripeCustomer;
   try {
