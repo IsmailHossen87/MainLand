@@ -32,7 +32,12 @@ const DraftEventZodSchema = z.object({
     eventName: z.string(),
     title: z.string(),
     image: z.string().optional(),
-    category: z.array(z.string()).optional(),
+    category: z.array(
+    z.object({
+      categoryId: z.string(),
+      subCategory: z.array(z.string())
+    })
+  ).optional(),
     tags: z.array(z.string()).optional(),
     eventDate: validDate.optional(),
     startTime: z.string().optional(),
@@ -67,7 +72,12 @@ const FullEventZodSchema = z.object({
     eventName: z.string({ required_error: 'Event name is required' }),
     title: z.string({ required_error: 'Title is required' }),
     image: z.string({ required_error: 'Image is required' }),
-    category: z.array(z.string(), { required_error: 'Category is required' }),
+      category: z.array(
+    z.object({
+      categoryId: z.string(),
+      subCategory: z.array(z.string())
+    })
+  ),
     tags: z.array(z.string()).optional(),
 
     eventDate: validDate,

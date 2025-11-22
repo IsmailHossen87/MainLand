@@ -121,33 +121,6 @@ const updateEvent = catchAsync(
     });
   }
 );
-
-// ------------------------------------------------------------------
-// 2️⃣ Update Event (Draft update or Publish)
-const myEvents = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const userId= req.user?.id
-    const result = await EventService.myEvents(userId as string)
-    await sendResponse(res, {
-      success: true,
-      statusCode: StatusCodes.OK,
-      message:"My event Retrived Successfully",
-      data: result,
-    });
-  }
-);
-const MyLiveEvent = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const userId= req.user?.id
-    const result = await EventService.myLiveEvent(userId as string)
-    await sendResponse(res, {
-      success: true,
-      statusCode: StatusCodes.OK,
-      message:"My event Retrived Successfully",
-      data: result,
-    });
-  }
-);
 const singleEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId= req.user?.id 
@@ -161,11 +134,42 @@ const singleEvent = catchAsync(
     });
   }
 );
-const allDraftEvent = catchAsync(
+
+// ------------------------------------------------------------------
+// 2️⃣ Update Event (Draft update or Publish)
+// const myEvents = catchAsync(
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     const userId= req.user?.id
+//     const result = await EventService.myEvents(userId as string)
+//     await sendResponse(res, {
+//       success: true,
+//       statusCode: StatusCodes.OK,
+//       message:"My event Retrived Successfully",
+//       data: result,
+//     });
+//   }
+// );
+
+const MyLiveEvent = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId= req.user?.id
+    const result = await EventService.myLiveEvent(userId as string)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message:"My event Retrived Successfully",
+      data: result,
+    });
+  }
+);
+
+// All Data Use Query
+const allDataUseQuery = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId= req.user?.id 
+    const query = req.query
+    const result = await EventService.allDataUseQuery(userId as string,query as Record<string, string>)
 
-    const result = await EventService.allDraftEvent(userId as string)
     await sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
@@ -174,6 +178,7 @@ const allDraftEvent = catchAsync(
     });
   }
 );
+
 // Closed Event ✅✅✅✅
 const closedEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -190,18 +195,7 @@ const closedEvent = catchAsync(
 );
 
 
-const AllLiveEvent = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const userId= req.user?.id
-    const result = await EventService.AllLiveEvent(userId as string)
-    await sendResponse(res, {
-      success: true,
-      statusCode: StatusCodes.OK,
-      message:"My event Retrived Successfully",
-      data: result,
-    });
-  }
-);
+
 
 const ticketHistory = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const userId= req.user?.id
@@ -220,12 +214,10 @@ export const EventController = {
   createCategory,
   createEvent,
   updateEvent,
-  myEvents,
   MyLiveEvent,
   singleEvent,
-  allDraftEvent,
+  allDataUseQuery,
   closedEvent,
-  AllLiveEvent,
   updateCategory,
   ticketHistory
 };

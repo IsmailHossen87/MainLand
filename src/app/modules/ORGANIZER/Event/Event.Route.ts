@@ -61,28 +61,14 @@ router.patch(
 );
 // eventDate Expired Like Closed✅✅✅✅
 router.get("/closed",auth(USER_ROLES.ORGANIZER),EventController.closedEvent)
-// AllDraft ✅✅✅
-router.get("/",auth(USER_ROLES.ORGANIZER),EventController.allDraftEvent)
-// GET Pending ✅✅
-router.get(
-  "/myEvent",
-  auth(USER_ROLES.ORGANIZER),
-  EventController.myEvents
-)
-// Live Event ✅
-router.get(
-  "/liveEvent",
-  auth(USER_ROLES.ORGANIZER),
-  EventController.MyLiveEvent
-)
 
-// SHOW ALL Live event For User
-router.get(
-  "/AllEvent",
-  auth(USER_ROLES.ORGANIZER,USER_ROLES.ADMIN,USER_ROLES.USER),
-  EventController.AllLiveEvent
-)
-// Details
+
+// sdakljfopaksejfl;kasdflkasdjflkasdjfokpadsf💛🩷❣️🩶🩷🖤🖤🩵❤️💛💚🤍🩷💛💙🩵❤️🧡💙🤎💜💙💜💜🤎 
+// AllDraft ✅✅✅
+router.get("/",auth(USER_ROLES.ORGANIZER),EventController.allDataUseQuery) // UnderReview -> Live
+
+router.get("/myLiveEvent", auth(USER_ROLES.ORGANIZER), EventController.MyLiveEvent)
+
 router.get(
   "/:id",
   auth(USER_ROLES.ADMIN,USER_ROLES.ORGANIZER,USER_ROLES.USER),
