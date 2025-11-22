@@ -61,9 +61,33 @@ const loginUserFromDB = async (payload: ILoginData) => {
     refreshToken
   };
 };
+// 🔄 Get a new access token using a valid refresh token
 
+// const getNewAccessToken = async (refreshToken: string) => {
+//    const newAccessToken = await createNewAccessTokenWinthRefreshToken(refreshToken);
+//    return {
+//       accessToken: newAccessToken
+//    }
+// }
 
 // Verify Email or OTP
+const resendOtpToDB = async (email: string) => {
+  const isExistUser = await User.isExistUserByEmail(email);
+  if (!isExistUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+  }
+
+  const otp = generateOTP();
+  const redisKey = `otp:verify:${email}`;
+  await redisClient.setEx(redisKey, OTP_EXPIRATION, otp.toString());
+
+  const values = { otp, email: isExistUser.email };
+  const verifyEmailTemplate = emailTemplate.resendOtpTemplate(values);
+  await emailHelper.sendEmail(verifyEmailTemplate);
+
+  return { message: 'OTP sent to your email.' };
+};
+
 
 const verifyEmailToDB = async (payload: IVerifyEmail) => {
   const { email, oneTimeCode } = payload;
@@ -252,4 +276,5 @@ export const AuthService = {
   forgetPasswordToDB,
   resetPasswordToDB,
   changePasswordToDB,
+  resendOtpToDB
 };

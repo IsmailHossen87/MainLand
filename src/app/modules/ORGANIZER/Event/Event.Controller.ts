@@ -202,6 +202,19 @@ const AllLiveEvent = catchAsync(
     });
   }
 );
+
+const ticketHistory = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const userId= req.user?.id
+    const result = await EventService.ticketHistory(userId as string)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message:"Total ticket history Retrived Successfully",
+      data: result,
+    });
+  }
+);
+
 export const EventController = {
   createSubCategory,
   createCategory,
@@ -213,5 +226,6 @@ export const EventController = {
   allDraftEvent,
   closedEvent,
   AllLiveEvent,
-  updateCategory
+  updateCategory,
+  ticketHistory
 };

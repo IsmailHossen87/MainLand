@@ -11,7 +11,7 @@ const router = Router();
 // 🎟️ Create a resell listing
 router.post(
   "/",
-  auth(USER_ROLES.USER),
+  auth(USER_ROLES.USER,USER_ROLES.ORGANIZER),
   ResellTicketController.createResellListing
 );
 
@@ -31,6 +31,12 @@ router.get(
   auth(USER_ROLES.USER),
   ResellTicketController.getSoldedTicket
 );
+// 🎟️ Expired Ticket
+router.get(
+  "/expired",
+  auth(USER_ROLES.USER,USER_ROLES.ORGANIZER),
+  ResellTicketController.getExpiredTicket
+);
 
 // 🎟️ Buy a resell ticket
 router.post(
@@ -38,6 +44,13 @@ router.post(
   auth(USER_ROLES.USER),
   PaymentController.createTicketPayment
 );
+// 🎟️ Cancel resell listing (should be DELETE, not PATCH)
+router.delete(
+  "/cancel/:resellTicketId",
+  auth(USER_ROLES.USER,USER_ROLES.ORGANIZER),
+  ResellTicketController.cancelResellListing
+);
+
 
 
 

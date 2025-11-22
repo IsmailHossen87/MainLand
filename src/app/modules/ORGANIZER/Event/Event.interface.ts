@@ -4,11 +4,11 @@ export interface ICategory {
   userId: Types.ObjectId;
   title: string;
   coverImage: string;
-  subCategoryId?: Types.ObjectId[];
 }
 
 export interface ISubcategory {
   userId: Types.ObjectId;
+  categoryId: Types.ObjectId;
   title: string;
 }
 
@@ -18,6 +18,17 @@ export enum TicketType {
   STANDARD = "Standard",
   FREE = "Free",
 }
+// export enum IEventStatus {
+//   Live = "Live",
+//   Available = "Available",
+//   Sold = "Sold",
+//   Expired = "Expired",
+//   Upcoming = "Upcoming",
+//   Used = "Used",
+//   UnderReview = "UnderReview",
+//   Draft = "Draft",
+//   Closed = "Closed",
+// }
 
 export interface IEvent {
   userId: Types.ObjectId;
@@ -53,7 +64,7 @@ export interface IEvent {
   ticketSaleEnd?: Date;
   preSaleStart?: Date;
   preSaleEnd?: Date;
-
+  EventStatus?: IEventStatus;
   // Discount
   discountCodes?: {
     code: string;

@@ -20,6 +20,34 @@ const verifyEmail = catchAsync(async (req: Request, res: Response) => {
     data: result.data,
   });
 });
+// RefrestToken
+// 🔄 Get New Access Token from refresh token
+// const getNewAccessToken = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+//     const refrestToken = req.cookies.refreshToken;
+//     if (!refrestToken) {
+//         throw new ApiError(httpStatus.BAD_REQUEST, "No refresh token received from cookies");
+//     }
+
+//     const tokenInfo = await AuthService.getNewAccessToken(refrestToken);
+//     setAuthCookie(res, tokenInfo);
+
+//     sendResponse(res, {
+//         success: true,
+//         statusCode: httpStatus.OK,
+//         message: "New Access Token Retrieved successfully",
+//         data: tokenInfo
+//     });
+// });
+
+const resendOtp = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthService.resendOtpToDB(req.body.email);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: result.message,
+  });
+});
 
 const loginUser = catchAsync(async (req: Request, res: Response) => {
   const { ...loginData } = req.body;
@@ -50,9 +78,9 @@ const forgetPassword = catchAsync(async (req: Request, res: Response) => {
 });
 
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
-  const token = req.headers.authorization;
+  const Token = req.body.token;
   const { ...resetData } = req.body;
-  const result = await AuthService.resetPasswordToDB(token!, resetData);
+  const result = await AuthService.resetPasswordToDB(Token!, resetData);
 
   sendResponse(res, {
     success: true,
@@ -120,4 +148,5 @@ export const AuthController = {
   resetPassword,
   changePassword,
   googleCallbackController,
+  resendOtp
 };

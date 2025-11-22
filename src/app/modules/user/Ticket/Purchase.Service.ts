@@ -5,7 +5,10 @@ import { StatusCodes } from 'http-status-codes';
 import ApiError from '../../../../errors/ApiError';
 import { ResellTicket, SecondaryTicketPurchase, TicketPurchase } from './Purchase.Mode';
 import { JwtPayload } from 'jsonwebtoken';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
+import { User } from '../user.model';
+import { ITicketPurchase } from './Purchase.Interface';
+import { createLogger } from 'winston';
 
 // ============================================
 const createResellListing = async (payload: any, user: JwtPayload) => {
@@ -95,7 +98,8 @@ const getLiveTicket = async (query: Record<string, any>) => {
 
   return resellTickets;
 };
-const getSoldedTicket = async ( userId:string,query: Record<string, any>) => {
+
+const getSoldedTicket = async (userId: string, query: Record<string, any>) => {
 
 
   const resellTickets = await SecondaryTicketPurchase.findById(userId)
@@ -113,30 +117,127 @@ const cancelResellListing = async (
   resellTicketId: string,
   user: JwtPayload
 ) => {
-  const resellTicket = await ResellTicket.findById(resellTicketId);
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
 
-  if (!resellTicket) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Resell ticket not found');
+    // 1️⃣ Find the resell ticket
+    const resellTicket = await ResellTicket.findById(resellTicketId).session(
+      session
+    );
+
+    if (!resellTicket) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Resell ticket not found");
+    }
+
+
+    // 2️⃣ Check if the user is the seller
+    if (resellTicket.sellerId.toString() !== user.id) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You are not authorized to cancel this listing"
+      );
+    }
+
+    // 3️⃣ Check if status is "available" (only available listings can be cancelled)
+    if (resellTicket.status !== "available") {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Cannot cancel a listing that is not available"
+      );
+    }
+
+    // 4️⃣ Find the original ticket purchase
+    const ticketPurchase = await TicketPurchase.findById(
+      resellTicket.originalTicketId
+    ).session(session);
+
+    if (!ticketPurchase) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "Original ticket purchase not found"
+      );
+    }
+
+    // 5️⃣ Find the specific ticket in the tickets array - FIXED COMPARISON
+    const ticketIndex = ticketPurchase.tickets.findIndex(
+      (ticket) => ticket.ticketType.toString() === resellTicket.ticketType.toString()
+    );
+
+    if (ticketIndex === -1) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "Ticket type not found in purchase"
+      );
+    }
+
+    // 6️⃣ Add the quantity back to the original ticket purchase
+    ticketPurchase.tickets[ticketIndex].quantity += resellTicket.quantity;
+
+    // 7️⃣ Save the updated ticket purchase
+    await ticketPurchase.save({ session });
+
+    // 8️⃣ Delete the resell ticket
+    await ResellTicket.findByIdAndDelete(resellTicketId).session(session);
+
+    await session.commitTransaction();
+
+    return {
+      message: "Resell listing cancelled successfully",
+      restoredQuantity: resellTicket.quantity,
+      ticketType: resellTicket.ticketType,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-
-  if (resellTicket.sellerId.toString() !== user.userId) {
-    throw new ApiError(StatusCodes.FORBIDDEN, 'Not your listing');
-  }
-
-  if (resellTicket.status === 'sold') {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Cannot cancel sold ticket');
-  }
-
-  resellTicket.status = 'cancelled';
-  await resellTicket.save();
-
-  return resellTicket;
 };
+
+
+// expired ticket
+const getExpiredTicket = async (userId: string) => {
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+
+  const purchases = await TicketPurchase.find({ userId })
+    .populate("eventId", "eventName eventDate startTime endTime location")
+    .lean();
+
+  const now = new Date();
+
+  const expiredTickets = purchases
+    .filter(p => {
+      const event = p.eventId as any;
+      return event?.eventDate && new Date(event.eventDate) < now;
+    })
+    .map(p => {
+      const event = p.eventId as any;
+      return {
+        purchaseId: p._id,
+        eventId: event._id,
+        eventTitle: event.eventName,
+        eventDate: event.eventDate,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        tickets: p.tickets,
+        totalAmount: p.totalAmount,
+      };
+    });
+
+
+  return expiredTickets;
+};
+
+
+
 
 export const ResellTicketService = {
   createResellListing,
   availAbleTicket,
   getLiveTicket,
-  cancelResellListing,
-  getSoldedTicket
+  getSoldedTicket,
+  getExpiredTicket,
+  cancelResellListing
 };

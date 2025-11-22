@@ -1,4 +1,5 @@
-import {  IResetPassword } from '../types/emailTamplate';
+import { IResetPassword } from '../types/emailTamplate';
+
 interface ITicket {
   ticketType: string;
   quantity: number;
@@ -9,9 +10,7 @@ interface IPurchaseEmail {
   email: string;
   totalTicket: ITicket[];
   TotalTaka: string;
-
 }
-
 
 const ticketPurchaseEmail = (values: IPurchaseEmail) => {
   const ticketsHtml = values.totalTicket && values.totalTicket.length
@@ -24,15 +23,17 @@ const ticketPurchaseEmail = (values: IPurchaseEmail) => {
 
   return {
     to: values.email,
-    subject: `🎟️ Your Ticket Purchase Summary, ${values.name}`,
+    subject: `🎟️ Your MainLand Ticket Purchase Summary`,
     html: `
       <div style="font-family:Arial,sans-serif; padding:20px; background:#f4f4f4;">
-        <h2>Hi ${values.name},</h2>
-        <p>Thank you for your ticket purchase! Here’s a summary of your order:</p>
+        <h2>Hello ${values.name},</h2>
+        <p>Thank you for purchasing tickets from <strong>MainLand Events</strong>! Here’s your order summary:</p>
+
         ${ticketsHtml}
+
         <p><strong>Total Amount Paid:</strong> $${values.TotalTaka}</p>
-        <p>We look forward to seeing you at the event!</p>
-        <p>— Event Team 🎉</p>
+        <p>We are excited to have you at the event!</p>
+        <p>— MainLand Events Team 🎉</p>
       </div>
     `,
   };
@@ -40,43 +41,55 @@ const ticketPurchaseEmail = (values: IPurchaseEmail) => {
 
 
 const createAccount = (values: { name: string; email: string; otp: number }) => {
-  const data = {
+  return {
     to: values.email,
-    subject: 'Verify your Fundraising Account',
-    html: `<body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 50px; padding: 20px; color: #555;">
+    subject: 'Verify Your MainLand Account',
+    html: `
+    <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 50px; padding: 20px; color: #555;">
       <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
           <img src="https://ibb.co.com/gLb5SyJ5" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
-          <h2 style="color: #277E16; font-size: 24px; margin-bottom: 20px;">Hello ${values.name}, Welcome to FundRaise!</h2>
+          <h2 style="color: #277E16; font-size: 24px; margin-bottom: 20px;">Hello ${values.name}, Welcome to MainLand!</h2>
+
           <div style="text-align: center;">
-              <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Your verification code is:</p>
-              <div style="background-color: #277E16; width: 80px; padding: 10px; text-align: center; border-radius: 8px; color: #fff; font-size: 25px; letter-spacing: 2px; margin: 20px auto;">${values.otp}</div>
-              <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px;">This code is valid for 3 minutes. Use it to verify your fundraising account and start your campaign.</p>
+              <p style="font-size: 16px;">Your verification code is:</p>
+              <div style="background-color: #277E16; width: 80px; padding: 10px; text-align: center; border-radius: 8px; color: #fff; font-size: 25px; letter-spacing: 2px; margin: 20px auto;">
+                ${values.otp}
+              </div>
+
+              <p style="font-size: 16px;">This OTP is valid for 3 minutes.</p>
           </div>
-          <p style="color: #555; font-size: 14px; line-height: 1.5;">If you did not request this, please ignore this email.</p>
+
+          <p style="font-size: 14px;">If you didn’t request this, please ignore this email.</p>
       </div>
-    </body>`,
+    </body>
+    `
   };
-  return data;
 };
 
 
 const resetPassword = (values: IResetPassword) => {
-  const data = {
+  return {
     to: values.email,
-    subject: 'Reset your password',
-    html: `<body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 50px; padding: 20px; color: #555;">
-    <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-        <img src="https://ibb.co.com/gLb5SyJ5" alt="Logo" style="display: block; margin: 0 auto 20px; width:150px" />
-        <div style="text-align: center;">
-            <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Your single use code is:</p>
-            <div style="background-color: #277E16; width: 80px; padding: 10px; text-align: center; border-radius: 8px; color: #fff; font-size: 25px; letter-spacing: 2px; margin: 20px auto;">${values.otp}</div>
-            <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px;">This code is valid for 3 minutes.</p>
-                <p style="color: #b9b4b4; font-size: 16px; line-height: 1.5; margin-bottom: 20px;text-align:left">If you didn't request this code, you can safely ignore this email. Someone else might have typed your email address by mistake.</p>
-        </div>
-    </div>
-</body>`,
+    subject: 'Reset Your MainLand Account Password',
+    html: `
+    <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #555;">
+      <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+          <img src="https://ibb.co.com/gLb5SyJ5" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
+
+          <div style="text-align:center;">
+              <p>Your password reset verification code:</p>
+              <div style="background:#277E16; width:80px; margin:auto; padding:10px; border-radius:8px; color:#fff; font-size:25px; letter-spacing:2px;">
+                ${values.otp}
+              </div>
+              <p>This code will expire in 3 minutes.</p>
+              <p style="font-size:13px; color:#888; text-align:left;">
+                If you didn’t request this, you can safely ignore this email.
+              </p>
+          </div>
+      </div>
+    </body>
+    `
   };
-  return data;
 };
 
 
@@ -87,33 +100,68 @@ const donationConfirmation = (values: {
   causeName: string | undefined;
   causeImage: string | undefined;
 }) => {
-  const data = {
+  return {
     to: values.email,
-    subject: 'Thank You for Your Donation!',
-    html: `<body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 50px; padding: 20px; color: #555;">
-      <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-          <img src="https://ibb.co.com/gLb5SyJ5" alt="FundRaise Logo" style="display: block; margin: 0 auto 20px; width:150px" />
-          <h2 style="color: #277E16; font-size: 24px; margin-bottom: 20px;">Hello ${values.name}, Thank You for Your Generosity!</h2>
-          <div style="text-align: center; margin-bottom: 20px;">
-              <img src="http://10.10.7.23:5000${values.causeImage}" alt="${values.causeName}" style="width: 100%; max-width: 400px; border-radius: 10px; margin-bottom: 15px;" />
-              <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px;">We have received your donation of <strong>$${values.amount}</strong> for <strong>${values.causeName}</strong>.</p>
-              <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Your support helps us make a real difference. Keep an eye on your email for updates on the cause!</p>
-          </div>
-          <p style="color: #555; font-size: 14px; line-height: 1.5;">If you have any questions, feel free to contact our support team.</p>
-      </div>
-    </body>`,
+    subject: 'Your MainLand Donation Receipt ✔',
+    html: `
+      <body style="font-family: Arial; background:#f9f9f9; padding:20px;">
+        <div style="max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:10px;">
+            <img src="https://ibb.co.com/gLb5SyJ5" alt="MainLand Logo" style="display:block; margin:auto; width:150px;" />
+
+            <h2 style="color:#277E16; text-align:center;">
+              Thank you, ${values.name}, for supporting ${values.causeName}!
+            </h2>
+
+            <div style="text-align:center;">
+              <img src="http://10.10.7.23:5000${values.causeImage}" 
+                   style="width:100%; max-width:400px; border-radius:10px;" />
+            </div>
+
+            <p style="font-size:16px;">Donation Amount: <strong>$${values.amount}</strong></p>
+            <p>Your contribution helps us continue supporting meaningful causes.</p>
+
+            <p style="font-size:14px;">For any questions, feel free to contact our support team.</p>
+        </div>
+      </body>
+    `,
   };
-  return data;
 };
 
 
+const resendOtpTemplate = (values: { otp: string | number; email: string }) => {
+  return {
+    to: values.email,
+    subject: "Your OTP Code - MainLand Verification",
+    html: `
+      <body style="font-family: Arial; background:#f6f6f6; padding:20px;">
+        <div style="max-width:600px; margin:auto; background:white; padding:25px; border-radius:10px;">
+          
+          <div style="text-align:center;">
+            <img src="https://ibb.co.com/gLb5SyJ5" alt="MainLand Logo" style="width:140px;" />
+          </div>
+
+          <h2 style="color:#277E16; text-align:center;">Your Resent OTP Code</h2>
+
+          <p style="text-align:center;">Use the code below to continue verifying your MainLand account.</p>
+
+          <div style="text-align:center; margin:25px 0;">
+            <div style="display:inline-block; background:#277E16; color:white; padding:15px 25px; border-radius:8px; font-size:28px; font-weight:bold; letter-spacing:3px;">
+              ${values.otp}
+            </div>
+          </div>
+
+          <p style="text-align:center; color:#666;">This OTP will expire in <strong>5 minutes</strong>.</p>
+        </div>
+      </body>
+    `,
+  };
+};
 
 
 export const emailTemplate = {
   createAccount,
   resetPassword,
   donationConfirmation,
- ticketPurchaseEmail
+  ticketPurchaseEmail,
+  resendOtpTemplate
 };
-
-

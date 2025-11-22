@@ -49,7 +49,7 @@ import { JwtPayload } from "jsonwebtoken";
 );
  const getSoldedTicket = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => { 
-    const userId = req.user?.id
+    const userId = req.user?.id as string
     const result = await ResellTicketService.getSoldedTicket( userId,req.query);
 
     sendResponse(res, {
@@ -60,14 +60,11 @@ import { JwtPayload } from "jsonwebtoken";
     });
   }
 );
-
-
-
-// 🎟️ Cancel resell listing
- const cancelResellListing = catchAsync(
+const cancelResellListing = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const { resellTicketId } = req.params;
     const user = req.user as JwtPayload;
+    
     const result = await ResellTicketService.cancelResellListing(
       resellTicketId,
       user
@@ -82,4 +79,21 @@ import { JwtPayload } from "jsonwebtoken";
   }
 );
 
-export const ResellTicketController ={createResellListing,availAbleTicket,cancelResellListing,getLiveTicket,getSoldedTicket}
+// 🎟️ Expired resell listing
+ const getExpiredTicket = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    
+    const userId = req.user?.id as string
+    const result = await ResellTicketService.getExpiredTicket(
+      userId );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Expired ticket listing successfully",
+      data: result,
+    });
+  }
+);
+
+export const ResellTicketController ={createResellListing,availAbleTicket,getLiveTicket,getSoldedTicket,getExpiredTicket,cancelResellListing}

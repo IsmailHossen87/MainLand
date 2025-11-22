@@ -36,6 +36,12 @@ router.post(
   dynamicEventValidation,
   EventController.createEvent
 );
+// Ticket History
+router.get(
+  '/ticketHistory',
+  auth(USER_ROLES.ORGANIZER),
+  EventController.ticketHistory
+);
 
 // Draft update OR Create
 router.patch(

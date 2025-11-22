@@ -10,6 +10,7 @@ interface IEventDoc extends Document {
 const SubCategorySchema = new Schema<ISubcategory>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', },
+    categoryId: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
     title: { type: String, required: true, trim: true },
   },
   { timestamps: true, versionKey: false }
@@ -19,7 +20,6 @@ const SubCategorySchema = new Schema<ISubcategory>(
 const CategorySchema = new Schema(
   {
     userId: { type: Types.ObjectId, ref: 'User', required: true },
-    subCategoryId: [{ type: Schema.Types.ObjectId, ref: 'SubCategory',required:true }],
     title: {
       type: String,
       trim: true,
