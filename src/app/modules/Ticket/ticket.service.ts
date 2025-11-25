@@ -6,7 +6,6 @@ import { QueryBuilder } from "../../builder/QueryBuilder";
 import { excludeField } from "../../../shared/constrant";
 
 const getAllTicket = async (userId: string, query: Record<string, any>) => {
-
     const user = await User.findById(userId);
     if (!user) {
         throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
@@ -98,7 +97,7 @@ const getUniqueEvents = async (userId: string) => {
     return uniqueEvents;
 };
 
-const sellTicketInfo = async (
+const sellTicketInfoUsers = async (
   userId: string,
   eventId: string,
   query: Record<string, any>
@@ -155,6 +154,108 @@ const sellTicketInfo = async (
   // 5️⃣ Convert to array
   return Object.values(ticketsByType);
 };
+
+const allOnsellTicketInfo = async (
+  userId: string,
+  query: Record<string, any>
+) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  // 1️⃣ Base query - sob tickets
+  const baseQuery = TicketPurchase.find({
+    status: ITicketStatus.onsell,
+  }).populate('ownerId', 'name');
+
+  // 2️⃣ Apply QueryBuilder filters
+  const qb = new QueryBuilder(baseQuery, query)
+    .search(["ticketName", "ticketType"]) 
+    .filter()                             
+    .dateRange()
+    .sort()
+    .fields()
+    .paginate();
+
+  // 3️⃣ Execute filtered query
+  const tickets = await qb.build();
+
+  if (!tickets || tickets.length === 0) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "No tickets found");
+  }
+
+  // 4️⃣ Check if ticketType query exists
+  const hasTicketTypeQuery = query.ticketType !== undefined;
+
+  if (hasTicketTypeQuery) {
+    // ✅ WITH ticketType query - Group by type AND owner
+    const ticketsByTypeAndOwner: Record<string, Record<string, {
+      ticketType: string;
+      ownerId: string;
+      ownerName: string;
+      totalPurchaseTicket: number;
+      totalSellAmount: number;
+    }>> = {};
+
+    tickets.forEach((ticket: any) => {
+      const type = String(ticket.ticketType || "Unknown");
+      const owner = String(ticket.ownerId?._id || "Unknown");
+      const ownerName = ticket.ownerId?.name || "Unknown";
+
+      if (!ticketsByTypeAndOwner[type]) {
+        ticketsByTypeAndOwner[type] = {};
+      }
+
+      if (!ticketsByTypeAndOwner[type][owner]) {
+        ticketsByTypeAndOwner[type][owner] = {
+          ticketType: type,
+          ownerId: owner,
+          ownerName: ownerName,
+          totalPurchaseTicket: 0,
+          totalSellAmount: 0,
+        };
+      }
+
+      ticketsByTypeAndOwner[type][owner].totalPurchaseTicket += 1;
+      ticketsByTypeAndOwner[type][owner].totalSellAmount += ticket.sellAmount || 0;
+    });
+
+    // Convert to flat array
+    const result: any[] = [];
+    Object.values(ticketsByTypeAndOwner).forEach(ownerGroup => {
+      result.push(...Object.values(ownerGroup));
+    });
+
+    return result;
+
+  } else {
+    // ✅ WITHOUT ticketType query - Group by type only
+    const ticketsByType: Record<string, {
+      ticketType: string;
+      totalPurchaseTicket: number;
+      sellAmountPerTicket: number;
+    }> = {};
+
+    tickets.forEach((ticket: any) => {
+      const type = String(ticket.ticketType || "Unknown");
+
+      if (!ticketsByType[type]) {
+        ticketsByType[type] = {
+          ticketType: type,
+          totalPurchaseTicket: 0,
+         sellAmountPerTicket: 0,
+        };
+      }
+
+      ticketsByType[type].totalPurchaseTicket += 1;
+      ticketsByType[type].sellAmountPerTicket += ticket.sellAmount || 0;
+    });
+
+    return Object.values(ticketsByType);
+  }
+};
+
 
 // ResellTicket
 const resellTicket = async (userId: string, eventId: string, payload: IResellTicket) => { 
@@ -258,7 +359,8 @@ export const TicketService = {
     getAllTicket,
     getOneTicket,
     getUniqueEvents,
-    sellTicketInfo,
+    sellTicketInfoUsers,
+    allOnsellTicketInfo,
     resellTicket,
     withdrawTicket
 };

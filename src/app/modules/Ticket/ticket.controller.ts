@@ -50,17 +50,30 @@ const getUniqueEvents = catchAsync(async (req: Request, res: Response) => {
         data: result,
     });
 });
-const sellTicketInfo = catchAsync(async (req: Request, res: Response) => {
+const sellTicketInfoUsers = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const eventId = req.params.id;
     const query = req.query;
-    const result = await TicketService.sellTicketInfo(userId, eventId,query);
+    const result = await TicketService.sellTicketInfoUsers(userId, eventId,query);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
         message: 'Purchase Ticket  retrived Successfully',
         data: result,
+    });
+});
+// All
+const allOnsellTicketInfo = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const query = req.query;
+    const result = await TicketService.allOnsellTicketInfo(userId,query);
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Purchase Ticket  retrived Successfully',
+        data:result,
     });
 });
 
@@ -97,7 +110,8 @@ export const TicketController = {
     getAllTicket,
     getOneTicket,
     getUniqueEvents,
-    sellTicketInfo,
+    sellTicketInfoUsers,
+    allOnsellTicketInfo,
     resellTicket,
     withdrawTicket
 };

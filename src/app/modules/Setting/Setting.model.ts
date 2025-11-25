@@ -1,20 +1,29 @@
 import { Schema, model } from "mongoose";
 
-export interface ISettings {
-  privacyPolicy: string;
-  cookiePolicy: string;
-  termsAdnCondition: string;
-  shippingPolicy: string;
+export enum SettingType {
+  TermsAndConditions = "terms_and_conditions",
+  PrivacyPolicy = "privacy_policy",
+  AboutUs = "about_us",
+  ContactUs = "contact_us", 
+  Faq = "faq",
 }
 
-const settingSchema = new Schema<ISettings>(
+export interface ISettings {
+  type: SettingType;
+  title: string;
+  content: string;
+}
+
+
+const SettingsSchema = new Schema(
   {
-    privacyPolicy: { type: String, required: true },
-    cookiePolicy: { type: String, required: true },
-    termsAdnCondition: { type: String, required: true },
-    shippingPolicy: { type: String, required: true },
+    type: { type: String, enum: SettingType, required: true, unique: true }, 
+    title: { type: String, required: true },
+    content: { type: String, required: true }
   },
-  { timestamps: true,versionKey:false }
+  { timestamps: true,versionKey: false }
 );
 
-export const Settings = model<ISettings>("Settings", settingSchema);
+export const Settings = model("Settings", SettingsSchema);
+
+
