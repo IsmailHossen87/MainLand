@@ -9,7 +9,7 @@ const router = Router()
 
 router.get('/getAllTicket', auth(USER_ROLES.USER ,USER_ROLES.ORGANIZER),TicketController.getAllTicket);
 router.get('/uniqueEvents', auth(USER_ROLES.USER ,USER_ROLES.ORGANIZER),TicketController.getUniqueEvents);
-router.get('/sellTicketInfo/:id', auth(USER_ROLES.USER ,USER_ROLES.ORGANIZER),TicketController.sellTicketInfo);
+router.get('/sellAllTicket', auth(USER_ROLES.USER ,USER_ROLES.ORGANIZER),TicketController.allOnsellTicketInfo);
 router.get('/withdrawTicket/:id', auth(USER_ROLES.USER ,USER_ROLES.ORGANIZER),TicketController.withdrawTicket);
 
 router.get('/resellTicket/:id', auth(USER_ROLES.USER ,USER_ROLES.ORGANIZER),TicketController.resellTicket);
