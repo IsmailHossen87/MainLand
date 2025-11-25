@@ -23,33 +23,22 @@ const createEventPayment = catchAsync(async (req: Request, res: Response) => {
 });
 
 // ================= Resell Ticket Payment =================
-// const createTicketPayment = catchAsync(async (req: Request, res: Response) => {
-//   const { resellTicketId } = req.params;
-//   const userId = req.user?.id;
+const buyTicket = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id as string;
 
-//   const payload = {
-//     id: resellTicketId,
-//     fullName: req.body.fullName,
-//     email: req.body.email,
-//     phone: req.body.phone,
-//     totalTicket: req.body.totalTicket,
-//     buyerId:userId
-//   }; 
-//   console.log(payload)
+  const {fullName, email, phone, tickets} = req.body;
 
-//   const paymentSession = await createPaymentService.createTicketPayment(
-//     payload
-//   );
+  const paymentSession = await createPaymentService.BuyTicket({fullName, email, phone, tickets, userId});
 
-//   sendResponse(res, {
-//     statusCode: StatusCodes.OK,
-//     success: true,
-//     message: 'Redirect to payment',
-//     data: paymentSession,
-//   });
-// });
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Redirect to payment',
+    data: paymentSession,
+  });
+});
 
 export const PaymentController = {
   createEventPayment,
-  // createTicketPayment,
+  buyTicket,
 };

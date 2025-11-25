@@ -32,7 +32,6 @@ const getAllTicket = async (userId: string, query: Record<string, any>) => {
     // 5️⃣ Return result
     return { meta, data };
 };
-
 // GetOneTicket
 const getOneTicket = async (userId: string, ticeketId: string) => {
     const user = await User.findById(userId);
@@ -151,10 +150,9 @@ const sellTicketInfoUsers = async (
     ticketsByType[type].totalPurchaseAmount += ticket.purchaseAmount || 0;
   });
 
-  // 5️⃣ Convert to array
   return Object.values(ticketsByType);
 };
-
+// 👊👊
 const allOnsellTicketInfo = async (
   userId: string,
   query: Record<string, any>
@@ -255,7 +253,6 @@ const allOnsellTicketInfo = async (
     return Object.values(ticketsByType);
   }
 };
-
 
 // ResellTicket
 const resellTicket = async (userId: string, eventId: string, payload: IResellTicket) => { 
