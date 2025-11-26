@@ -6,94 +6,96 @@ import { QueryBuilder } from "../../builder/QueryBuilder";
 import { excludeField } from "../../../shared/constrant";
 
 const getAllTicket = async (userId: string, query: Record<string, any>) => {
-    const user = await User.findById(userId);
-    if (!user) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
-    }
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+  }
 
-    // 2️⃣ Initialize base query
-    const baseQuery = TicketPurchase.find({ ownerId: userId, }).populate('eventId', 'image eventName');;
-    const queryBuilder = new QueryBuilder(baseQuery, query);
+  // 2️⃣ Initialize base query
+  const baseQuery = TicketPurchase.find({ ownerId: userId, }).populate('eventId', 'image eventName');;
+  const queryBuilder = new QueryBuilder(baseQuery, query);
 
-    // 3️⃣ Apply queryBuilder methods
-    const allTickets = queryBuilder
-        .search(excludeField)
-        .filter()
-        .dateRange()
-        .sort()
-        .fields()
-        .paginate();
+  // 3️⃣ Apply queryBuilder methods
+  const allTickets = queryBuilder
+    .search(excludeField)
+    .filter()
+    .dateRange()
+    .sort()
+    .fields()
+    .paginate();
 
-    const [meta, data] = await Promise.all([
-        allTickets.getMeta(),
-        allTickets.build(),
-    ]);
+  const [meta, data] = await Promise.all([
+    allTickets.getMeta(),
+    allTickets.build(),
+  ]);
 
-    // 5️⃣ Return result
-    return { meta, data };
+  // 5️⃣ Return result
+  return { meta, data };
 };
 // GetOneTicket
 const getOneTicket = async (userId: string, ticeketId: string) => {
-    const user = await User.findById(userId);
-    if (!user) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
-    }
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+  }
 
-    // 2️⃣ Initialize base query
-    const baseQuery = TicketPurchase.find({ ownerId: userId, });
-    const ticket = await baseQuery.findOne({ _id: ticeketId }).populate('eventId','image eventName');
-    if (!ticket) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Ticket not found');
-    }
+  // 2️⃣ Initialize base query
+  const baseQuery = TicketPurchase.find({ ownerId: userId, });
+  const ticket = await baseQuery.findOne({ _id: ticeketId }).populate('eventId', 'image eventName');
+  if (!ticket) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Ticket not found');
+  }
 
-    // 5️⃣ Return result
-    return ticket;
+  // 5️⃣ Return result
+  return ticket;
 };
 // uniqueEvent
 import mongoose from "mongoose";
 import { ITicketStatus, IResellTicket } from "./ticket.interface";
+import { TransactionHistory } from "../Payment/transactionHistory";
+import { Event } from "../ORGANIZER/Event/Event.model";
 
 const getUniqueEvents = async (userId: string) => {
-    // 1️⃣ Check user exists
-    const user = await User.findById(userId);
-    if (!user) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  // 1️⃣ Check user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+  // 2️⃣ Aggregation pipeline
+  const uniqueEvents = await TicketPurchase.aggregate([
+    {
+      $match: {
+        ownerId: new mongoose.Types.ObjectId(userId)
+      }
+    },
+    {
+      $group: {
+        _id: "$eventId",
+        ticketId: { $first: "$_id" }
+      }
+    },
+    {
+      $lookup: {
+        from: "events",
+        localField: "_id",
+        foreignField: "_id",
+        as: "event"
+      }
+    },
+    { $unwind: "$event" },
+    {
+      $project: {
+        _id: 0,
+        eventId: "$_id",
+        eventName: "$event.eventName",
+        image: "$event.image",
+        address: "$event.streetAddress",
+        ticketId: 1
+      }
     }
-    // 2️⃣ Aggregation pipeline
-    const uniqueEvents = await TicketPurchase.aggregate([
-        {
-            $match: {
-                ownerId: new mongoose.Types.ObjectId(userId)
-            }
-        },
-        {
-            $group: {
-                _id: "$eventId",  
-                ticketId: { $first: "$_id" } 
-            }
-        },
-        {
-            $lookup: {
-                from: "events",
-                localField: "_id",
-                foreignField: "_id",
-                as: "event"
-            }
-        },
-        { $unwind: "$event" },
-        {
-            $project: {
-                _id: 0,
-                eventId: "$_id",
-                eventName: "$event.eventName",
-                image: "$event.image",
-                address:"$event.streetAddress",
-                ticketId: 1
-            }
-        }
-    ]);
+  ]);
 
-    return uniqueEvents;
+  return uniqueEvents;
 };
 
 const sellTicketInfoUsers = async (
@@ -114,8 +116,8 @@ const sellTicketInfoUsers = async (
 
   // 2️⃣ Apply QueryBuilder filters
   const qb = new QueryBuilder(baseQuery, query)
-    .search(["ticketName", "ticketType"]) 
-    .filter()                             
+    .search(["ticketName", "ticketType"])
+    .filter()
     .dateRange()
     .sort()
     .fields()
@@ -169,8 +171,8 @@ const allOnsellTicketInfo = async (
 
   // 2️⃣ Apply QueryBuilder filters
   const qb = new QueryBuilder(baseQuery, query)
-    .search(["ticketName", "ticketType"]) 
-    .filter()                             
+    .search(["ticketName", "ticketType"])
+    .filter()
     .dateRange()
     .sort()
     .fields()
@@ -242,7 +244,7 @@ const allOnsellTicketInfo = async (
         ticketsByType[type] = {
           ticketType: type,
           totalPurchaseTicket: 0,
-         sellAmountPerTicket: 0,
+          sellAmountPerTicket: 0,
         };
       }
 
@@ -255,49 +257,49 @@ const allOnsellTicketInfo = async (
 };
 
 // ResellTicket
-const resellTicket = async (userId: string, eventId: string, payload: IResellTicket) => { 
-    const { ticketType, quantity, resellAmount } = payload;
-    
-    // 1️⃣ Check user exists
-    const user = await User.findById(userId);
-    if (!user) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-    }
+const resellTicket = async (userId: string, eventId: string, payload: IResellTicket) => {
+  const { ticketType, quantity, resellAmount } = payload;
 
-    const availableTickets = await TicketPurchase.find({
-        ownerId: userId,
-        eventId: eventId,
-        ticketType: ticketType,
-        status: ITicketStatus.available 
-    }).limit(quantity);
+  // 1️⃣ Check user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
 
-    // 3️⃣ Check if enough tickets available
-    if (availableTickets.length < quantity) {
-        throw new ApiError(
-            StatusCodes.BAD_REQUEST, 
-            `Not enough tickets available. You have ${availableTickets.length} ${ticketType} tickets, but requested ${quantity}`
-        );
-    }
+  const availableTickets = await TicketPurchase.find({
+    ownerId: userId,
+    eventId: eventId,
+    ticketType: ticketType,
+    status: ITicketStatus.available
+  }).limit(quantity);
 
-    // 4️⃣ Update tickets status to 'onsell' and set resell amount
-    const ticketIds = availableTickets.map(ticket => ticket._id);
-    
-    const updatedTickets = await TicketPurchase.updateMany(
-        { _id: { $in: ticketIds } },
-        { 
-            $set: { 
-                status: ITicketStatus.onsell,
-                sellAmount: resellAmount 
-            } 
-        }
+  // 3️⃣ Check if enough tickets available
+  if (availableTickets.length < quantity) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `Not enough tickets available. You have ${availableTickets.length} ${ticketType} tickets, but requested ${quantity}`
     );
-    // 5️⃣ Return updated information
-    return {
-        message: `Successfully listed ${quantity} ${ticketType} ticket(s) for resale`,
-        ticketsUpdated: updatedTickets.modifiedCount,
-        resellAmount: resellAmount,
-        ticketType: ticketType
-    };
+  }
+
+  // 4️⃣ Update tickets status to 'onsell' and set resell amount
+  const ticketIds = availableTickets.map(ticket => ticket._id);
+
+  const updatedTickets = await TicketPurchase.updateMany(
+    { _id: { $in: ticketIds } },
+    {
+      $set: {
+        status: ITicketStatus.onsell,
+        sellAmount: resellAmount
+      }
+    }
+  );
+  // 5️⃣ Return updated information
+  return {
+    message: `Successfully listed ${quantity} ${ticketType} ticket(s) for resale`,
+    ticketsUpdated: updatedTickets.modifiedCount,
+    resellAmount: resellAmount,
+    ticketType: ticketType
+  };
 };
 // withdrawTicket
 const withdrawTicket = async (
@@ -318,9 +320,9 @@ const withdrawTicket = async (
     ownerId: userId,
     eventId,
     ticketType,
-    status: ITicketStatus.onsell, 
+    status: ITicketStatus.onsell,
   })
-    .sort({ createdAt: 1 }) 
+    .sort({ createdAt: 1 })
     .limit(quantity);
 
   // 3️⃣ Validate enough tickets available for withdraw
@@ -338,9 +340,9 @@ const withdrawTicket = async (
     {
       $set: {
         status: ITicketStatus.available,
-        sellAmount: 0,     
-        totalEarned: 0,       
-        discount: 0,           
+        sellAmount: 0,
+        totalEarned: 0,
+        discount: 0,
       },
     }
   );
@@ -350,14 +352,60 @@ const withdrawTicket = async (
     message: `${quantity} ${ticketType} tickets withdrawn successfully.`,
   };
 };
+const soldTicket = async (userId: string) => {
+  const ownerId = new mongoose.Types.ObjectId(userId);
+
+  // 1️⃣ Check user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+  const transactions = await TransactionHistory.find({userId:ownerId}).populate('eventId', 'name image').populate('ticketId', ' ticketType')
+  .sort({createdAt: -1})
+
+  if (!transactions) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "No transactions found");
+  }
+  return transactions;
+};
+
+const ticketExpired = async (userId: string) => { 
+  const ownerId = new mongoose.Types.ObjectId(userId);
+  
+  const user = await User.findById(ownerId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); 
+
+  // Find all tickets for this user and populate event details
+  const tickets = await TicketPurchase.find({ ownerId: ownerId })
+    .populate('eventId', 'name eventDate image') 
+    .lean();
+
+  // Filter expired tickets (event date has passed)
+  const expiredTickets = tickets.filter((ticket: any) => {
+    if (ticket.eventId && ticket.eventId.eventDate) {
+      const eventDate = new Date(ticket.eventId.eventDate);
+      eventDate.setHours(0, 0, 0, 0);
+      return eventDate < today; 
+    }
+    return false;
+  });
+
+  return expiredTickets; 
+};
 
 
 export const TicketService = {
-    getAllTicket,
-    getOneTicket,
-    getUniqueEvents,
-    sellTicketInfoUsers,
-    allOnsellTicketInfo,
-    resellTicket,
-    withdrawTicket
+  getAllTicket,
+  getOneTicket,
+  getUniqueEvents,
+  sellTicketInfoUsers,
+  allOnsellTicketInfo,
+  resellTicket,
+  withdrawTicket,
+  soldTicket,
+  ticketExpired
 };

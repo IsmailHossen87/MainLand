@@ -281,7 +281,8 @@ const BuyTicket = async (payload: any) => {
       phone,
       tickets: JSON.stringify(ticketDetails),
       totalAmount: totalTicketPrice.toFixed(2),
-      type: "resellPurchase"
+      type: "resellPurchase",
+      resellerId:userId.toString(),
     },
     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${config.stripe.cancel_url}`,

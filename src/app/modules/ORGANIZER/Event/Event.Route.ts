@@ -9,7 +9,7 @@ import { PaymentController } from '../../Payment/paymentController';
 
 const router = Router();
 // create SubCategory
-router.post('/subcategory',auth(USER_ROLES.ADMIN), EventController.createSubCategory);
+router.post('/subcategory', auth(USER_ROLES.ADMIN), EventController.createSubCategory);
 // paymentEVENT
 router
   .route('/payment/:id')
@@ -30,11 +30,11 @@ router.post(
 // saveDraft or Create
 router.post(
   '/',
-  (req,res,next)=>{
-    console.log("event crate hit hoise",req.body)
+  (req, res, next) => {
+    console.log("event crate hit hoise", req.body)
     next()
   },
-  auth(USER_ROLES.ORGANIZER,USER_ROLES.USER),
+  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
   fileUploadHandler(),
   parseFormDataMiddleware,
   dynamicEventValidation,
@@ -54,7 +54,7 @@ router.get(
 // Draft update OR Create
 router.patch(
   '/:id',
-  auth(USER_ROLES.ORGANIZER,USER_ROLES.USER),
+  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
   fileUploadHandler(),
   parseFormDataMiddleware,
   dynamicEventValidation,
@@ -63,25 +63,25 @@ router.patch(
 // Update Category
 router.patch(
   '/category/:id',
-  auth(USER_ROLES.ADMIN,USER_ROLES.USER),
+  auth(USER_ROLES.ADMIN, USER_ROLES.USER),
   fileUploadHandler(),
   EventController.updateCategory
 );
 // eventDate Expired Like Closed✅✅✅✅
-router.get("/closed",auth(USER_ROLES.ORGANIZER,USER_ROLES.USER),EventController.closedEvent)
+router.get("/closed", auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), EventController.closedEvent)
 
 
 // sdakljfopaksejfl;kasdflkasdjflkasdjfokpadsf💛🩷❣️🩶🩷🖤🖤🩵❤️💛💚🤍🩷💛💙🩵❤️🧡💙🤎💜💙💜💜🤎 
-router.get("/",auth(USER_ROLES.ORGANIZER,USER_ROLES.USER),EventController.allDataUseQuery) 
+router.get("/", auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), EventController.allDataUseQuery)
 
 router.get("/allLiveEvent", auth(USER_ROLES.ORGANIZER), EventController.allLiveEvent)
 
 router.get(
   "/:id",
-  auth(USER_ROLES.ADMIN,USER_ROLES.ORGANIZER,USER_ROLES.USER),
+  auth(USER_ROLES.ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER),
   EventController.singleEvent
 )
 router.put("/category/:id", auth(USER_ROLES.ADMIN), fileUploadHandler(),
-  parseFormDataMiddleware,EventController.updateCategory);
+  parseFormDataMiddleware, EventController.updateCategory);
 
 export const EventRoutes = router;

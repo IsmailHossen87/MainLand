@@ -106,6 +106,28 @@ const withdrawTicket = catchAsync(async (req: Request, res: Response) => {
         data: result,
     });
 });
+const soldTicket = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const result = await TicketService.soldTicket(userId);
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Sold Ticket  retrived Successfully',
+        data:result
+    });
+});
+const ticketExpired = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string; 
+    const result = await TicketService.ticketExpired(userId);
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Event Expired retrived Successfully',
+        data:result
+    });
+});
+
 export const TicketController = {
     getAllTicket,
     getOneTicket,
@@ -113,5 +135,7 @@ export const TicketController = {
     sellTicketInfoUsers,
     allOnsellTicketInfo,
     resellTicket,
-    withdrawTicket
+    withdrawTicket,
+    soldTicket,
+    ticketExpired
 };

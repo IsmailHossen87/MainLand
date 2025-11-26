@@ -16,13 +16,16 @@ const TicketPurchaseSchema = new Schema<ITicketPurchase>(
         eventId: {
             type: Schema.Types.ObjectId,
             ref: 'Event',
-            required: true,
         },
         ownerId: {
             type: Schema.Types.ObjectId,
             ref: 'User',
-            required: true,
         },
+        sellerId: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+        },
+        resellerId: [{type: Schema.Types.ObjectId, ref: 'User' }],
 
         ticketName: {
             type: String,
