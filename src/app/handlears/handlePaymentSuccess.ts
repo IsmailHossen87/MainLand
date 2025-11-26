@@ -102,6 +102,9 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
           "tickets.$.availableUnits": -quantity,
           totalEarned: finalPricePerTicket * quantity,
         },
+        $push: {
+          "tickets.$.ticketBuyerId": ownerId,
+        },
       },
       { new: true, runValidators: true }
     );
@@ -146,7 +149,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Metadata missing in session!");
   }
   const metadata = session.metadata as any;
-  const { userId, email, fullName, phone, totalAmount, tickets } = metadata;
+  const { userId, email, fullName, phone, totalAmount, tickets, resellerId } = metadata;
 
   let allTickets: any[];
   try {
@@ -157,11 +160,12 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
   }
 
   const newOwnerId = new mongoose.Types.ObjectId(userId);
+  const newResellerId = new mongoose.Types.ObjectId(resellerId);
 
   for (const ticketGroup of allTickets) {
     const { ticketIds, sellerId, ticketType, quantity, price } = ticketGroup;
 
-    // Find tickets before updating to get eventId and sellAmount
+    // Find tickets before updating to get eventId and calculate totals
     const ticketsToUpdate = await TicketPurchase.find({
       _id: { $in: ticketIds },
       ownerId: sellerId,
@@ -175,6 +179,17 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
         `Expected ${quantity} tickets but found ${ticketsToUpdate.length}`
       );
     }
+
+    // Calculate totals for this ticket group
+    const totalPurchaseAmount = ticketsToUpdate.reduce(
+      (sum, ticket) => sum + (ticket.purchaseAmount || 0),
+      0
+    );
+    const totalSellAmount = price; // This is the total sell price for all tickets
+    const totalEarnedAmount = totalSellAmount - totalPurchaseAmount;
+
+    // Get eventId from first ticket (all tickets in group have same eventId)
+    const eventId = ticketsToUpdate[0].eventId;
 
     // Update the purchased tickets
     const updatedTickets = await TicketPurchase.updateMany(
@@ -194,7 +209,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
             phone,
           },
           purchaseAmount: price / quantity,
-          purchaseDate: new Date(),
+          resellerId: newResellerId,
         },
       }
     );
@@ -207,25 +222,18 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
       );
     }
 
-    // Create transaction history for each ticket (for SELLER)
-    const transactionHistoryPromises = ticketsToUpdate.map((ticket) => {
-      const purchaseAmount = ticket.purchaseAmount || 0; // Original purchase price
-      const sellAmount = ticket.sellAmount || 0; // Sell price
-      const earnedAmount = sellAmount - purchaseAmount; // Profit/Loss
-
-      return TransactionHistory.create({
-        userId: sellerId, // Seller's ID
-        eventId: ticket.eventId,
-        ticketId: ticket._id,
-        purchaseAmount: purchaseAmount,
-        sellAmount: sellAmount,
-        earnedAmount: earnedAmount,
-      });
+    // Create ONE transaction history for this entire ticket group (for SELLER)
+    await TransactionHistory.create({
+      userId: sellerId, 
+      eventId: eventId,
+      ticketId: ticketIds[0], 
+      purchaseAmount: totalPurchaseAmount,
+      sellAmount: totalSellAmount,
+      earnedAmount: totalEarnedAmount,
+      ticketQuantity: Number(quantity),
     });
 
-    await Promise.all(transactionHistoryPromises);
-
-    console.log(`✅ Updated ${quantity} ${ticketType} ticket(s) and created transaction history for seller`);
+    console.log(`✅ Updated ${quantity} ${ticketType} ticket(s) and created ONE transaction history for seller`);
   }
 
   // Prepare email payload for NEW BUYER
@@ -243,7 +251,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
 
   // Send confirmation email to NEW BUYER
   try {
-    const emailSend = emailTemplate.ticketPurchaseEmail(emailPayload);
+    const emailSend = emailTemplate.resaleTicketPurchaseEmail(emailPayload);
     await emailHelper.sendEmail(emailSend);
     console.log("✅ Purchase confirmation email sent to:", email);
   } catch (emailError) {

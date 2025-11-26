@@ -23,6 +23,7 @@ export interface ITicketPurchase {
     eventId: Types.ObjectId;
     ownerId: Types.ObjectId;
     sellerId: Types.ObjectId;
+    resellerId: Types.ObjectId[];
     attendeeInformation: IAttendeeInformation;
     ticketType: string | EventTicket;
     ticketName: string;
