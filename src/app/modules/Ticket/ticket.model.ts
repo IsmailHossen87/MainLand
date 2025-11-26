@@ -46,8 +46,7 @@ const TicketPurchaseSchema = new Schema<ITicketPurchase>(
         discount: { type: Number, default: 0 },
         discountCode: { type: String, default: "" },
         purchaseAmount: { type: Number, required: true },
-        sellAmount: { type: Number, default: 0 },
-        totalEarned: { type: Number, default: 0 },
+        sellAmount: { type: Number, default: 0 }
 
     },
     { timestamps: true, versionKey: false }
