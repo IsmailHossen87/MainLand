@@ -7,6 +7,7 @@ export interface ITransactionHistory {
   purchaseAmount: number;
   sellAmount: number;
   earnedAmount: number;
+  ticketQuantity: number;
 }
 
 
@@ -35,6 +36,10 @@ const transactionHistorySchema = new Schema<ITransactionHistory>(
     },
     earnedAmount: {
       type: Number,
+    },
+    ticketQuantity: {
+      type: Number,
+      default: 0,
     },
   },
   {
