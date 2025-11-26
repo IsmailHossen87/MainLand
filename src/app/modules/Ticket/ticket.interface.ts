@@ -32,9 +32,6 @@ export interface ITicketPurchase {
     discount: number;
     status: ITicketStatus,
     discountCode: string;
-    totalEarned: number;
-
-
     // userRole: IUserRole
 }
 

@@ -65,9 +65,9 @@ const webhookHandler = async (req: Request, res: Response): Promise<void> => {
         if (metadata.eventId && metadata.userId) {
           await handlePayment.handleEvent(session);
         } 
-        //  else if (metadata.ticketId && metadata.type ==="resellPurchase") {
-        //   // await handlePayment.handleTicket(session)
-        // } 
+         else if (metadata.userId && metadata.type ==="resellPurchase") {
+          await handlePayment.repurchaseTicket(session)
+        } 
        else {
           console.log('⚠️ Unknown payment type received in webhook');
         }
