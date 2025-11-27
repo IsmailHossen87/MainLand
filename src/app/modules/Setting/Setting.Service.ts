@@ -1,6 +1,8 @@
 import { JwtPayload } from "jsonwebtoken";
 import { USER_ROLES } from "../../../enums/user";
 import { ISettings, Settings } from "./Setting.model";
+import { QueryBuilder } from "../../builder/QueryBuilder";
+import { excludeField } from "../../../shared/constrant";
 
 
 // Create or update single settings document
@@ -25,12 +27,24 @@ const faqSetting = async (user: JwtPayload, data: { type: string; question: stri
   return result;
 };
 // get all faq
-const getQuestion = async (user: JwtPayload) => {
+const getQuestion = async (user: JwtPayload, query: Record<string, string>) => {
   if (USER_ROLES.ADMIN != user.role) {
     throw new Error("You are not authorized to get faq");
   }
-  const result = await Settings.find({ type: "faq", userId: user.id });
-  return result;
+
+  // const baseQuery = await Settings.find({ type: "faq" });
+  const queryBuilder = new QueryBuilder(Settings.find({ type: "faq" }), query);
+
+  const allQuestion = queryBuilder.search(excludeField)
+    .filter()
+    .dateRange()
+    .sort()
+    .paginate()
+
+  const [meta, data] = await Promise.all([allQuestion.getMeta(), allQuestion.build()]);
+
+  return { meta, data };
+
 }
 
 const getQuestionById = async (id: string) => {

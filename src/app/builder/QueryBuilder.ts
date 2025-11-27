@@ -34,57 +34,58 @@ export class QueryBuilder<T> {
   }
 
   // 📅 Date Range (weekly, monthly, yearly)
-dateRange(): this {
-  const now = new Date();
-  const range = this.query.dateRange;
+  dateRange(): this {
+    const now = new Date();
+    const range = this.query.dateRange;
 
-  if (range) {
-    let startDate: Date | null = null;
+    if (range) {
+      let startDate: Date | null = null;
 
-    if (range === "weekly") {
-      startDate = new Date();
-      startDate.setDate(now.getDate() - 7);
-    } else if (range === "monthly") {
-      startDate = new Date();
-      startDate.setMonth(now.getMonth() - 1);
-    } else if (range === "yearly") {
-      startDate = new Date();
-      startDate.setFullYear(now.getFullYear() - 1);
+      if (range === "weekly") {
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 7);
+      } else if (range === "monthly") {
+        startDate = new Date();
+        startDate.setMonth(now.getMonth() - 1);
+      } else if (range === "yearly") {
+        startDate = new Date();
+        startDate.setFullYear(now.getFullYear() - 1);
+      }
+
+      if (startDate) {
+        const dateCondition = { createdAt: { $gte: startDate, $lte: now } };
+
+        this.modelQuery = this.modelQuery.find({
+          ...((this.modelQuery as any)._conditions || {}),
+          ...dateCondition,
+        } as FilterQuery<T>);
+      }
     }
 
-    if (startDate) {
-      const dateCondition = { createdAt: { $gte: startDate, $lte: now } };
-
-      this.modelQuery = this.modelQuery.find({
-        ...((this.modelQuery as any)._conditions || {}),
-        ...dateCondition,
-      } as FilterQuery<T>);
-    }
+    return this;
   }
-
-  return this;
-}
 
   // 🔃 Sort
   sort(): this {
-    const sort = this.query.sort || "-createdAt";
+    const sort = this.query.sort || "eventDate";
     this.modelQuery = this.modelQuery.sort(sort);
     return this;
   }
 
+
   // 📋 Fields selection
-fields(defaultFields: string[] = []): this {
-  let fieldsStr = this.query.fields?.split(",").join(" ");
+  fields(defaultFields: string[] = []): this {
+    let fieldsStr = this.query.fields?.split(",").join(" ");
 
-  if (!fieldsStr && defaultFields.length > 0) {
-    fieldsStr = defaultFields.join(" ");
-  }
-  if (fieldsStr) {
-    this.modelQuery = this.modelQuery.select(fieldsStr);
-  }
+    if (!fieldsStr && defaultFields.length > 0) {
+      fieldsStr = defaultFields.join(" ");
+    }
+    if (fieldsStr) {
+      this.modelQuery = this.modelQuery.select(fieldsStr);
+    }
 
-  return this;
-}
+    return this;
+  }
 
 
   // 📄 Pagination
