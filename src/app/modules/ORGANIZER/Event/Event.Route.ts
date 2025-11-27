@@ -8,17 +8,29 @@ import { dynamicEventValidation } from './DaynamicEventValidation';
 import { PaymentController } from '../../Payment/paymentController';
 
 const router = Router();
-// create SubCategory
-router.post('/subcategory', auth(USER_ROLES.ADMIN), EventController.createSubCategory);
-// paymentEVENT
+
+/* -----------------------------------------
+   🌸 SUB-CATEGORY CREATE
+------------------------------------------ */
+router.post(
+  '/subcategory',
+  auth(USER_ROLES.ADMIN),
+  EventController.createSubCategory
+);
+
+/* -----------------------------------------
+   💳 PAYMENT EVENT
+------------------------------------------ */
 router
   .route('/payment/:id')
   .post(
     auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.ORGANIZER),
     PaymentController.createEventPayment
-  )
+  );
 
-// create Category
+/* -----------------------------------------
+   📂 CATEGORY CREATE (With File Upload)
+------------------------------------------ */
 router.post(
   '/category',
   auth(USER_ROLES.ADMIN),
@@ -27,12 +39,14 @@ router.post(
   EventController.createCategory
 );
 
-// saveDraft or Create
+/* -----------------------------------------
+   📝 EVENT CREATE OR SAVE DRAFT
+------------------------------------------ */
 router.post(
   '/',
   (req, res, next) => {
-    console.log("event crate hit hoise", req.body)
-    next()
+    console.log('event crate hit hoise', req.body);
+    next();
   },
   auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
   fileUploadHandler(),
@@ -40,18 +54,28 @@ router.post(
   dynamicEventValidation,
   EventController.createEvent
 );
-// UPDATE category
+
+/* -----------------------------------------
+   📂 GET SUB-CATEGORY
+------------------------------------------ */
 router.get(
-  "/subcategory",
+  '/subcategory',
   auth(USER_ROLES.ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER),
   EventController.subCategory
 );
+
+/* -----------------------------------------
+   📂 GET ALL CATEGORY
+------------------------------------------ */
 router.get(
-  "/allCategory",
+  '/allCategory',
   auth(USER_ROLES.ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER),
   EventController.allCategory
 );
-// Draft update OR Create
+
+/* -----------------------------------------
+   ✏️ EVENT UPDATE (Draft or Normal)
+------------------------------------------ */
 router.patch(
   '/:id',
   auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
@@ -60,28 +84,62 @@ router.patch(
   dynamicEventValidation,
   EventController.updateEvent
 );
-// Update Category
+
+/* -----------------------------------------
+   ✏️ CATEGORY UPDATE
+------------------------------------------ */
 router.patch(
   '/category/:id',
   auth(USER_ROLES.ADMIN, USER_ROLES.USER),
   fileUploadHandler(),
   EventController.updateCategory
 );
-// eventDate Expired Like Closed✅✅✅✅
-router.get("/closed", auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), EventController.closedEvent)
 
-
-// sdakljfopaksejfl;kasdflkasdjflkasdjfokpadsf💛🩷❣️🩶🩷🖤🖤🩵❤️💛💚🤍🩷💛💙🩵❤️🧡💙🤎💜💙💜💜🤎 
-router.get("/", auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), EventController.allDataUseQuery)
-
-router.get("/allLiveEvent", auth(USER_ROLES.ORGANIZER), EventController.allLiveEvent)
-
+/* -----------------------------------------
+   🛑 CLOSED EVENTS
+------------------------------------------ */
 router.get(
-  "/:id",
+  '/closed',
+  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
+  EventController.closedEvent
+);
+
+/* -----------------------------------------
+   🌈 (Decorative Section) ALL DATA (Query Based)
+------------------------------------------ */
+router.get(
+  '/',
+  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
+  EventController.allDataUseQuery
+);
+
+/* -----------------------------------------
+   🎬 ALL LIVE EVENTS
+------------------------------------------ */
+router.get(
+  '/allLiveEvent',
+  auth(USER_ROLES.ORGANIZER),
+  EventController.allLiveEvent
+);
+
+/* -----------------------------------------
+   🔍 SINGLE EVENT
+------------------------------------------ */
+router.get(
+  '/:id',
   auth(USER_ROLES.ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER),
   EventController.singleEvent
-)
-router.put("/category/:id", auth(USER_ROLES.ADMIN), fileUploadHandler(),
-  parseFormDataMiddleware, EventController.updateCategory);
+);
+
+/* -----------------------------------------
+   🧩 PUT CATEGORY UPDATE
+------------------------------------------ */
+router.put(
+  '/category/:id',
+  auth(USER_ROLES.ADMIN),
+  fileUploadHandler(),
+  parseFormDataMiddleware,
+  EventController.updateCategory
+);
 
 export const EventRoutes = router;

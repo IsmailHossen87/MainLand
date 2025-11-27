@@ -24,10 +24,17 @@ const TicketSchema = z.object({
 });
 
 // 💸 Discount Code Schema
+// 💸 Simple Discount Code Schema
 const DiscountCodeSchema = z.object({
   code: z.string().min(1, "Code is required"),
   percentage: z.number().min(0).max(100),
-  expireDate: IValidateDate,
+  expireDate: z.union([
+    z.string().transform((val) => new Date(val)),
+    z.number().transform((val) => new Date(val)),
+    z.date(),
+  ]).refine((date) => !isNaN(date.getTime()), {
+    message: "Invalid date provided for expireDate"
+  }),
 });
 
 // 👤 Organizer Schema

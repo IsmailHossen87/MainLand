@@ -68,6 +68,7 @@ export interface IEvent {
   city?: string;
   state?: string;
   country?: string;
+  eventCode?:string;
 
   // Tickets
   tickets?: {

@@ -54,7 +54,7 @@ const sellTicketInfoUsers = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const eventId = req.params.id;
     const query = req.query;
-    const result = await TicketService.sellTicketInfoUsers(userId, eventId,query);
+    const result = await TicketService.sellTicketInfoUsers(userId, eventId, query);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
@@ -67,22 +67,22 @@ const sellTicketInfoUsers = catchAsync(async (req: Request, res: Response) => {
 const allOnsellTicketInfo = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const query = req.query;
-    const result = await TicketService.allOnsellTicketInfo(userId,query);
+    const result = await TicketService.allOnsellTicketInfo(userId, query);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
         message: 'Purchase Ticket  retrived Successfully',
-        data:result,
+        data: result,
     });
 });
 
 const resellTicket = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const eventId = req.params.id;
-    const {ticketType, quantity ,resellAmount} = req.body; 
+    const { ticketType, quantity, resellAmount } = req.body;
 
-    const result = await TicketService.resellTicket(userId, eventId,{ticketType, quantity ,resellAmount});
+    const result = await TicketService.resellTicket(userId, eventId, { ticketType, quantity, resellAmount });
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
@@ -95,9 +95,9 @@ const resellTicket = catchAsync(async (req: Request, res: Response) => {
 const withdrawTicket = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const eventId = req.params.id;
-    const {ticketType, quantity } = req.body; 
+    const { ticketType, quantity } = req.body;
 
-    const result = await TicketService.withdrawTicket(userId, eventId,{ticketType , quantity} as IResellTicket);
+    const result = await TicketService.withdrawTicket(userId, eventId, { ticketType, quantity } as IResellTicket);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
@@ -114,19 +114,32 @@ const soldTicket = catchAsync(async (req: Request, res: Response) => {
         statusCode: StatusCodes.OK,
         success: true,
         message: 'Sold Ticket  retrived Successfully',
-        data:result
+        data: result
     });
 });
 const ticketExpired = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string; 
+    const userId = req.user?.id as string;
     const result = await TicketService.ticketExpired(userId);
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
         message: 'Event Expired retrived Successfully',
-        data:result
+        data: result
     });
 });
+
+// Bar code generate
+// const barCodeGenerate = catchAsync(async (req: Request, res: Response) => {
+//     const userId = req.user?.id as string;
+//     const result = await TicketService.barCodeGenerate(userId);
+
+//     sendResponse(res, {
+//         statusCode: StatusCodes.OK,
+//         success: true,
+//         message: 'Bar Code Generated Successfully',
+//         data: result,
+//     });
+// });
 
 export const TicketController = {
     getAllTicket,
@@ -137,5 +150,6 @@ export const TicketController = {
     resellTicket,
     withdrawTicket,
     soldTicket,
-    ticketExpired
+    ticketExpired,
+    // barCodeGenerate
 };

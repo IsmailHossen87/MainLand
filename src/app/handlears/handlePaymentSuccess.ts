@@ -12,10 +12,6 @@ import mongoose, { mongo, Types } from 'mongoose';
 import { TicketPurchase } from '../modules/Ticket/ticket.model';
 import { TransactionHistory } from '../modules/Payment/transactionHistory';
 
-interface ITicket {
-  ticketType: string;
-  quantity: number;
-}
 
 const paymentSuccess = (req: Request, res: Response) => {
   res.status(200).json({
@@ -31,7 +27,7 @@ export const paymentCancel = (req: Request, res: Response) => {
 };
 
 // GENERATE ticket COde
-const generateTicketName = (ticketType: string) => {
+export const generateTicketName = (ticketType: string) => {
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
   return `${ticketType}-${random}`;
 };
