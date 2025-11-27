@@ -141,16 +141,27 @@ const allLiveEvent = async () => {
 const singleEvent = async (userID: string, eventId: string) => {
   const user = await User.findById(userID);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+    throw new ApiError(StatusCodes.NOT_FOUND, "User is not Available");
   }
 
-  // ✅ Corrected query syntax
-  const event = await Event.findById(eventId);
+  const event = await Event.findById(eventId)
+    .populate({
+      path: "category.categoryId",
+      select: "_id title"
+    })
+    .populate({
+      path: "category.subCategory",
+      select: "_id title"
+    });
+
+
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
+    throw new ApiError(StatusCodes.NOT_FOUND, "Event is not Available");
   }
+
   return event;
 };
+
 
 // all Closed ✅✅✅✅
 const closedEvent = async (userID: string, query: Record<string, string>) => {
@@ -237,6 +248,8 @@ const allDataUseQuery = async (userID: string, query: Record<string, string>) =>
       'ticketSaleStart',
       'streetAddress2',
       'preSaleStart',
+      'startTime',
+      'eventCode'
     ])
     .paginate();
 

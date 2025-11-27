@@ -59,7 +59,7 @@ const EventSchema = new Schema<IEvent>(
     country: { type: String, default: "" },
 
     EventStatus: { type: String, enum: Object.values(IEventStatus), default: IEventStatus.Draft },
-
+    eventCode:{type:String,default:""},
     tickets: [
       {
         type: {
