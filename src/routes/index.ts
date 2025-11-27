@@ -7,6 +7,7 @@ import { EventRoutes } from '../app/modules/ORGANIZER/Event/Event.Route';
 import { ActionRouter } from '../app/modules/ADMIN/Action/Action.Router';
 import { SettingRouter } from '../app/modules/Setting/SettingRoute';
 import { TicketRouter } from '../app/modules/Ticket/ticket.route';
+import { FavouriteRouter } from '../app/modules/Favoutite/Favourite.route';
 
 
 
@@ -46,6 +47,10 @@ const apiRoutes = [
   {
     path: '/settings',
     route:SettingRouter ,
+  },
+  {
+    path: '/favourite',
+    route:FavouriteRouter ,
   },
 ];
 
