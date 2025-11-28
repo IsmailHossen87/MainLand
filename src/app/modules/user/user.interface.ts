@@ -5,23 +5,28 @@ export interface IAuthProvider {
   provider: 'google' | 'credentials';
   providerId: string;
 }
+export interface INotification {
+  isSellTicketNotificationEnabled: boolean
+  isMessageNotificationEnabled: boolean
+  isPublishEventNotificationEnabled: boolean
+  isWithdrawMoneyNotificationEnabled: boolean
+}
 
 export type IUser = {
   name: string;
   role: USER_ROLES;
-  contact: string;
   email: string;
   password: string;
   image?: string;
   status: 'Active' | 'Blocked';
   verified: boolean;
-  auths:IAuthProvider[];
-
+  auths: IAuthProvider[];
+  notification: INotification
   personalInfo?: {
     firstName?: string;
     lastName?: string;
     phone?: string;
-    dateOfBirth?:Date
+    dateOfBirth?: Date
   };
 
   address?: {
@@ -42,7 +47,7 @@ export type IUser = {
     oneTimeCode: number | null;
     expireAt: Date | null;
   };
-  terAndCondition:boolean;
+  terAndCondition: boolean;
 };
 
 export type UserModal = {

@@ -64,6 +64,8 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
       discountPerTicket,
       finalPricePerTicket,
       quantity: ticket.quantity || 1,
+      availableUnits: ticket.availableUnits || 0,
+      outstandingUnits: ticket.outstandingUnits || 0,
     };
   });
 
@@ -120,9 +122,9 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
       ticketType: ticket.ticketType,
       quantity: ticket.quantity,
       price: ticket.price, // Original price
-      discountPerTicket: ticket.discountPerTicket > 0 ? ticket.discountPerTicket : undefined, // Only include if > 0
-      finalPricePerTicket: ticket.finalPricePerTicket, // Final price after discount
-      pricePerTicket: ticket.finalPricePerTicket, // For backward compatibility (same as finalPricePerTicket)
+      discountPerTicket: ticket.discountPerTicket > 0 ? ticket.discountPerTicket : undefined,
+      finalPricePerTicket: ticket.finalPricePerTicket,
+      pricePerTicket: ticket.finalPricePerTicket,
     })),
     totalAmount,
   };
@@ -220,9 +222,9 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
 
     // Create ONE transaction history for this entire ticket group (for SELLER)
     await TransactionHistory.create({
-      userId: sellerId, 
+      userId: sellerId,
       eventId: eventId,
-      ticketId: ticketIds[0], 
+      ticketId: ticketIds[0],
       purchaseAmount: totalPurchaseAmount,
       sellAmount: totalSellAmount,
       earnedAmount: totalEarnedAmount,

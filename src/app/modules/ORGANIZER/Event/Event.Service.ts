@@ -45,76 +45,139 @@ const updateCategory = async (categoryId: string, updateData: any) => {
 
   return category;
 };
+// UPDATEcategory
+const deleteCategory = async (id: string, type: string) => {
+  if (type !== 'category' && type !== 'subCategory') {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid type");
+  }
+  if (type === 'category') {
+    const category = await Category.findByIdAndDelete(id);
+    if (!category) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Category not found");
+    }
+    return category;
+  }
+  if (type === 'subCategory') {
+    const subCategory = await SubCategory.findByIdAndDelete(id);
+    if (!subCategory) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "SubCategory not found");
+    }
+    return subCategory;
+  }
+
+  return subCategory;
+};
 
 
+// CREATE EVENT
 const createEvent = async (payload: any) => {
   const { userId, eventName, isDraft } = payload;
 
+  // Check user exist
   const isExistUser = await User.findById(userId);
   if (!isExistUser) {
     throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");
   }
 
-  if (isExistUser.role !== USER_ROLES.ORGANIZER && isExistUser.role !== USER_ROLES.USER) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Only organizer and User can create Event");
+  if (
+    isExistUser.role !== USER_ROLES.ORGANIZER &&
+    isExistUser.role !== USER_ROLES.USER
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      "Only organizer and User can create Event"
+    );
   }
 
-  // Category validation & ObjectId conversion
+  // Category validation
   if (payload.category?.length) {
     const categoryIds = payload.category.map((c: any) => c.categoryId);
     const categories = await Category.find({ _id: { $in: categoryIds } });
 
     if (categories.length !== payload.category.length) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "One or more categories do not exist!");
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "One or more categories do not exist!"
+      );
     }
 
     payload.category = payload.category.map((c: any) => ({
-      categoryId: c.categoryId, // keep string for TypeScript
+      categoryId: c.categoryId,
       subCategory: c.subCategory,
     }));
   }
 
-  // Handle draft event update
+  // If Event is a draft and already exists → update instead of creating new
   if (isDraft) {
     let event = await Event.findOne({ userId, eventName, isDraft: true });
     if (event) {
+      // Auto-set outstandingUnits
+      if (payload.tickets?.length) {
+        payload.tickets = payload.tickets.map((t: any) => ({
+          ...t,
+          outstandingUnits: t.availableUnits,
+        }));
+      }
+
       event = await Event.findByIdAndUpdate(
         event._id,
         { $set: payload },
         { new: true, runValidators: true }
       );
+
       return event;
     }
   }
 
-  // Set EventStatus based on isDraft
+  // New Event → Set EventStatus
   payload.EventStatus = isDraft ? "Draft" : "UnderReview";
 
-  // Create new event
+  // Auto-set outstandingUnits for new event
+  if (payload.tickets?.length) {
+    payload.tickets = payload.tickets.map((t: any) => ({
+      ...t,
+      outstandingUnits: t.availableUnits,
+    }));
+  }
+
   const event = await Event.create(payload);
   return event;
 };
 
 
-// 2️⃣ Update Event
+
+// UPDATE EVENT
 const updateEvent = async (eventId: string, userId: string, payload: any) => {
+  // Check event exists
   const event = await Event.findOne({ _id: eventId, userId });
   if (!event) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
   }
 
-  // Category validation & ObjectId conversion (optional)
+  // Category validation
   if (payload.category?.length) {
     const categoryIds = payload.category.map((c: any) => c.categoryId);
     const categories = await Category.find({ _id: { $in: categoryIds } });
+
     if (categories.length !== payload.category.length) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "One or more categories do not exist!");
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "One or more categories do not exist!"
+      );
     }
   }
 
-  // Update EventStatus if isDraft is provided
+  // Update EventStatus based on isDraft
   if ("isDraft" in payload) {
     payload.EventStatus = payload.isDraft ? "Draft" : "UnderReview";
+  }
+
+  // Auto-set outstandingUnits
+  if (payload.tickets?.length) {
+    payload.tickets = payload.tickets.map((t: any) => ({
+      ...t,
+      outstandingUnits: t.availableUnits,
+    }));
   }
 
   const updatedEvent = await Event.findByIdAndUpdate(
@@ -125,7 +188,6 @@ const updateEvent = async (eventId: string, userId: string, payload: any) => {
 
   return updatedEvent;
 };
-
 
 // Live
 const allLiveEvent = async () => {
@@ -272,7 +334,7 @@ const subCategory = async (query: string) => {
   const formattedData = subCategories.map((sub: any) => ({
     _id: sub._id,
     categoryTitle: sub.categoryId?.title || 'N/A',
-    subcategoryTitle: sub.title,
+    title: sub.title,
     coverImage: sub.categoryId?.coverImage,
     createdAt: sub.createdAt,
     updatedAt: sub.updatedAt,
@@ -286,6 +348,17 @@ const allCategory = async () => {
   return subCategories;
 };
 
+// Event History
+const eventTicketHistory = async (eventId: string) => {
+  const event = await Event.findById(eventId);
+  if (!event) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
+  }
+  const ticketHistory = event.tickets;
+
+  return ticketHistory;
+};
+
 export const EventService = {
   creteSubCategory,
   createEvent,
@@ -296,6 +369,8 @@ export const EventService = {
   allDataUseQuery,
   closedEvent,
   updateCategory,
+  deleteCategory,
   subCategory,
-  allCategory
+  allCategory,
+  eventTicketHistory
 };
