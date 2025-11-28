@@ -71,6 +71,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     updatedTickets.push({
       ticketType: selected.ticketType,
       quantity: selected.quantity,
+      availableUnits: eventTicket.availableUnits,
       price,
       discountPerTicket,
       finalPricePerTicket,
@@ -249,7 +250,7 @@ const BuyTicket = async (payload: any) => {
       quantity: ticket.quantity,
       price: ticketPrice,
       ticketIds: selectedTickets.map(t => t._id),
-      sellAmount:ticket.sellAmount,
+      sellAmount: ticket.sellAmount,
     });
   }
 
@@ -270,7 +271,7 @@ const BuyTicket = async (payload: any) => {
         product_data: {
           name: `${detail.quantity}x ${detail.ticketType} Ticket(s)`,
         },
-        unit_amount: Math.round(detail.price * 100), 
+        unit_amount: Math.round(detail.price * 100),
       },
       quantity: 1,
     })),
@@ -282,7 +283,7 @@ const BuyTicket = async (payload: any) => {
       tickets: JSON.stringify(ticketDetails),
       totalAmount: totalTicketPrice.toFixed(2),
       type: "resellPurchase",
-      resellerId:userId.toString(),
+      resellerId: userId.toString(),
     },
     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${config.stripe.cancel_url}`,

@@ -64,11 +64,26 @@ const updateCategory = catchAsync(
     });
   }
 );
+// Delete Category
+const deleteCategory = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const id = req.params.id;
+    const type = req.query.type;
+    const deletedCategory = await EventService.deleteCategory(id, type as string);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: `${type} deleted successfully`,
+      data: deletedCategory,
+    });
+  }
+);
 
 // 1️⃣ Create Event (Draft or Full)
 const createEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id; 
+    const userId = req.user?.id;
 
     if (req.files && 'image' in req.files && req.files.image[0]) {
       req.body.image = `/image/${req.files.image[0].filename}`;
@@ -184,10 +199,10 @@ const allDataUseQuery = catchAsync(
 // Closed Event ✅✅✅✅
 const closedEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id 
+    const userId = req.user?.id
     const query = req.query
 
-    const result = await EventService.closedEvent(userId as string , query as Record<string, string>)
+    const result = await EventService.closedEvent(userId as string, query as Record<string, string>)
     await sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
@@ -215,13 +230,27 @@ const subCategory = catchAsync(
 // All Data Use Query
 const allCategory = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    
+
     const result = await EventService.allCategory()
 
     await sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
       message: "Category All Data Retrived Successfully",
+      data: result,
+    });
+  }
+);
+// All Event History
+const eventTicketHistory = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+
+    const result = await EventService.eventTicketHistory(req.params.id as string)
+
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Event History Retrived Successfully",
       data: result,
     });
   }
@@ -236,6 +265,8 @@ export const EventController = {
   allDataUseQuery,
   closedEvent,
   updateCategory,
+  deleteCategory,
   subCategory,
-  allCategory
+  allCategory,
+  eventTicketHistory
 };

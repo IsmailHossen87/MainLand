@@ -5,7 +5,7 @@ import auth from '../../../middlewares/auth';
 
 const router = Router();
 router
-// .get("/dashboard",auth(USER_ROLES.ADMIN),ActionController.DashBoard)
+    .get("/dashboard", auth(USER_ROLES.ADMIN), ActionController.DashBoard)
 // .get("/allUser",auth(USER_ROLES.ADMIN),ActionController.AllTicketBuyer)
 // .get("/ticketActivity",auth(USER_ROLES.ADMIN),ActionController.ticketActivity)
 // .get("/allResellTicket",auth(USER_ROLES.ADMIN),ActionController.allResellTicket)

@@ -19,19 +19,19 @@ const statusChange = catchAsync(
   }
 );
 
-// const DashBoard = catchAsync(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     const user = req.user;
-//     const query = req.query
-//     const result = await ActionService.DashBoard(user as JwtPayload, query as Record<string, string>)
-//     await sendResponse(res, {
-//       success: true,
-//       statusCode: StatusCodes.OK,
-//       message: "DashBoard retrived Sucessfully",
-//       data: result,
-//     });
-//   }
-// );
+const DashBoard = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user;
+    const query = req.query
+    const result = await ActionService.DashBoard(user as JwtPayload, query as Record<string, string>)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "DashBoard retrived Sucessfully",
+      data: result,
+    });
+  }
+);
 // // All User
 // const AllTicketBuyer = catchAsync(
 //   async (req: Request, res: Response, next: NextFunction) => {
@@ -75,11 +75,11 @@ const statusChange = catchAsync(
 //       data: {
 //         meta: result.meta,
 //         data: result.data,
-       
+
 //       },
 //     });
 //   }
 // );
 
 
-export const ActionController = {statusChange }
+export const ActionController = { statusChange, DashBoard }

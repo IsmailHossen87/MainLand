@@ -11,7 +11,7 @@ const SubCategorySchema = new Schema<ISubcategory>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', },
     categoryId: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
-    title: { type: String ,default:"", required: true, trim: true },
+    title: { type: String, default: "", required: true, trim: true },
   },
   { timestamps: true, versionKey: false }
 );
@@ -21,11 +21,11 @@ const CategorySchema = new Schema(
   {
     userId: { type: Types.ObjectId, ref: 'User', required: true },
     title: {
-      type: String ,default:"",
+      type: String, default: "",
       trim: true,
     },
     coverImage: {
-      type: String ,default:"",
+      type: String, default: "",
     },
   },
   { timestamps: true, versionKey: false }
@@ -59,7 +59,7 @@ const EventSchema = new Schema<IEvent>(
     country: { type: String, default: "" },
 
     EventStatus: { type: String, enum: Object.values(IEventStatus), default: IEventStatus.Draft },
-    eventCode:{type:String,default:""},
+    eventCode: { type: String, default: "" },
     tickets: [
       {
         type: {
@@ -70,6 +70,7 @@ const EventSchema = new Schema<IEvent>(
         },
         price: { type: Number, required: true },
         availableUnits: { type: Number, required: true },
+        outstandingUnits: { type: Number },
         ticketBuyerId: [{ type: Schema.Types.ObjectId, ref: "TicketPurchase" }],
       },
     ],
@@ -77,12 +78,12 @@ const EventSchema = new Schema<IEvent>(
     ticketSaleStart: { type: Date, default: null },
     preSaleStart: { type: Date, default: null },
     preSaleEnd: { type: Date, default: null },
-    isFreeEvent:{type:Boolean,default:false},
+    isFreeEvent: { type: Boolean, default: false },
     discountCodes: [
       {
         code: { type: String, default: "", trim: true },
         percentage: { type: Number, min: 0, max: 100 },
-        expireDate:{type:Date}
+        expireDate: { type: Date }
       },
     ],
 

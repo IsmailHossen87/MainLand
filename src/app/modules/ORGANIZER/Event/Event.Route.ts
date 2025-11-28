@@ -94,6 +94,15 @@ router.patch(
   fileUploadHandler(),
   EventController.updateCategory
 );
+/* -----------------------------------------
+   ✏️ CATEGORY UPDATE
+------------------------------------------ */
+router.delete(
+  '/category-subcategory/:id',
+  auth(USER_ROLES.ADMIN, USER_ROLES.USER),
+  fileUploadHandler(),
+  EventController.deleteCategory
+);
 
 /* -----------------------------------------
    🛑 CLOSED EVENTS
@@ -129,6 +138,14 @@ router.get(
   '/:id',
   auth(USER_ROLES.ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER),
   EventController.singleEvent
+);
+/* -----------------------------------------
+   🔍 EVENT HISTORY
+------------------------------------------ */
+router.get(
+  '/event-ticket-history/:id',
+  auth(USER_ROLES.ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER),
+  EventController.eventTicketHistory
 );
 
 /* -----------------------------------------
