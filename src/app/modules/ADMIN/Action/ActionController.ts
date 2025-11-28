@@ -32,6 +32,20 @@ const DashBoard = catchAsync(
     });
   }
 );
+
+const blockUser = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.params?.id
+    const adminInfo = req.user;
+    const result = await ActionService.blockUser(userId as string, adminInfo as JwtPayload)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: result.message,
+      data: result.user,
+    });
+  }
+);
 // // All User
 // const AllTicketBuyer = catchAsync(
 //   async (req: Request, res: Response, next: NextFunction) => {
@@ -82,4 +96,4 @@ const DashBoard = catchAsync(
 // );
 
 
-export const ActionController = { statusChange, DashBoard }
+export const ActionController = { statusChange, DashBoard, blockUser }

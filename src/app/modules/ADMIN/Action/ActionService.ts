@@ -53,6 +53,31 @@ const statusChange = async (userId: string, eventId: string) => {
   return updatedEvent;
 };
 
+const blockUser = async (userId: string, adminInfo: JwtPayload) => {
+  if (adminInfo.role !== USER_ROLES.ADMIN) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can update it");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User doesn't exist!");
+  }
+  let newStatus;
+  switch (user.status) {
+    case "Active":
+      newStatus = "Blocked";
+      break;
+    case "Blocked":
+      newStatus = "Active";
+      break;
+    default:
+      newStatus = "Active";
+      break;
+  }
+  const updateUser = await User.findByIdAndUpdate(userId, { status: newStatus }, { new: true });
+  return { user: updateUser, message: newStatus };
+};
+
 // Dashboard
 const DashBoard = async (user: JwtPayload, query: Record<string, string>) => {
   const userId = user.id;
@@ -76,4 +101,4 @@ const DashBoard = async (user: JwtPayload, query: Record<string, string>) => {
 };
 
 
-export const ActionService = { statusChange, DashBoard };
+export const ActionService = { statusChange, DashBoard, blockUser };
