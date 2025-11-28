@@ -71,11 +71,13 @@ const faqCreate = async (req: Request, res: Response) => {
 const getQuestion = async (req: Request, res: Response) => {
   try {
     const userId = req.user as JwtPayload;
-    const result = await SettingService.getQuestion(userId);
+    const query = req.query;
+    const result = await SettingService.getQuestion(userId, query as Record<string, string>);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Settings fetched successfully",
-      data: result
+      meta: result.meta,
+      data: result.data
     });
   } catch (error: any) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({

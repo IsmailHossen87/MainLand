@@ -20,7 +20,7 @@ const userSchema = new Schema<IUser, UserModal>(
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
-      default:USER_ROLES.USER,
+      default: USER_ROLES.USER,
     },
     email: {
       type: String,
@@ -28,22 +28,18 @@ const userSchema = new Schema<IUser, UserModal>(
       unique: true,
       lowercase: true,
     },
-    contact: {
-      type: String,
-      default: '',
-    },
     password: {
       type: String,
       required: true,
       select: 0,
       minlength: 8,
     },
-    auths:[authProviderSchema],
+    auths: [authProviderSchema],
     image: {
       type: String,
       default: 'https://i.ibb.co/z5YHLV9/profile.png',
     },
-    joinedDate:{type:Date,default:Date.now},
+    joinedDate: { type: Date, default: Date.now },
     stripeAccountInfo: {
       stripeCustomerId: {
         type: String,
@@ -71,13 +67,19 @@ const userSchema = new Schema<IUser, UserModal>(
       firstName: { type: String, default: '' },
       lastName: { type: String, default: '' },
       phone: { type: String, default: '' },
-      dateOfBirth:{type:Date}
+      dateOfBirth: { type: Date }
     },
     address: {
-      country: { type: String, default: '' },
+      country: { type: String, default: 'United States' },
       city: { type: String, default: '' },
       postalCode: { type: String, default: '' },
       street: { type: String, default: '' },
+    },
+    notification: {
+      isSellTicketNotificationEnabled: { type: Boolean, default: true },
+      isMessageNotificationEnabled: { type: Boolean, default: true },
+      isPublishEventNotificationEnabled: { type: Boolean, default: true },
+      isWithdrawMoneyNotificationEnabled: { type: Boolean, default: true },
     },
     authentication: {
       type: {
@@ -109,17 +111,17 @@ userSchema.statics.isMatchPassword = async (
 };
 
 // pre-save hook
-userSchema.pre('save', async function (next) {
-  const isExist = await User.findOne({ email: this.email });
-  if (isExist) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Email already exists!');
-  }
+// userSchema.pre('save', async function (next) {
+//   const isExist = await User.findOne({ email: this.email });
+//   if (isExist) {
+//     throw new ApiError(StatusCodes.BAD_REQUEST, 'Email already exists!');
+//   }
 
-  this.password = await bcrypt.hash(
-    this.password,
-    Number(config.bcrypt_salt_rounds)
-  );
-  next();
-});
+//   this.password = await bcrypt.hash(
+//     this.password,
+//     Number(config.bcrypt_salt_rounds)
+//   );
+//   next();
+// });
 
 export const User = model<IUser, UserModal>('User', userSchema);

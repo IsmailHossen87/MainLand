@@ -1,29 +1,26 @@
 import { z } from 'zod';
 import { USER_ROLES } from '../../../enums/user';
 
- const createUserZodSchema = z.object({
+const createUserZodSchema = z.object({
   body: z.object({
     name: z.string({ required_error: 'Name is required' }).optional(),
     email: z.string().email({ message: 'Invalid email format' }),
     password: z
       .string()
       .min(8, { message: 'Password must be at least 8 characters long' }),
-    contact: z.string().optional(),
     bio: z.string().optional(),
     image: z.string().url().optional(),
   }),
 });
- const updateUserZodSchema = z.object({
+const updateUserZodSchema = z.object({
   body: z.object({
-    name: z.string({ required_error: 'Name is required' }),
-    role: z.nativeEnum(USER_ROLES),
-    email: z.string().email({ message: 'Invalid email format' }),
-    password: z
-      .string()
-      .min(8, { message: 'Password must be at least 8 characters long' }),
-    contact: z.string().optional(),
+    name: z.string().optional(),
+    role: z.nativeEnum(USER_ROLES).optional(),
+    email: z.string().email().optional(),
+    password: z.string().min(8).optional(),
     bio: z.string().optional(),
     image: z.string().url().optional(),
+
     personalInfo: z
       .object({
         firstName: z.string().optional(),
@@ -32,6 +29,7 @@ import { USER_ROLES } from '../../../enums/user';
         bio: z.string().optional(),
       })
       .optional(),
+
     address: z
       .object({
         country: z.string().optional(),
@@ -44,6 +42,7 @@ import { USER_ROLES } from '../../../enums/user';
 });
 
 
+
 export const UserValidation = {
-  createUserZodSchema,updateUserZodSchema
+  createUserZodSchema, updateUserZodSchema
 };

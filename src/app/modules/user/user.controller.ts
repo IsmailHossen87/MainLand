@@ -11,7 +11,7 @@ import { JwtPayload } from 'jsonwebtoken';
 
 const createUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { ...userData } = req.body; 
+    const { ...userData } = req.body;
     const result = await UserService.createUserToDB(userData);
 
     sendResponse(res, {
@@ -50,10 +50,10 @@ const getAllUser = catchAsync(async (req: Request, res: Response) => {
 const updateProfile = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const user = req.user;
-    let image = getSingleFilePath(req.files, 'image');
-
+    if (req.files && "image" in req.files && req.files.image[0]) {
+      req.body.image = `/image/${req.files.image[0].filename}`;
+    }
     const data = {
-      image,
       ...req.body,
     };
     const result = await UserService.updateProfileToDB(user as JwtPayload, data);
@@ -67,4 +67,4 @@ const updateProfile = catchAsync(
   }
 );
 
-export const UserController = { createUser, getUserProfile, updateProfile,getAllUser };
+export const UserController = { createUser, getUserProfile, updateProfile, getAllUser };

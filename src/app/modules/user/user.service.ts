@@ -1,14 +1,9 @@
 import { StatusCodes } from 'http-status-codes';
 import { JwtPayload } from 'jsonwebtoken';
-import { USER_ROLES } from '../../../enums/user';
 import ApiError from '../../../errors/ApiError';
-import { emailHelper } from '../../../helpers/emailHelper';
-import { emailTemplate } from '../../../shared/emailTemplate';
 import unlinkFile from '../../../shared/unlinkFile';
-import generateOTP from '../../../util/generateOTP';
 import { IUser } from './user.interface';
 import { User } from './user.model';
-import { redisClient } from '../../../config/radisConfig';
 import stripe from '../../config/stripe.config';
 
 
@@ -47,10 +42,10 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
   }
 
   await User.findOneAndUpdate(
-    {_id:createUser._id},
+    { _id: createUser._id },
     {
-      $set:{
-        stripeAccountInfo:{stripeCustomerId:stripeCustomer.id}
+      $set: {
+        stripeAccountInfo: { stripeCustomerId: stripeCustomer.id }
       }
     }
   )
@@ -78,12 +73,7 @@ const getAllUser = async () => {
   return isExistUser;
 };
 
-
-
-const updateProfileToDB = async (
-  user: JwtPayload,
-  payload: Partial<IUser>
-): Promise<Partial<IUser | null>> => {
+const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Promise<Partial<IUser | null>> => {
   const { id } = user;
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {

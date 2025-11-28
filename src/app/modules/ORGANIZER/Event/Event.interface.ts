@@ -68,13 +68,14 @@ export interface IEvent {
   city?: string;
   state?: string;
   country?: string;
-  eventCode?:string;
+  eventCode?: string;
 
   // Tickets
   tickets?: {
     type: TicketType;
     price: number;
     availableUnits: number;
+    outstandingUnits: number;
     ticketBuyerId?: Types.ObjectId[];
   }[];
 
@@ -98,6 +99,7 @@ export interface IEvent {
 
   // Other
   locationName?: string;
+  // remainder:string;
   totalEarned: number;
   totalReview?: Types.ObjectId[];
   isDraft: boolean;
