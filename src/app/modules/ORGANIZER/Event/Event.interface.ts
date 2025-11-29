@@ -48,6 +48,7 @@ export enum IEventStatus {
   Used = "Used",
   Available = "Available",
   Draft = "Draft",
+  Rejected = "Rejected",
 }
 
 export interface IEvent {
@@ -77,6 +78,7 @@ export interface IEvent {
     availableUnits: number;
     outstandingUnits: number;
     ticketBuyerId?: Types.ObjectId[];
+    earnedAmount?: number;
   }[];
 
   // Sale

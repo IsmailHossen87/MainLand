@@ -29,10 +29,83 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Event not found!');
   }
 
+  // 2️⃣ Event Status check - NEW
+  if (event.EventStatus === 'UnderReview' || event.EventStatus === 'Rejected') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'This event is not available for ticket purchase at the moment!'
+    );
+  }
+
+  // 3️⃣ Event Date check - NEW
+  if (event.eventDate && new Date(event.eventDate) < new Date()) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Cannot purchase tickets for past events!'
+    );
+  }
+
+
+  // 4️⃣ Ticket Sale Period check - NEW
+  const now = new Date();
+
+  // Check if ticket sale has started
+  if (event.ticketSaleStart && new Date(event.ticketSaleStart) > now) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Ticket sales have not started yet!'
+    );
+  }
+
+  // Check presale period
+  if (event.preSaleStart && event.preSaleEnd) {
+    const preSaleStartDate = new Date(event.preSaleStart);
+
+    // If we're in presale period, you might want to add special logic
+    // For now, just checking if presale has ended and regular sale hasn't started
+    if (now < preSaleStartDate) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Presale has not started yet!'
+      );
+    }
+  }
+
+  // 5️⃣ Free Event check - NEW
+  if (event.isFreeEvent) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'This is a free event. Payment is not required!'
+    );
+  }
+
+  // 6️⃣ Tickets validation - NEW
+  if (!tickets || tickets.length === 0) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Please select at least one ticket!'
+    );
+  }
+
   let totalTicketPrice = 0;
   const updatedTickets: any[] = [];
 
   for (const selected of tickets) {
+    // Quantity validation - NEW
+    if (selected.quantity <= 0) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Ticket quantity must be greater than zero!'
+      );
+    }
+
+    if (event.eventDate && new Date(event.eventDate) <= now) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Ticket sales have ended for this event!'
+      );
+    }
+
     const eventTicket = event.tickets?.find(t => t.type === selected.ticketType);
     if (!eventTicket) {
       throw new ApiError(
@@ -51,15 +124,27 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     const price = eventTicket.price;
     let discountPerTicket = 0;
 
-    // Discount calculation
+    // 7️⃣ Discount calculation with proper date validation
     if (discountCode) {
       const validCode = event.discountCodes?.find(d => d.code === discountCode);
       if (!validCode) {
         throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Coupon code!');
       }
 
-      if (validCode.expireDate && Date.now() > new Date(validCode.expireDate).getTime()) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'This Coupon code has expired!');
+      // Improved date check - UPDATED
+      if (validCode.expireDate) {
+        const expireDate = new Date(validCode.expireDate);
+        const currentDate = new Date();
+
+        // Set time to start of day for fair comparison
+        expireDate.setHours(23, 59, 59, 999);
+
+        if (currentDate > expireDate) {
+          throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            'This Coupon code has expired!'
+          );
+        }
       }
 
       discountPerTicket = (price * validCode.percentage) / 100;
@@ -82,7 +167,10 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
   const totalAmount = totalTicketPrice + mainlandFee;
 
   if (totalAmount <= 0) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Total amount must be greater than zero.');
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Total amount must be greater than zero.'
+    );
   }
 
   const user = await User.findById(userId);
@@ -126,81 +214,6 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
   return { url: stripeSession.url, sessionId: stripeSession.id };
 };
 
-
-
-// Ticket Payment
-// const BuyTicket = async (payload: any) => {
-//   const { fullName, email, phone, tickets,userId } = payload;
-//   const user = await User.findById(userId)
-//   if(!user){
-//     throw new ApiError(StatusCodes.NOT_FOUND, 'User not available');
-//   }
-//   const ticketType = tickets.map((item:any) => item.ticketType)
-//   let totalTicketPrice = 0;
-
-//   // Loop each requested ticket
-//   for (const ticket of tickets) {
-//     const oldTickets = await TicketPurchase.find({
-//       ownerId: ticket.sellerId,
-//       ticketType: ticket.ticketType,
-//       status: "onsell",
-//     });
-
-//     const availableQuantity = oldTickets.length;
-//     totalTicketPrice += oldTickets.reduce((total, ticket) => total + ticket.sellAmount, 0);
-
-
-//     // ❌ If no tickets found
-//     if (availableQuantity === 0) {
-//       throw new ApiError(
-//         400,
-//         `No available ticket found for seller ${ticket.sellerId} and type ${ticket.ticketType}`
-//       );
-//     }
-//     // ❌ If available < requested
-//     if (availableQuantity < ticket.quantity) {
-//       throw new ApiError(
-//         400,
-//         `Seller ${ticket.sellerId} has only ${availableQuantity} ${ticket.ticketType} tickets available, but you requested ${ticket.quantity}.`
-//       );
-//     }
-//   }
-
-
-//     const stripeCustomer = await stripe.customers.create({ name: user.name, email: user.email });
-
-//     const stripeSession = await stripe.checkout.sessions.create({
-//       payment_method_types: ['card'],
-//       mode: 'payment',
-//       customer: stripeCustomer.id,
-//       line_items: [
-//         {
-//           price_data: {
-//             currency: 'usd',
-//             product_data: { name: `Tickets for ${ticketType}` },
-//             unit_amount: Math.round(totalTicketPrice * 100),
-//           },
-//           quantity: 1,
-//         },
-//       ],
-//       metadata: {
-//         eventId: eventId.toString(),
-//         userId: user._id.toString(),
-//         fullName,
-//         attenEmail: email,
-//         attenPhone: phone,
-//         tickets: JSON.stringify(updatedTickets),
-//         totalAmount: totalAmount.toString(),
-//         mailLandFee: mainlandFee.toString(),
-//         discountCode: discountCode || '',
-//       },
-//       success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
-//       cancel_url: `${config.stripe.cancel_url}?purchase_id=cancelled`,
-//     });
-
-
-//   console.log("All ticket quantity validation passed!");
-// };
 // Ticket Payment
 const BuyTicket = async (payload: any) => {
   const { fullName, email, phone, tickets, userId } = payload;

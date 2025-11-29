@@ -4,6 +4,8 @@ export interface ITransactionHistory {
   userId: Types.ObjectId;
   eventId: Types.ObjectId;
   ticketId: Types.ObjectId;
+  resellerId: Types.ObjectId;
+  type: 'directPurchase' | 'resellPurchase';
   purchaseAmount: number;
   sellAmount: number;
   earnedAmount: number;
@@ -18,6 +20,11 @@ const transactionHistorySchema = new Schema<ITransactionHistory>(
       ref: "User",
       index: true,
     },
+    resellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+    },
     eventId: {
       type: Schema.Types.ObjectId,
       ref: "Event",
@@ -27,6 +34,11 @@ const transactionHistorySchema = new Schema<ITransactionHistory>(
       type: Schema.Types.ObjectId,
       ref: "TicketPurchase",
       index: true,
+    },
+    type: {
+      type: String,
+      enum: ['directPurchase', 'resellPurchase'],
+      default: 'directPurchase',
     },
     purchaseAmount: {
       type: Number,

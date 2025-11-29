@@ -46,6 +46,20 @@ const updateCategory = async (categoryId: string, updateData: any) => {
   return category;
 };
 // UPDATEcategory
+const updateSubCategory = async (categoryId: string, updateData: any) => {
+  const category = await SubCategory.findByIdAndUpdate(
+    categoryId,
+    { $set: updateData },
+    { new: true, runValidators: true }
+  );
+
+  if (!category) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "SubCategory not found");
+  }
+
+  return category;
+};
+// UPDATEcategory
 const deleteCategory = async (id: string, type: string) => {
   if (type !== 'category' && type !== 'subCategory') {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid type");
@@ -322,18 +336,28 @@ const allDataUseQuery = async (userID: string, query: Record<string, string>) =>
 
 
 // AllGetData 💛🩷🧡💙💜🤎
-const subCategory = async (query: string) => {
-  const objectId = new Types.ObjectId(query);
-  console.log(objectId);
+const subCategory = async (query?: string) => {
+  let subCategories;
 
-  const subCategories = await SubCategory.find({ categoryId: objectId })
-    .populate('categoryId', 'title coverImage')
-    .lean();
+  // যদি query থাকে → category অনুসারে data আনবে
+  if (query) {
+    const objectId = new Types.ObjectId(query);
 
-  // 🎯 Response restructure করো
+    subCategories = await SubCategory.find({ categoryId: objectId })
+      .populate("categoryId", "title coverImage")
+      .lean();
+
+  } else {
+    // যদি query না থাকে → সব data আনবে
+    subCategories = await SubCategory.find()
+      .populate("categoryId", "title coverImage")
+      .lean();
+  }
+
+  // 🎯 Format করা response
   const formattedData = subCategories.map((sub: any) => ({
     _id: sub._id,
-    categoryTitle: sub.categoryId?.title || 'N/A',
+    categoryTitle: sub.categoryId?.title || "N/A",
     title: sub.title,
     coverImage: sub.categoryId?.coverImage,
     createdAt: sub.createdAt,
@@ -342,6 +366,8 @@ const subCategory = async (query: string) => {
 
   return formattedData;
 };
+
+
 const allCategory = async () => {
   const subCategories = await Category.find()
 
@@ -372,5 +398,6 @@ export const EventService = {
   deleteCategory,
   subCategory,
   allCategory,
-  eventTicketHistory
+  eventTicketHistory,
+  updateSubCategory
 };
