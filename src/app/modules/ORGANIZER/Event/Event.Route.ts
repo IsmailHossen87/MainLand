@@ -44,10 +44,6 @@ router.post(
 ------------------------------------------ */
 router.post(
   '/',
-  (req, res, next) => {
-    console.log('event crate hit hoise', req.body);
-    next();
-  },
   auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
   fileUploadHandler(),
   parseFormDataMiddleware,
@@ -93,6 +89,14 @@ router.patch(
   auth(USER_ROLES.ADMIN, USER_ROLES.USER),
   fileUploadHandler(),
   EventController.updateCategory
+);
+/* -----------------------------------------
+   ✏️ CATEGORY UPDATE
+------------------------------------------ */
+router.patch(
+  '/subcategory/:id',
+  auth(USER_ROLES.ADMIN),
+  EventController.updateSubCategory
 );
 /* -----------------------------------------
    ✏️ CATEGORY UPDATE

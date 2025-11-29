@@ -64,6 +64,21 @@ const updateCategory = catchAsync(
     });
   }
 );
+// UPDATEcategory
+const updateSubCategory = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const SubcategoryId = req.params.id;
+
+    const updatedCategory = await EventService.updateSubCategory(SubcategoryId, req.body);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "SubCategory updated successfully",
+      data: updatedCategory,
+    });
+  }
+);
 // Delete Category
 const deleteCategory = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -260,6 +275,7 @@ export const EventController = {
   createCategory,
   createEvent,
   updateEvent,
+  updateSubCategory,
   allLiveEvent,
   singleEvent,
   allDataUseQuery,

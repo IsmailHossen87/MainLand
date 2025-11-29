@@ -89,6 +89,7 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
         finalPrice: finalPricePerTicket,
         discountCode: discountCode || "",
         purchaseAmount: finalPricePerTicket,
+        earnedAmount: finalPricePerTicket,
       });
     }
 
@@ -128,6 +129,14 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
     })),
     totalAmount,
   };
+  await TransactionHistory.create({
+    userId: ownerId,
+    eventId,
+    type: 'directPurchase',
+    purchaseAmount: totalAmount,
+    ticketId: allTickets.length,
+    sellAmount: 0,
+  });
 
   // Send Email
   try {
@@ -223,15 +232,15 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
     // Create ONE transaction history for this entire ticket group (for SELLER)
     await TransactionHistory.create({
       userId: sellerId,
+      resellerId: newResellerId,
       eventId: eventId,
       ticketId: ticketIds[0],
+      type: 'resellPurchase',
       purchaseAmount: totalPurchaseAmount,
       sellAmount: totalSellAmount,
       earnedAmount: totalEarnedAmount,
       ticketQuantity: Number(quantity),
     });
-
-    console.log(`✅ Updated ${quantity} ${ticketType} ticket(s) and created ONE transaction history for seller`);
   }
 
   // Prepare email payload for NEW BUYER

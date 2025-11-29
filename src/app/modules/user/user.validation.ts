@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { USER_ROLES } from '../../../enums/user';
+import { IValidateDate } from '../ORGANIZER/Event/Event.Validation';
 
 const createUserZodSchema = z.object({
   body: z.object({
@@ -27,6 +28,8 @@ const updateUserZodSchema = z.object({
         lastName: z.string().optional(),
         phone: z.string().optional(),
         bio: z.string().optional(),
+        // ✨ NEW: Date of Birth validation
+        dateOfBirth: IValidateDate.nullable().optional(),
       })
       .optional(),
 
@@ -36,6 +39,16 @@ const updateUserZodSchema = z.object({
         city: z.string().optional(),
         postalCode: z.string().optional(),
         street: z.string().optional(),
+      })
+      .optional(),
+
+    // ✨ NEW: Notification validation
+    notification: z
+      .object({
+        isSellTicketNotificationEnabled: z.boolean().optional(),
+        isMessageNotificationEnabled: z.boolean().optional(),
+        isPublishEventNotificationEnabled: z.boolean().optional(),
+        isWithdrawMoneyNotificationEnabled: z.boolean().optional(),
       })
       .optional(),
   }),

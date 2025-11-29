@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { IResetPassword } from '../types/emailTamplate';
 
 // Interface for resale ticket purchase
@@ -215,21 +216,13 @@ const resaleTicketPurchaseEmail = (data: IResalePurchaseEmail) => {
                   <div style="background-color: #f0fdf4; border-left: 4px solid #277E16; padding: 16px; border-radius: 4px;">
                     <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.6;">
                       <strong>📧 Email:</strong> ${email}<br>
-                      <strong>📅 Purchase Date:</strong> ${new Date().toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}
+                      <strong>📅 Purchase Date:</strong> ${new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })}
                     </p>
                   </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="padding: 0 30px 30px; text-align: center;">
-                  <a href="#" style="display: inline-block; background: linear-gradient(135deg, #277E16 0%, #1a5d0f 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                    View My Tickets
-                  </a>
                 </td>
               </tr>
 
@@ -268,7 +261,7 @@ const newTicketPurchaseEmail = (data: INewPurchaseEmail) => {
   const ticketRows = totalTicket
     .map((ticket) => {
       const ticketHasDiscount = ticket.discountPerTicket && ticket.discountPerTicket > 0;
-      
+
       return `
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: left;">
@@ -278,17 +271,17 @@ const newTicketPurchaseEmail = (data: INewPurchaseEmail) => {
         ${ticket.quantity}
       </td>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">
-        ${ticketHasDiscount 
+        ${ticketHasDiscount
           ? `<span style="text-decoration: line-through; color: #9ca3af;">$${ticket.price.toFixed(2)}</span>
              <br><span style="color: #277E16; font-weight: bold;">$${ticket.finalPricePerTicket.toFixed(2)}</span>`
           : `$${ticket.finalPricePerTicket.toFixed(2)}`
         }
       </td>
-      ${hasDiscount 
-        ? `<td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626;">
+      ${hasDiscount
+          ? `<td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626;">
             ${ticketHasDiscount ? `-$${ticket.discountPerTicket!.toFixed(2)}` : '-'}
-           </td>` 
-        : ''}
+           </td>`
+          : ''}
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">
         $${(ticket.finalPricePerTicket * ticket.quantity).toFixed(2)}
       </td>
@@ -352,9 +345,9 @@ const newTicketPurchaseEmail = (data: INewPurchaseEmail) => {
                         <th style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">
                           Price
                         </th>
-                        ${hasDiscount 
-                          ? '<th style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Discount</th>' 
-                          : ''}
+                        ${hasDiscount
+      ? '<th style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Discount</th>'
+      : ''}
                         <th style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">
                           Subtotal
                         </th>
@@ -377,8 +370,8 @@ const newTicketPurchaseEmail = (data: INewPurchaseEmail) => {
                 </td>
               </tr>
 
-              ${totalSavings > 0 
-                ? `<tr>
+              ${totalSavings > 0
+      ? `<tr>
                     <td style="padding: 0 30px 20px;">
                       <div style="background-color: #dcfce7; border-left: 4px solid #16a34a; padding: 16px; border-radius: 4px;">
                         <p style="margin: 0; color: #166534; font-size: 16px; font-weight: 600;">
@@ -386,19 +379,19 @@ const newTicketPurchaseEmail = (data: INewPurchaseEmail) => {
                         </p>
                       </div>
                     </td>
-                  </tr>` 
-                : ''}
+                  </tr>`
+      : ''}
 
               <tr>
                 <td style="padding: 0 30px 30px;">
                   <div style="background-color: #f0fdf4; border-left: 4px solid #277E16; padding: 16px; border-radius: 4px;">
                     <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.6;">
                       <strong>📧 Email:</strong> ${email}<br>
-                      <strong>📅 Purchase Date:</strong> ${new Date().toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}
+                      <strong>📅 Purchase Date:</strong> ${new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}
                     </p>
                   </div>
                 </td>
@@ -438,10 +431,180 @@ const newTicketPurchaseEmail = (data: INewPurchaseEmail) => {
   };
 };
 
+
+interface IContactEmailData {
+  adminMessage: string;
+  email: string | undefined;
+  name: string | undefined;
+  status: "solved";
+  adminId: Types.ObjectId;
+  usersMessage: string;
+}
+
+const contactResponseEmail = (data: IContactEmailData) => {
+  const { name, email, usersMessage, adminMessage, status } = data;
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Response to Your Inquiry</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6;">
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 40px 0;">
+            <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              
+              <!-- Header -->
+              <tr>
+                <td style="background: linear-gradient(135deg, #277E16 0%, #1a5d0f 100%); padding: 40px 30px; text-align: center;">
+                  <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
+                    📧 Response to Your Inquiry
+                  </h1>
+                  <p style="margin: 10px 0 0; color: #e0ffe0; font-size: 16px;">
+                    We've reviewed your message
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Greeting -->
+              <tr>
+                <td style="padding: 30px 30px 20px;">
+                  <h2 style="margin: 0 0 10px; color: #1f2937; font-size: 22px;">
+                    Hello ${name}! 👋
+                  </h2>
+                  <p style="margin: 0; color: #6b7280; font-size: 16px; line-height: 1.6;">
+                    Thank you for reaching out to us. We've carefully reviewed your inquiry and prepared a response for you.
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Your Message Section -->
+              <tr>
+                <td style="padding: 0 30px 20px;">
+                  <div style="background-color: #f9fafb; border-left: 4px solid #277E16; padding: 20px; border-radius: 4px;">
+                    <p style="margin: 0 0 8px; color: #277E16; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                      📝 Your Message
+                    </p>
+                    <p style="margin: 0; color: #374151; font-size: 15px; line-height: 1.6;">
+                      ${usersMessage}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Admin Response Section -->
+              <tr>
+                <td style="padding: 0 30px 30px;">
+                  <div style="background: linear-gradient(to right, #dcfce7, #f0fdf4); border-left: 4px solid #16a34a; padding: 20px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+                    <p style="margin: 0 0 8px; color: #16a34a; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                      ✅ Our Response
+                    </p>
+                    <p style="margin: 0; color: #166534; font-size: 15px; line-height: 1.6; font-weight: 500;">
+                      ${adminMessage}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Status Badge -->
+              <tr>
+                <td style="padding: 0 30px 30px;">
+                  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 16px; background-color: #dcfce7; border-radius: 6px; text-align: center;">
+                        <span style="display: inline-flex; align-items: center; color: #166534; font-size: 16px; font-weight: 600;">
+                          <span style="margin-right: 8px; font-size: 20px;">✓</span>
+                          Status: ${status.charAt(0).toUpperCase() + status.slice(1)}
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- Divider -->
+              <tr>
+                <td style="padding: 0 30px;">
+                  <div style="height: 1px; background-color: #e5e7eb;"></div>
+                </td>
+              </tr>
+
+              <!-- Contact Details -->
+              <tr>
+                <td style="padding: 30px 30px 20px;">
+                  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 12px; background-color: #f9fafb; border-radius: 6px;">
+                        <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">
+                          <strong style="color: #374151;">📧 Email:</strong> ${email}
+                        </p>
+                        <p style="margin: 0; color: #6b7280; font-size: 14px;">
+                          <strong style="color: #374151;">📅 Response Date:</strong> ${new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })}
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="padding: 30px; background-color: #f9fafb; text-align: center; border-top: 1px solid #e5e7eb;">
+                  <p style="margin: 0 0 15px; color: #374151; font-size: 14px; font-weight: 600;">
+                    MainLand Events - Your Event Management Partner
+                  </p>
+                  <p style="margin: 0 0 15px; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                    Need immediate assistance? Contact our support team:<br>
+                    <a href="mailto:support@mainland.com" style="color: #277E16; text-decoration: none; font-weight: 600;">
+                      support@mainland.com
+                    </a>
+                  </p>
+                  <div style="margin: 20px 0;">
+                    <a href="#" style="display: inline-block; margin: 0 8px; color: #6b7280; text-decoration: none; font-size: 12px;">Privacy Policy</a>
+                    <span style="color: #d1d5db;">|</span>
+                    <a href="#" style="display: inline-block; margin: 0 8px; color: #6b7280; text-decoration: none; font-size: 12px;">Terms of Service</a>
+                    <span style="color: #d1d5db;">|</span>
+                    <a href="#" style="display: inline-block; margin: 0 8px; color: #6b7280; text-decoration: none; font-size: 12px;">Help Center</a>
+                  </div>
+                  <p style="margin: 15px 0 0; color: #9ca3af; font-size: 12px;">
+                    © ${new Date().getFullYear()} MainLand Events. All rights reserved.
+                  </p>
+                  <p style="margin: 10px 0 0; color: #9ca3af; font-size: 11px;">
+                    You're receiving this email because you contacted us through MainLand Events.
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  return {
+    to: email,
+    subject: '✅ Response to Your MainLand Contact Request',
+    html: htmlContent,
+  };
+};
+
+
+
 export const emailTemplate = {
   createAccount,
   resetPassword,
   resendOtpTemplate,
-  resaleTicketPurchaseEmail,   
-  newTicketPurchaseEmail,       
+  resaleTicketPurchaseEmail,
+  newTicketPurchaseEmail,
+  contactResponseEmail,
 };

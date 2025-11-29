@@ -16,14 +16,16 @@ router
     UserController.getUserProfile
   )
   .patch(
-    (req, res, next) => {
-      console.log('Profile update hit hoise', req.body);
-      next();
-    },
     auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER),
     fileUploadHandler(),
     parseFormDataMiddleware,
-    // validateRequest(UserValidation.updateUserZodSchema),
+    (req, res, next) => {
+      console.log('=== Before Validation ===');
+      console.log('Body:', JSON.stringify(req.body));
+      console.log('========================');
+      next();
+    },
+    validateRequest(UserValidation.updateUserZodSchema),
     UserController.updateProfile
   );
 
