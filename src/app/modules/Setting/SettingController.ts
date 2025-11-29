@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { SettingService } from "./Setting.Service";
 import { JwtPayload } from "jsonwebtoken";
+import mongoose from "mongoose";
 
 
 // Create or update
@@ -31,13 +32,13 @@ const updateSetting = async (req: Request, res: Response) => {
 
 const faqCreate = async (req: Request, res: Response) => {
   try {
-    const { type, question, answer } = req.body;
+    const { type, question, answer, faqType } = req.body;
 
     if (!type) {
       throw new Error("Setting type is required");
     }
     const userId = req.user as JwtPayload;
-    const result = await SettingService.faqSetting(userId, { type, question, answer });
+    const result = await SettingService.faqSetting(userId, { type, question, answer, faqType });
     // check
     res.status(StatusCodes.CREATED).json({
       success: true,
@@ -51,6 +52,7 @@ const faqCreate = async (req: Request, res: Response) => {
     });
   }
 };
+
 // const getSetting = async (req: Request, res: Response) => {
 //   try { 
 //     const { type } = req.query;
@@ -129,10 +131,82 @@ const getSpecificSetting = async (req: Request, res: Response) => {
   }
 };
 
+// CONTACT
+const contactCreate = async (req: Request, res: Response) => {
+  let userId = req.user?.id as string;
+
+  const result = await SettingService.contactSetting(userId, req.body);
+  res.status(StatusCodes.CREATED).json({
+    success: true,
+    message: "Contact created successfully",
+    data: result,
+  });
+
+};
+
+const getContact = async (req: Request, res: Response) => {
+  try {
+    const query = req.query;
+    const result = await SettingService.getContact(query as Record<string, string>);
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Contact fetched successfully",
+      meta: result.meta,
+      data: result.data
+    });
+  } catch (error: any) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+const getContactById = async (req: Request, res: Response) => {
+  try {
+    const result = await SettingService.getContactById(req.params.id as string);
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Contact fetched successfully",
+      data: result
+    });
+  } catch (error: any) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+const contactEmail = async (req: Request, res: Response) => {
+  try {
+    const { adminMessage } = req.body;
+    if (!adminMessage) {
+      throw new Error("Admin message is required");
+    }
+    const userId = req.user?.id as string;
+
+    const result = await SettingService.contactEmail(req.params.id as string, adminMessage, userId);
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Contact email message successfully",
+      data: result
+    });
+  } catch (error: any) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 export const SettingController = {
   updateSetting,
   faqCreate,
   getQuestion,
   getQuestionById,
-  getSpecificSetting
+  getSpecificSetting,
+  contactCreate,
+  getContact,
+  getContactById,
+  contactEmail
 };

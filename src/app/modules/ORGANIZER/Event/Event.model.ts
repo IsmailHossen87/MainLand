@@ -71,6 +71,7 @@ const EventSchema = new Schema<IEvent>(
         price: { type: Number, required: true },
         availableUnits: { type: Number, required: true },
         outstandingUnits: { type: Number },
+        earnedAmount: { type: Number, default: 0 },
         ticketBuyerId: [{ type: Schema.Types.ObjectId, ref: "TicketPurchase" }],
       },
     ],

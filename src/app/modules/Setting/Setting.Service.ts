@@ -1,8 +1,11 @@
 import { JwtPayload } from "jsonwebtoken";
 import { USER_ROLES } from "../../../enums/user";
-import { ISettings, Settings } from "./Setting.model";
+import { Contact, IContact, ISettings, Settings, SettingType } from "./Setting.model";
 import { QueryBuilder } from "../../builder/QueryBuilder";
 import { excludeField } from "../../../shared/constrant";
+import { User } from "../user/user.model";
+import { emailTemplate } from "../../../shared/emailTemplate";
+import { emailHelper } from "../../../helpers/emailHelper";
 
 
 // Create or update single settings document
@@ -18,34 +21,54 @@ const updateSetting = async (data: { type: string; title: string; content: strin
   return result;
 };
 
-const faqSetting = async (user: JwtPayload, data: { type: string; question: string, answer: string[] }) => {
-  const { type, question, answer } = data;
+const faqSetting = async (user: JwtPayload, data: { type: string; question: string, answer: string[], faqType: string }) => {
+  const { type, question, answer, faqType } = data;
   if (USER_ROLES.ADMIN != user.role) {
     throw new Error("You are not authorized to create faq");
   }
-  const result = await Settings.create({ type, question, answer, userId: user.id });
+  const result = await Settings.create({ type, question, answer, faqType, userId: user.id });
   return result;
 };
-// get all faq
+
+
 const getQuestion = async (user: JwtPayload, query: Record<string, string>) => {
+
   if (USER_ROLES.ADMIN != user.role) {
     throw new Error("You are not authorized to get faq");
   }
 
-  // const baseQuery = await Settings.find({ type: "faq" });
-  const queryBuilder = new QueryBuilder(Settings.find({ type: "faq" }), query);
+  console.log("🔍 Query received:", query);
+  console.log("📋 Exclude fields:", excludeField);
 
-  const allQuestion = queryBuilder.search(excludeField)
+  // Base query
+  const baseQuery = Settings.find({
+    type: SettingType.Faq,
+    question: { $ne: "" }
+  });
+
+  const queryBuilder = new QueryBuilder(baseQuery, query);
+
+  const allQuestion = queryBuilder
+    .search(["question", "answer"])
     .filter()
     .dateRange()
     .sort()
-    .paginate()
+    .paginate();
 
-  const [meta, data] = await Promise.all([allQuestion.getMeta(), allQuestion.build()]);
+  // Check the final query filter
+  const builtQuery = allQuestion.modelQuery as any;
+  console.log("🎯 Final filter:", JSON.stringify(builtQuery.getFilter(), null, 2));
+
+  const [meta, data] = await Promise.all([
+    allQuestion.getMeta(),
+    allQuestion.build(),
+  ]);
+
+  console.log("✅ Results:", { metaTotal: meta.total, dataLength: data.length });
 
   return { meta, data };
+};
 
-}
 
 const getQuestionById = async (id: string) => {
   const result = await Settings.findById(id);
@@ -66,12 +89,103 @@ const getSpecificSetting = async (key: string) => {
   return setting;
 };
 
+const contactSetting = async (userId: string, payload: IContact) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+  const userPayload = {
+    ...payload,
+    userId: user._id,
+    email: user.email
+  }
+  const result = await Contact.create(userPayload);
+  return result;
+};
+
+const getContact = async (query: Record<string, string>) => {
+  const queryBuilder = new QueryBuilder(Contact.find(), query);
+  const allContact = queryBuilder.search(excludeField)
+    .filter()
+    .dateRange()
+    .sort()
+    .paginate()
+
+  const [meta, data] = await Promise.all([allContact.getMeta(), allContact.build()]);
+
+  return { meta, data };
+}
+const getContactById = async (id: string) => {
+  const result = await Contact.findById(id);
+  if (!result) {
+    throw new Error("Contact not found");
+  }
+  return result;
+}
+const contactEmail = async (id: string, adminMessage: string, adminId: string) => {
+  // Validate admin
+  const admin = await User.findById(adminId);
+  if (!admin) {
+    throw new Error("Admin not found");
+  }
+
+  // Find contact by ID
+  const contact = await Contact.findById(id);
+  if (!contact) {
+    throw new Error("Contact not found");
+  }
+
+  // Check if already solved
+  if (contact.status === "solved") {
+    throw new Error("This contact has already been resolved");
+  }
+
+
+  // Update contact with admin response
+  const updateData = {
+    adminMessage: adminMessage.trim(),
+    status: "solved" as const,
+    adminId: admin._id
+  };
+
+  const updatedContact = await Contact.findByIdAndUpdate(
+    id,
+    { $set: updateData },
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedContact) {
+    throw new Error("Failed to update contact");
+  }
+
+  // Get user details for personalization
+  const user = await User.findById(contact.userId);
+  const userName = user?.name || "Valued Customer";
+
+  const values = {
+    adminMessage: adminMessage.trim(),
+    email: user?.email || "",
+    name: user?.name || "Valued Customer",
+    status: "solved" as const,
+    adminId: admin._id,
+    usersMessage: contact.message,
+  }
+
+  const email = emailTemplate.contactResponseEmail(values);
+  await emailHelper.sendEmail(email);
+  return updatedContact;
+};
+
 export const SettingService = {
   updateSetting,
   faqSetting,
   getQuestion,
   getQuestionById,
-  getSpecificSetting
+  getSpecificSetting,
+  contactSetting,
+  getContact,
+  getContactById,
+  contactEmail
 };
 
 

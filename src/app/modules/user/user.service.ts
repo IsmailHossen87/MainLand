@@ -9,24 +9,19 @@ import stripe from '../../config/stripe.config';
 
 const OTP_EXPIRATION = 2 * 60;
 
+import bcrypt from 'bcrypt';
+import config from '../../../config';
+
 const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
+  // ✨ Password hash করা
+  if (payload.password) {
+    payload.password = await bcrypt.hash(payload.password, 10);
+  }
+
   const createUser = await User.create(payload);
   if (!createUser) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create user');
   }
-
-  // const otp = generateOTP();
-  // const redisKey = `otp:verify:${createUser.email}`;
-  // await redisClient.setEx(redisKey, OTP_EXPIRATION, otp.toString());
-
-  // const values = {
-  //   name: createUser.name,
-  //   otp,
-  //   email: createUser.email!,
-  // };
-
-  // const createAccountTemplate = emailTemplate.createAccount(values);
-  // await emailHelper.sendEmail(createAccountTemplate);
 
   let stripeCustomer;
   try {
@@ -48,10 +43,11 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
         stripeAccountInfo: { stripeCustomerId: stripeCustomer.id }
       }
     }
-  )
+  );
 
   return createUser;
 };
+
 
 const getUserProfileFromDB = async (
   user: JwtPayload
@@ -74,6 +70,7 @@ const getAllUser = async () => {
 };
 
 const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Promise<Partial<IUser | null>> => {
+
   const { id } = user;
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
