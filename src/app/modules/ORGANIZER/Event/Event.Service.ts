@@ -8,6 +8,7 @@ import { QueryBuilder } from '../../../builder/QueryBuilder';
 import { excludeField } from '../../../../shared/constrant';
 import mongoose, { Types } from 'mongoose';
 import { CreateEventPayload, IEventStatus, UpdateEventPayload } from './Event.interface';
+import unlinkFile from '../../../../shared/unlinkFile';
 export interface EventTicket {
   type: string;
   price: number;
@@ -33,17 +34,26 @@ const creteCategory = async (payload: JwtPayload) => {
 };
 // UPDATEcategory
 const updateCategory = async (categoryId: string, updateData: any) => {
-  const category = await Category.findByIdAndUpdate(
-    categoryId,
-    { $set: updateData },
-    { new: true, runValidators: true }
-  );
-
+  const category = await Category.findById(categoryId);
   if (!category) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Category not found");
   }
 
-  return category;
+  const updatedCategory = await Category.findByIdAndUpdate(
+    categoryId,
+    { $set: updateData },
+    { new: true, runValidators: true }
+  );
+  if (!updateCategory) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Updated Category failed");
+  }
+
+
+  if (updateData.coverImage && category.coverImage) {
+    unlinkFile(category.coverImage)
+  }
+
+  return updatedCategory;
 };
 // UPDATEcategory
 const updateSubCategory = async (categoryId: string, updateData: any) => {
