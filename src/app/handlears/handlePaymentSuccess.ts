@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import crypto from 'crypto';
 import ApiError from '../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
-import { Metadata } from '../modules/stripeAccount/webhookHandler';
+
 
 import { emailHelper } from '../../helpers/emailHelper';
 import { emailTemplate } from '../../shared/emailTemplate';

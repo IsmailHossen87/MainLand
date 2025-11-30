@@ -151,6 +151,36 @@ const updateEvent = catchAsync(
     });
   }
 );
+// 2️⃣ UpdateNotification
+const updateNotification = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.id;
+    const eventId = req.params.id;
+    const notification = req.body.notification;
+
+    if (req.files && 'image' in req.files && req.files.image[0]) {
+      req.body.image = `/image/${req.files.image[0].filename}`;
+    }
+
+    const isDraft = req.body.isDraft === true || req.body.isDraft === 'true';
+
+    const updatedEvent = await EventService.updateNotification(
+      eventId,
+      userId as string,
+      notification
+    );
+
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: isDraft
+        ? 'Draft updated successfully'
+        : 'Event published successfully',
+      data: updatedEvent,
+    });
+  }
+);
+
 const singleEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user?.id
@@ -165,20 +195,7 @@ const singleEvent = catchAsync(
   }
 );
 
-// ------------------------------------------------------------------
-// 2️⃣ Update Event (Draft update or Publish)
-// const myEvents = catchAsync(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     const userId= req.user?.id
-//     const result = await EventService.myEvents(userId as string)
-//     await sendResponse(res, {
-//       success: true,
-//       statusCode: StatusCodes.OK,
-//       message:"My event Retrived Successfully",
-//       data: result,
-//     });
-//   }
-// );
+
 
 const allLiveEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -275,6 +292,7 @@ export const EventController = {
   createCategory,
   createEvent,
   updateEvent,
+  updateNotification,
   updateSubCategory,
   allLiveEvent,
   singleEvent,

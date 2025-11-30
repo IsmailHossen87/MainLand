@@ -13,11 +13,11 @@ const allUser = auth(USER_ROLES.ORGANIZER, USER_ROLES.ADMIN, USER_ROLES.USER)
 router
   .route('/profile')
   .get(
-    auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.ORGANIZER),
+    allUser,
     UserController.getUserProfile
   )
   .patch(
-    auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER),
+    allUser,
     fileUploadHandler(),
     parseFormDataMiddleware,
     validateRequest(UserValidation.updateUserZodSchema),
@@ -33,7 +33,10 @@ router
     validateRequest(UserValidation.createUserZodSchema),
     UserController.createUser
   );
-router.delete('/image-remove', allUser, UserController.imageDelete);
+router.route("/remove-image")
+  .delete(allUser, UserController.imageDelete)
+router.route("/remove-account")
+  .delete(allUser, UserController.accountDelete);
 
 
 export const UserRoutes = router;

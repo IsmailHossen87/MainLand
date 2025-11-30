@@ -74,11 +74,24 @@ router.get(
 ------------------------------------------ */
 router.patch(
   '/:id',
+  (req, res, next) => {
+    console.log("hhhhhhhhhhhhhh", req.body)
+    next()
+  },
   auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
   fileUploadHandler(),
   parseFormDataMiddleware,
   dynamicEventValidation,
   EventController.updateEvent
+);
+/* -----------------------------------------
+   ✏️ EVENT UPDATE (Draft or Normal)
+------------------------------------------ */
+router.patch(
+  '/notification/:id',
+  auth(USER_ROLES.ORGANIZER),
+  fileUploadHandler(),
+  EventController.updateNotification
 );
 
 /* -----------------------------------------

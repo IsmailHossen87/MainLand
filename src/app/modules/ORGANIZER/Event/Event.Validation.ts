@@ -71,6 +71,7 @@ const DraftEventZodSchema = z.object({
     tags: z.array(z.string().trim()).nullable().optional(),
     eventDate: IValidateDate.nullable().optional(),
     startTime: z.string().nullable().optional(),
+    notification: z.string().optional(),
     endTime: z.string().nullable().optional(),
     streetAddress: z.string().nullable().optional(),
     streetAddress2: z.string().nullable().optional(),
@@ -93,7 +94,7 @@ const DraftEventZodSchema = z.object({
 const FullEventZodSchema = z.object({
   body: z.object({
     eventName: z.string({ required_error: "Event name is required" }).trim(),
-    image: z.string({ required_error: "Image is required" }).optional(),  
+    image: z.string({ required_error: "Image is required" }).optional(),
     category: z
       .array(
         z.object({
@@ -106,8 +107,9 @@ const FullEventZodSchema = z.object({
     eventDate: IValidateDate,
     startTime: z.string(),
     endTime: z.string(),
+    notification: z.string().optional(),
     streetAddress: z.string({ required_error: "Address is required" }).trim(),
-    streetAddress2: z.string().optional(),  
+    streetAddress2: z.string().optional(),
     city: z.string({ required_error: "City is required" }).trim(),
     state: z.string({ required_error: "State is required" }).trim(),
     country: z.string({ required_error: "Country is required" }).trim(),

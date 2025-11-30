@@ -86,6 +86,8 @@ export interface IEvent {
   preSaleStart?: Date;
   preSaleEnd?: Date;
   EventStatus?: IEventStatus;
+  notification?: string;
+  notificationStatus: "idle" | "pending" | "success" | "rejected";
   // Discount
   discountCodes?: {
     code: string;
