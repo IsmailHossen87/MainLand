@@ -47,19 +47,38 @@ const blockUser = catchAsync(
   }
 );
 // // All User
-// const AllTicketBuyer = catchAsync(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     const user = req.user
-//     const result = await ActionService.AllTicketBuyer(user as JwtPayload)
-//     await sendResponse(res, {
-//       success: true,
-//       statusCode: StatusCodes.OK,
-//       message: "All User Retrived Sucessfully",
-//       data: result,
-//     });
-//   }
-// );
+const AllTicketBuyerUser = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user
+    const result = await ActionService.AllTicketBuyerUser(user as JwtPayload)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "All User Retrived Sucessfully",
+      data: result,
+    });
+  }
+);
+// ticket Activity
+const ticketActivity = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user
+    const userId = req.params?.id
+    const query = req.query
 
+    const result = await ActionService.ticketActivity(user as JwtPayload, userId as string, query as Record<string, string>)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Ticket Activity Retrived Sucessfully",
+      // data: {
+      //   meta: result.meta,
+      //   data: result.data,
+
+      // },
+    });
+  }
+);
 
 
 // const allResellTicket = catchAsync(
@@ -76,24 +95,7 @@ const blockUser = catchAsync(
 //     });
 //   }
 // );
-// const ticketActivity = catchAsync(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     const user = req.user
-//     const query = req.query
-
-//     const result = await ActionService.ticketActivity(user as JwtPayload, query as Record<string, string>)
-//     await sendResponse(res, {
-//       success: true,
-//       statusCode: StatusCodes.OK,
-//       message: "Ticket Activity Retrived Sucessfully",
-//       data: {
-//         meta: result.meta,
-//         data: result.data,
-
-//       },
-//     });
-//   }
-// );
 
 
-export const ActionController = { statusChange, DashBoard, blockUser }
+
+export const ActionController = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity }

@@ -31,18 +31,16 @@ const faqSetting = async (user: JwtPayload, data: { type: string; question: stri
 };
 
 
-const getQuestion = async (user: JwtPayload, query: Record<string, string>) => {
+const getQuestion = async (user: JwtPayload, faqType: string, query: Record<string, string>) => {
 
-  if (USER_ROLES.ADMIN != user.role) {
-    throw new Error("You are not authorized to get faq");
-  }
-
-  console.log("🔍 Query received:", query);
-  console.log("📋 Exclude fields:", excludeField);
+  // if (USER_ROLES.ADMIN != user.role) {
+  //   throw new Error("You are not authorized to get faq");
+  // }
 
   // Base query
   const baseQuery = Settings.find({
     type: SettingType.Faq,
+    faqType,
     question: { $ne: "" }
   });
 
