@@ -1,10 +1,16 @@
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { USER_ROLES } from '../../../enums/user';
 
 export interface IAuthProvider {
   provider: 'google' | 'credentials';
   providerId: string;
 }
+export interface IAccountDelete {
+  userId: Types.ObjectId,
+  deleteReason: string,
+  isDeleted: boolean
+}
+
 export interface INotification {
   isSellTicketNotificationEnabled: boolean
   isMessageNotificationEnabled: boolean
@@ -35,6 +41,8 @@ export type IUser = {
     postalCode?: string;
     street?: string;
   };
+  sellAmount?: number;
+  withDrawAmount?: number;
   // StripeAccountInfo
   stripeAccountInfo?: {
     stripeCustomerId?: string;

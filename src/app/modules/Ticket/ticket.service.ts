@@ -15,7 +15,8 @@ const getAllTicket = async (userId: string, query: Record<string, any>) => {
   }
 
   // 2️⃣ Initialize base query
-  const baseQuery = TicketPurchase.find({ ownerId: userId, }).populate('eventId', 'image eventName');;
+  const baseQuery = TicketPurchase.find({ ownerId: userId, }).populate('eventId', 'image eventName');
+
   const queryBuilder = new QueryBuilder(baseQuery, query);
 
   // 3️⃣ Apply queryBuilder methods
@@ -53,17 +54,17 @@ const getOneTicket = async (userId: string, ticeketId: string) => {
   return ticket;
 };
 
-const getUniqueEvents = async (userId: string) => {
+const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
   // 1️⃣ Check user exists
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
   // 2️⃣ Aggregation pipeline
-  const uniqueEvents = await TicketPurchase.aggregate([
+  const baseQuery = TicketPurchase.aggregate([
     {
       $match: {
-        ownerId: new mongoose.Types.ObjectId(userId)
+        ownerId: new mongoose.Types.ObjectId(userId),
       }
     },
     {
@@ -86,14 +87,21 @@ const getUniqueEvents = async (userId: string) => {
         _id: 0,
         eventId: "$_id",
         eventName: "$event.eventName",
+        eventDate: "$event.eventDate",
+        isFreeEvent: "$event.isFreeEvent",
+        streetAddress: "$event.streetAddress",
+        ticketSaleStart: "$event.ticketSaleStart",
+        streetAddress2: "$event.streetAddress2",
+        preSaleStart: "$event.preSaleStart",
         image: "$event.image",
         address: "$event.streetAddress",
         ticketId: 1
       }
     }
   ]);
+  const queryBuilder = new QueryBuilder(baseQuery, query);
 
-  return uniqueEvents;
+  return queryBuilder.build();
 };
 
 const sellTicketInfoUsers = async (
@@ -290,6 +298,11 @@ const resellTicket = async (userId: string, eventId: string, payload: IResellTic
       }
     }
   );
+  await user.updateOne({
+    $inc: {
+      sellAmount: resellAmount
+    }
+  })
   // 5️⃣ Return updated information
   return {
     message: `Successfully listed ${quantity} ${ticketType} ticket(s) for resale`,
