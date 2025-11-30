@@ -67,4 +67,16 @@ const updateProfile = catchAsync(
   }
 );
 
-export const UserController = { createUser, getUserProfile, updateProfile, getAllUser };
+const imageDelete = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+  const result = await UserService.imageDelete(user as JwtPayload);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Image deleted successfully',
+    data: result,
+  });
+});
+
+export const UserController = { createUser, getUserProfile, updateProfile, getAllUser, imageDelete };

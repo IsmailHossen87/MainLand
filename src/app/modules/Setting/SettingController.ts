@@ -73,8 +73,9 @@ const faqCreate = async (req: Request, res: Response) => {
 const getQuestion = async (req: Request, res: Response) => {
   try {
     const userId = req.user as JwtPayload;
+    const faqType = req.params.faqType;
     const query = req.query;
-    const result = await SettingService.getQuestion(userId, query as Record<string, string>);
+    const result = await SettingService.getQuestion(userId, faqType, query as Record<string, string>);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Settings fetched successfully",

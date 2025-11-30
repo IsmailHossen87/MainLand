@@ -88,10 +88,30 @@ const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Pro
 
   return updateDoc;
 };
+const imageDelete = async (user: JwtPayload): Promise<IUser | null> => {
+  const { id } = user;
+
+  const isExistUser = await User.isExistUserById(id);
+  if (!isExistUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+  }
+
+  //unlink file here
+  if (isExistUser.image) {
+    unlinkFile(isExistUser.image);
+  }
+
+  const updateDoc = await User.findOneAndUpdate({ _id: id }, { image: null }, {
+    new: true,
+  });
+
+  return updateDoc;
+};
 
 export const UserService = {
   createUserToDB,
   getUserProfileFromDB,
   getAllUser,
   updateProfileToDB,
+  imageDelete,
 };

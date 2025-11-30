@@ -8,6 +8,7 @@ import { UserValidation } from './user.validation';
 import { parseFormDataMiddleware } from '../../middlewares/ParseFormData';
 
 const router = express.Router();
+const allUser = auth(USER_ROLES.ORGANIZER, USER_ROLES.ADMIN, USER_ROLES.USER)
 
 router
   .route('/profile')
@@ -19,12 +20,6 @@ router
     auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER),
     fileUploadHandler(),
     parseFormDataMiddleware,
-    (req, res, next) => {
-      console.log('=== Before Validation ===');
-      console.log('Body:', JSON.stringify(req.body));
-      console.log('========================');
-      next();
-    },
     validateRequest(UserValidation.updateUserZodSchema),
     UserController.updateProfile
   );
@@ -38,5 +33,7 @@ router
     validateRequest(UserValidation.createUserZodSchema),
     UserController.createUser
   );
+router.delete('/image-remove', allUser, UserController.imageDelete);
+
 
 export const UserRoutes = router;

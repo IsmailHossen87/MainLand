@@ -131,7 +131,7 @@ router.get(
 ------------------------------------------ */
 router.get(
   '/allLiveEvent',
-  auth(USER_ROLES.ORGANIZER),
+  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
   EventController.allLiveEvent
 );
 
