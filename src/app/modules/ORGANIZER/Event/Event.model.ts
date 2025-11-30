@@ -59,6 +59,9 @@ const EventSchema = new Schema<IEvent>(
     country: { type: String, default: "" },
 
     EventStatus: { type: String, enum: Object.values(IEventStatus), default: IEventStatus.Draft },
+    notification: { type: String, default: "" },
+    notificationStatus: { type: String, enum: ["idle", "pending", "success", "rejected"], default: "idle" },
+
     eventCode: { type: String, default: "" },
     tickets: [
       {
@@ -103,23 +106,7 @@ const EventSchema = new Schema<IEvent>(
   }
 );
 
-// EventSchema.pre('save', async function (next) {
-//   const event = this as unknown as IEventDoc;
-//   const Model = this.constructor as typeof Event;
 
-//   const existingEvent = await Model.findOne({
-//     userId: event.userId,
-//     eventName: event.eventName,
-//   });
-
-//   if (existingEvent) {
-//     return next(
-//       new Error(`You already have an event with this ${this.eventName}`)
-//     );
-//   }
-
-//   next();
-// });
 // 🧩 Export Models
 export const SubCategory = model('SubCategory', SubCategorySchema);
 export const Category = model('Category', CategorySchema);

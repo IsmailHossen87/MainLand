@@ -9,9 +9,9 @@ export const dynamicEventValidation = async (
   res: Response,
   next: NextFunction
 ) => {
+  console.log("req.body", req.body)
   try {
     const isDraft = req.body.isDraft === true || req.body.isDraft === 'true';
-
     let schema: AnyZodObject;
     if (isDraft) {
       schema = EventValidation.DraftEventZodSchema;

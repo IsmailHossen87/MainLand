@@ -3,14 +3,18 @@ import { JwtPayload } from 'jsonwebtoken';
 import ApiError from '../../../errors/ApiError';
 import unlinkFile from '../../../shared/unlinkFile';
 import { IUser } from './user.interface';
-import { User } from './user.model';
+import { isDeleted, User } from './user.model';
 import stripe from '../../config/stripe.config';
-
+import bcrypt from 'bcrypt';
+import { USER_ROLES } from '../../../enums/user';
 
 const OTP_EXPIRATION = 2 * 60;
 
-import bcrypt from 'bcrypt';
-import config from '../../../config';
+export const generateRandomEmail = (name: string) => {
+  const random = Math.floor(Math.random() * 100000);
+  return `${name.toLowerCase()}${random}@gmail.com`;
+};
+
 
 const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
   // ✨ Password hash করা
@@ -107,6 +111,58 @@ const imageDelete = async (user: JwtPayload): Promise<IUser | null> => {
 
   return updateDoc;
 };
+const accountDelete = async (
+  user: JwtPayload,
+  { deleteReason, password }: { deleteReason: string; password: string }
+): Promise<IUser | null> => {
+
+  const { id } = user;
+
+  // 1️⃣ Check user exists
+  const isExistUser = await User.isExistUserById(id);
+  if (!isExistUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+  }
+  console.log("oldPassword", isExistUser.password);
+
+  if (!isExistUser.password) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Password not found in DB!");
+  }
+
+
+  // 2️⃣ Verify password
+  const isMatchPassword = await User.isMatchPassword(password, isExistUser.password);
+  if (!isMatchPassword) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Password doesn't match!");
+  }
+
+  // 3️⃣ Delete profile image (if exists)
+  if (isExistUser.image) {
+    unlinkFile(isExistUser.image);
+  }
+
+  // 4️⃣ Update user → anonymize
+  const updateDoc = await User.findOneAndUpdate(
+    { _id: id },
+    {
+      name: "Anonymous",
+      email: generateRandomEmail(isExistUser.name),
+      role: USER_ROLES.DELETED,
+      image: null,
+    },
+    { new: true }
+  );
+
+  // 5️⃣ Save deletion log
+  await isDeleted.create({
+    userId: id,
+    deleteReason,
+    isDeleted: true,
+  });
+
+  return updateDoc;
+};
+
 
 export const UserService = {
   createUserToDB,
@@ -114,4 +170,5 @@ export const UserService = {
   getAllUser,
   updateProfileToDB,
   imageDelete,
+  accountDelete,
 };

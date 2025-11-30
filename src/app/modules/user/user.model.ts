@@ -4,12 +4,18 @@ import { model, Schema } from 'mongoose';
 import config from '../../../config';
 import { USER_ROLES } from '../../../enums/user';
 import ApiError from '../../../errors/ApiError';
-import { IAuthProvider, IUser, UserModal } from './user.interface';
+import { IAccountDelete, IAuthProvider, IUser, UserModal } from './user.interface';
 
 const authProviderSchema = new Schema<IAuthProvider>({
   provider: { type: String, required: true },
   providerId: { type: String, required: true },
 });
+
+const isDeletedSchema = new Schema<IAccountDelete>({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  deleteReason: { type: String, required: true },
+  isDeleted: { type: Boolean, default: false },
+}, { timestamps: true, versionKey: false });
 
 
 const userSchema = new Schema<IUser, UserModal>(
@@ -31,7 +37,6 @@ const userSchema = new Schema<IUser, UserModal>(
     password: {
       type: String,
       required: true,
-      select: 0,
       minlength: 8,
     },
     auths: [authProviderSchema],
@@ -54,6 +59,14 @@ const userSchema = new Schema<IUser, UserModal>(
       type: String,
       enum: ['Active', 'Blocked'],
       default: 'Active',
+    },
+    sellAmount: {
+      type: Number,
+      default: 0,
+    },
+    withDrawAmount: {
+      type: Number,
+      default: 0,
     },
     verified: {
       type: Boolean,
@@ -113,3 +126,4 @@ userSchema.statics.isMatchPassword = async (
 
 
 export const User = model<IUser, UserModal>('User', userSchema);
+export const isDeleted = model<IAccountDelete, UserModal>('isDeleted', isDeletedSchema);

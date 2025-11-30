@@ -20,9 +20,11 @@ const getAllTicket = catchAsync(async (req: Request, res: Response) => {
         statusCode: StatusCodes.OK,
         success: true,
         message: 'Get All Ticket',
-        data: { meta: result.meta, data: result.data },
+        data: result?.data,
+        meta: result?.meta,
     });
 });
+
 // GetOneTicket
 const getOneTicket = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;

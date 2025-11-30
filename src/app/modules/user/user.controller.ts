@@ -6,6 +6,7 @@ import { getSingleFilePath } from '../../../shared/getFilePath';
 import sendResponse from '../../../shared/sendResponse';
 import { UserService } from './user.service';
 import { JwtPayload } from 'jsonwebtoken';
+import ApiError from '../../../errors/ApiError';
 
 
 
@@ -78,5 +79,20 @@ const imageDelete = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const accountDelete = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+  const { deleteReason, password } = req.body;
+  if (!deleteReason || !password) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Delete reason and password are required!');
+  }
+  const result = await UserService.accountDelete(user as JwtPayload, { deleteReason, password });
 
-export const UserController = { createUser, getUserProfile, updateProfile, getAllUser, imageDelete };
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Account deleted successfully',
+    data: result,
+  });
+});
+
+export const UserController = { createUser, getUserProfile, updateProfile, getAllUser, imageDelete, accountDelete };

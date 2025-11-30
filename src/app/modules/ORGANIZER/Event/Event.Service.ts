@@ -213,6 +213,24 @@ const updateEvent = async (eventId: string, userId: string, payload: any) => {
   return updatedEvent;
 };
 
+
+// UPDATE Notification
+const updateNotification = async (eventId: string, userId: string, payload: any) => {
+  // Check event exists
+  const event = await Event.findOne({ _id: eventId, userId });
+  if (!event) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+  }
+
+  const updatedEvent = await Event.findByIdAndUpdate(
+    eventId,
+    { $notification: payload, $set: payload },
+    { new: true, runValidators: true }
+  );
+
+  return updatedEvent;
+};
+
 // Live
 const allLiveEvent = async () => {
   const allEvents = await Event.find({ EventStatus: 'Live' });
@@ -380,7 +398,6 @@ const subCategory = async (query?: string) => {
 
 const allCategory = async () => {
   const subCategories = await Category.find()
-
   return subCategories;
 };
 
@@ -399,6 +416,7 @@ export const EventService = {
   creteSubCategory,
   createEvent,
   updateEvent,
+  updateNotification,
   creteCategory,
   allLiveEvent,
   singleEvent,
