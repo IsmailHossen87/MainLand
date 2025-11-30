@@ -54,9 +54,11 @@ const getOneTicket = async (userId: string, ticeketId: string) => {
   return ticket;
 };
 
-const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
+const getUniqueEvents = async (userId: string, query: Record<string, string>) => {
   // 1️⃣ Check user exists
   const user = await User.findById(userId);
+  const {status:data} = query
+
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
@@ -65,6 +67,7 @@ const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
     {
       $match: {
         ownerId: new mongoose.Types.ObjectId(userId),
+        status:data
       }
     },
     {
@@ -99,9 +102,19 @@ const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
       }
     }
   ]);
-  const queryBuilder = new QueryBuilder(baseQuery, query);
+  // const queryBuilder = new QueryBuilder(baseQuery, query);
 
-  return queryBuilder.build();
+  return baseQuery;
+};
+const getUniqueEventSold = async (userId: string) => {
+  // 1️⃣ Check user exists
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+ 
 };
 
 const sellTicketInfoUsers = async (
@@ -427,5 +440,6 @@ export const TicketService = {
   withdrawTicket,
   soldTicket,
   ticketExpired,
+  getUniqueEventSold
   // barCodeGenerate
 };

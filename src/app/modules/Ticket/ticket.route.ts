@@ -8,7 +8,8 @@ import { PaymentController } from "../Payment/paymentController";
 const router = Router()
 
 router.get('/getAllTicket', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.getAllTicket);
-router.get('/uniqueEvents', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.getUniqueEvents);
+router.get('/unique-event', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.getUniqueEvents);
+router.get('/unique-event-sold', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.getUniqueEventSold);
 router.get('/sellAllTicket', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.allOnsellTicketInfo);
 
 router.post('/ticketPurchase', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), PaymentController.buyTicket);  // Ticket Purchase --payment
