@@ -45,6 +45,7 @@ const getOneTicket = catchAsync(async (req: Request, res: Response) => {
 const getUniqueEvents = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const query = req.query;
+
     const result = await TicketService.getUniqueEvents(userId, query as Record<string, string>);
 
     sendResponse(res, {
