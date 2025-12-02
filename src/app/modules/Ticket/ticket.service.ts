@@ -53,8 +53,11 @@ const getOneTicket = async (userId: string, ticeketId: string) => {
   // 5️⃣ Return result
   return ticket;
 };
-
+//////////////////
+//  GET UNIQUE EVENTS
+//////////////////
 const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
+  const { status } = query;
   // 1️⃣ Check user exists
   const user = await User.findById(userId);
   if (!user) {
@@ -65,6 +68,7 @@ const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
     {
       $match: {
         ownerId: new mongoose.Types.ObjectId(userId),
+        status: status || ITicketStatus.onsell,
       }
     },
     {
@@ -82,6 +86,12 @@ const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
       }
     },
     { $unwind: "$event" },
+    { $sort: { "event.eventDate": 1 } },
+    {
+      $match: {
+        "event.eventDate": { $gte: new Date() }
+      }
+    },
     {
       $project: {
         _id: 0,
@@ -99,10 +109,71 @@ const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
       }
     }
   ]);
-  const queryBuilder = new QueryBuilder(baseQuery, query);
-
-  return queryBuilder.build();
+  const result = await baseQuery.exec();
+  return result;
 };
+//////////////////
+//  GET SOLD EVENTS
+//////////////////
+const getSoldEvent = async (userId: string) => {
+
+  // 1️⃣ User exists check
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  // 2️⃣ Aggregation pipeline
+  const result = await TransactionHistory.aggregate([
+    {
+      $match: {
+        userId: new mongoose.Types.ObjectId(userId),
+      }
+    },
+    {
+      $group: {
+        _id: "$eventId",
+        ticketId: { $first: "$ticketId" },
+        purchaseAmount: { $first: "$purchaseAmount" },
+        sellAmount: { $first: "$sellAmount" },
+        type: { $first: "$type" },
+      }
+    },
+    {
+      $lookup: {
+        from: "events",
+        localField: "_id",
+        foreignField: "_id",
+        as: "event"
+      }
+    },
+    { $unwind: "$event" },
+    { $sort: { "event.eventDate": 1 } },
+    {
+      $match: {
+        "event.eventDate": { $gte: new Date() }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        eventId: "$_id",
+        eventName: "$event.eventName",
+        eventDate: "$event.eventDate",
+        image: "$event.image",
+        streetAddress: "$event.streetAddress",
+        isFreeEvent: "$event.isFreeEvent",
+        ticketId: 1,
+        purchaseAmount: 1,
+        sellAmount: 1,
+        type: 1,
+      }
+    }
+  ]);
+
+  return result;
+};
+
 
 const sellTicketInfoUsers = async (
   userId: string,
@@ -372,6 +443,7 @@ const soldTicket = async (userId: string) => {
   }
   const transactions = await TransactionHistory.find({ userId: ownerId }).populate('eventId', 'name image').populate('ticketId', ' ticketType')
     .sort({ createdAt: -1 })
+    .limit(10);
 
   if (!transactions) {
     throw new ApiError(StatusCodes.NOT_FOUND, "No transactions found");
@@ -427,5 +499,6 @@ export const TicketService = {
   withdrawTicket,
   soldTicket,
   ticketExpired,
+  getSoldEvent
   // barCodeGenerate
 };
