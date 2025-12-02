@@ -27,7 +27,6 @@ const CategorySchema = new Schema(
     coverImage: {
       type: String, default: "",
     },
-    isSelected: { type: Boolean, default: false }
   },
   { timestamps: true, versionKey: false }
 );

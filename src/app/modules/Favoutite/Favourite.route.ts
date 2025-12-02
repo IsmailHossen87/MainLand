@@ -14,4 +14,5 @@ router.post("/", (req, res, next) => {
 
 router.get("/", auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), FavouriteController.FavouriteEvent)
 
+
 export const FavouriteRouter = router;

@@ -209,6 +209,18 @@ const allLiveEvent = catchAsync(
     });
   }
 );
+const popularEvent = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+
+    const result = await EventService.popularEvent()
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "My event Retrived Successfully",
+      data: result,
+    });
+  }
+);
 
 // All Data Use Query
 const allDataUseQuery = catchAsync(
@@ -262,8 +274,9 @@ const subCategory = catchAsync(
 // All Data Use Query
 const allCategory = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-
-    const result = await EventService.allCategory()
+    const userId = req.user?.id
+    const query = req.query
+    const result = await EventService.allCategory(userId as string, query as Record<string, string>)
 
     await sendResponse(res, {
       success: true,
@@ -295,6 +308,7 @@ export const EventController = {
   updateNotification,
   updateSubCategory,
   allLiveEvent,
+  popularEvent,
   singleEvent,
   allDataUseQuery,
   closedEvent,

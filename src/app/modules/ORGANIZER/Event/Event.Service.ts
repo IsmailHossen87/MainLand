@@ -9,6 +9,7 @@ import { excludeField } from '../../../../shared/constrant';
 import mongoose, { Types } from 'mongoose';
 import { CreateEventPayload, IEventStatus, UpdateEventPayload } from './Event.interface';
 import unlinkFile from '../../../../shared/unlinkFile';
+import { Favourite } from '../../Favoutite/Favourite.model';
 export interface EventTicket {
   type: string;
   price: number;
@@ -233,7 +234,7 @@ const updateNotification = async (eventId: string, userId: string, payload: any)
 
 // Live
 const allLiveEvent = async () => {
-  const allEvents = await Event.find({ EventStatus: 'Live' });
+  const allEvents = await Event.find({ EventStatus: 'Live' }).select("image eventName eventDate ticketSaleStart streetAddress2 streetAddress preSaleStart startTicketSale");
   for (const event of allEvents) {
     if (!event) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not available');
@@ -249,6 +250,85 @@ const allLiveEvent = async () => {
   }
 
   return allEvents;
+};
+// Popular Event
+const popularEvent = async () => {
+  const events = await Event.aggregate([
+    {
+      $addFields: {
+        totalTicketBuyers: {
+          $size: {
+            $reduce: {
+              input: "$tickets",
+              initialValue: [],
+              in: {
+                $setUnion: [
+                  "$$value",
+                  { $ifNull: ["$$this.ticketBuyerId", []] }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    { $sort: { totalTicketBuyers: -1 } },
+
+    // Lookup category details
+    {
+      $lookup: {
+        from: "categories",
+        localField: "category.categoryId",
+        foreignField: "_id",
+        as: "categoryDetails",
+      }
+    },
+
+    // Lookup subcategory details
+    {
+      $lookup: {
+        from: "subcategories",
+        localField: "category.subCategory",
+        foreignField: "_id",
+        as: "subcategoryDetails",
+      }
+    },
+
+    // Lookup user details
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "userDetails",
+      }
+    },
+
+    {
+      $unwind: {
+        path: "$userDetails",
+        preserveNullAndEmptyArrays: true,
+      }
+    },
+
+    // Project only required fields
+    {
+      $project: {
+        _id: 1,
+        eventName: 1,
+        image: 1,
+        eventDate: 1,
+        streetAddress: 1,
+        streetAddress2: 1,
+        isFreeEvent: 1,
+        // tickets: 1,
+        totalTicketBuyers: 1,
+        totalEarned: 1
+      }
+    },
+  ]);
+
+  return events;
 };
 
 
@@ -411,9 +491,59 @@ const subCategory = async (query?: string) => {
 };
 
 
-const allCategory = async () => {
-  const subCategories = await Category.find()
-  return subCategories;
+const allCategory = async (userId: string, query: Record<string, string>) => {
+  const { includeSelectedSubcategory } = query;
+
+  // Load all categories
+  const categories = await Category.find();
+
+  // If includeSelectedSubcategory is not requested, return all categories as is
+  if (includeSelectedSubcategory === undefined) {
+    return categories;
+  }
+
+  // Load user favourites
+  const favourites = await Favourite.find({ favouriterUserId: userId });
+
+  // Step 1: Create a Map of favourite category and its subCategoryIds
+  const favMap = new Map<string, string[]>();
+  favourites.forEach((fav: any) => {
+    favMap.set(
+      fav.categoryId.toString(),
+      fav.subCategoryId.map((id: any) => id.toString())
+    );
+  });
+
+  // Step 2: Process ALL categories (not just favourite ones)
+  const result = await Promise.all(
+    categories.map(async (cat: any) => {
+      const favSubIds = favMap.get(cat._id.toString()) || [];
+
+      // If this category has favourite subcategories, fetch and filter them
+      if (favSubIds.length > 0) {
+        const allSubcategories = await SubCategory.find({
+          categoryId: cat._id
+        });
+
+        const filteredSubcategories = allSubcategories.filter((sub: any) =>
+          favSubIds.includes(sub._id.toString())
+        );
+
+        return {
+          ...cat.toObject(),
+          subCategories: filteredSubcategories,
+        };
+      }
+
+      // If no favourites for this category, return category with empty subcategories
+      return {
+        ...cat.toObject(),
+        subCategories: [],
+      };
+    })
+  );
+
+  return result;
 };
 
 // Event History
@@ -434,6 +564,7 @@ export const EventService = {
   updateNotification,
   creteCategory,
   allLiveEvent,
+  popularEvent, //popo
   singleEvent,
   allDataUseQuery,
   closedEvent,

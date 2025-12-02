@@ -147,6 +147,14 @@ router.get(
   auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
   EventController.allLiveEvent
 );
+/* -----------------------------------------
+   🅿️ POPULAR EVENTS
+------------------------------------------ */
+router.get(
+  '/popular-event',
+  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
+  EventController.popularEvent
+);
 
 /* -----------------------------------------
    🔍 SINGLE EVENT
