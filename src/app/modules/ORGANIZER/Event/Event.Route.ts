@@ -143,7 +143,7 @@ router.get(
    🎬 ALL LIVE EVENTS
 ------------------------------------------ */
 router.get(
-  '/allLiveEvent',
+  '/all-live-event',
   auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
   EventController.allLiveEvent
 );

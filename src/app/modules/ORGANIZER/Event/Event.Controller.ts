@@ -199,7 +199,7 @@ const singleEvent = catchAsync(
 
 const allLiveEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id
+
     const result = await EventService.allLiveEvent()
     await sendResponse(res, {
       success: true,

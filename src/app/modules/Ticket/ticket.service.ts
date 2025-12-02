@@ -16,7 +16,6 @@ const getAllTicket = async (userId: string, query: Record<string, any>) => {
 
   // 2️⃣ Initialize base query
   const baseQuery = TicketPurchase.find({ ownerId: userId, }).populate('eventId', 'image eventName');
-
   const queryBuilder = new QueryBuilder(baseQuery, query);
 
   // 3️⃣ Apply queryBuilder methods
@@ -58,11 +57,13 @@ const getOneTicket = async (userId: string, ticeketId: string) => {
 //////////////////
 const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
   const { status } = query;
+  console.log("status", status);
   // 1️⃣ Check user exists
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
+
   // 2️⃣ Aggregation pipeline
   const baseQuery = TicketPurchase.aggregate([
     {
@@ -109,6 +110,7 @@ const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
       }
     }
   ]);
+
   const result = await baseQuery.exec();
   return result;
 };

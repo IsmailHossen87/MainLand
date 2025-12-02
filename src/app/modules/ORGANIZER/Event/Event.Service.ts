@@ -234,11 +234,23 @@ const updateNotification = async (eventId: string, userId: string, payload: any)
 // Live
 const allLiveEvent = async () => {
   const allEvents = await Event.find({ EventStatus: 'Live' });
-  if (!allEvents) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
+  for (const event of allEvents) {
+    if (!event) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not available');
+    }
+    if (event.eventDate && event.eventDate < new Date()) {
+      event.EventStatus = IEventStatus.Expired;
+      await event.save();
+    }
   }
+
+  if (!allEvents) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not available');
+  }
+
   return allEvents;
 };
+
 
 
 // Single Event ✅✅✅✅
@@ -319,22 +331,25 @@ const allDataUseQuery = async (userID: string, query: Record<string, string>) =>
     throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
   }
 
-  // Base query
+  const today = new Date();
+
+  // Base query: user-এর event গুলো filter করা, eventDate >= today
   const baseQuery = Event.find({
     userId: user._id,
     $or: [
       { isDraft: true },
       {
         EventStatus: 'UnderReview',
-        eventDate: { $gte: new Date() }
+        eventDate: { $gte: today }
       },
       {
         EventStatus: 'Live',
-        eventDate: { $gte: new Date() }
+        eventDate: { $gte: today }
       },
     ],
   });
 
+  // QueryBuilder chaining (search, filter, sort, pagination)
   const queryBuilder = new QueryBuilder(baseQuery, query);
 
   const allEvent = queryBuilder
