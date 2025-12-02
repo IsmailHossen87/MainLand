@@ -41,9 +41,11 @@ const getOneTicket = catchAsync(async (req: Request, res: Response) => {
         data: result,
     });
 });
+// UNIQUE EVENT
 const getUniqueEvents = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
-    const result = await TicketService.getUniqueEvents(userId,);
+    const query = req.query;
+    const result = await TicketService.getUniqueEvents(userId, query as Record<string, string>);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
@@ -52,6 +54,19 @@ const getUniqueEvents = catchAsync(async (req: Request, res: Response) => {
         data: result,
     });
 });
+// UNIQUE SOLD
+// UNIQUE EVENT
+const getSoldEvent = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const result = await TicketService.getSoldEvent(userId);
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Unique Sold Event retrived Successfully',
+        data: result,
+    });
+});
+
 const sellTicketInfoUsers = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const eventId = req.params.id;
@@ -153,5 +168,6 @@ export const TicketController = {
     withdrawTicket,
     soldTicket,
     ticketExpired,
+    getSoldEvent,
     // barCodeGenerate
 };
