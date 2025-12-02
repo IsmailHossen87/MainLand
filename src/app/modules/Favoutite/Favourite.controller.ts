@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 
 const FavouriteCreate = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
+  console.log("body", req.body)
   const result = await FavouriteService.createFavourite(userId as string, req.body);
 
   sendResponse(res, {
@@ -16,5 +17,17 @@ const FavouriteCreate = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const FavouriteEvent = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  console.log("body", req.body)
+  const result = await FavouriteService.getUserFavouriteEvents(userId as string);
 
-export const FavouriteController = { FavouriteCreate };
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Favourite Created Successfully",
+    data: result,
+  });
+});
+
+export const FavouriteController = { FavouriteCreate, FavouriteEvent };

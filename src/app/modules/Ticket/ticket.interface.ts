@@ -8,7 +8,7 @@ export interface IAttendeeInformation {
     email: string,
     phone: string
 }
-export enum ITicketStatus { available = "available", sold = "sold", onsell = "onsell", live = "live", upcoming = "upcoming", used = "used", cancelled = "cancelled" };
+export enum ITicketStatus { available = "available", sold = "sold", onsell = "onsell", live = "live", expired = "expired", upcoming = "upcoming", used = "used", cancelled = "cancelled" };
 
 // export type TicketStatus = "available" | "sold"| "onsell" | "live" | "upcoming" | "used" | "cancelled";
 // export type IUserRole ="owner" | "buyer";
