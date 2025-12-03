@@ -3,7 +3,7 @@ import { JwtPayload } from 'jsonwebtoken';
 import ApiError from '../../../errors/ApiError';
 import unlinkFile from '../../../shared/unlinkFile';
 import { IUser } from './user.interface';
-import { isDeleted, User } from './user.model';
+import { isDeleted, MainlandFee, User } from './user.model';
 import stripe from '../../config/stripe.config';
 import bcrypt from 'bcrypt';
 import { USER_ROLES } from '../../../enums/user';
@@ -55,15 +55,27 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
 
 const getUserProfileFromDB = async (
   user: JwtPayload
-): Promise<Partial<IUser>> => {
+): Promise<any> => {
   const { id } = user;
+
+  // ✅ Mainland fee fetch koro
+  const mainLandFeeData = await MainlandFee.findOne();
+
+  // ✅ User check koro
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
   }
 
-  return isExistUser;
+  // ✅ User object er moddhe mainland fee add kore return
+  const userObject = isExistUser.toObject ? isExistUser.toObject() : isExistUser;
+
+  return {
+    ...userObject,
+    mainlandFee: mainLandFeeData?.mainlandFee || 1
+  };
 };
+
 const getAllUser = async () => {
   const isExistUser = await User.find();
   if (!isExistUser) {
