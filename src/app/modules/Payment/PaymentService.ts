@@ -3,7 +3,7 @@ import ApiError from '../../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import config from '../../../config';
 import { Event } from '../ORGANIZER/Event/Event.model';
-import { User } from '../user/user.model';
+import { MainlandFee, User } from '../user/user.model';
 import { TicketPurchase } from '../Ticket/ticket.model';
 
 
@@ -162,8 +162,8 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
       finalPricePerTicket,
     });
   }
-
-  const mainlandFee = 0;
+  const mainLandFee = await MainlandFee.findOne();
+  const mainlandFee = mainLandFee?.mainlandFee || 0;
   const totalAmount = totalTicketPrice + mainlandFee;
 
   if (totalAmount <= 0) {

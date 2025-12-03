@@ -5,6 +5,10 @@ export interface IAuthProvider {
   provider: 'google' | 'credentials';
   providerId: string;
 }
+export interface IMainlandFee {
+  mainlandFee: number;
+}
+
 export interface IAccountDelete {
   userId: Types.ObjectId,
   deleteReason: string,

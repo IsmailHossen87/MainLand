@@ -1,23 +1,39 @@
 import bcrypt from 'bcrypt';
-import { StatusCodes } from 'http-status-codes';
 import { model, Schema } from 'mongoose';
-import config from '../../../config';
 import { USER_ROLES } from '../../../enums/user';
-import ApiError from '../../../errors/ApiError';
-import { IAccountDelete, IAuthProvider, IUser, UserModal } from './user.interface';
+import { IAccountDelete, IAuthProvider, IMainlandFee, IUser, UserModal } from './user.interface';
 
 const authProviderSchema = new Schema<IAuthProvider>({
   provider: { type: String, required: true },
   providerId: { type: String, required: true },
 });
 
+// IS DELETED SCHEMA
 const isDeletedSchema = new Schema<IAccountDelete>({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   deleteReason: { type: String, required: true },
   isDeleted: { type: Boolean, default: false },
 }, { timestamps: true, versionKey: false });
+export const isDeleted = model<IAccountDelete, UserModal>('isDeleted', isDeletedSchema);
 
+// MAINLAND FEE
+const mainlandFeeSchema = new Schema<IMainlandFee>({
+  mainlandFee: {
+    type: Number,
+    default: 1,
+    min: [0.01, 'Mainland fee must be greater than 0'], // ✅ Minimum value 0.01
+    validate: {
+      validator: function (value: number) {
+        return value > 0; // ✅ Must be greater than 0
+      },
+      message: 'Mainland fee must be greater than 0'
+    }
+  },
+}, { timestamps: true, versionKey: false });
 
+export const MainlandFee = model<IMainlandFee>('MainlandFee', mainlandFeeSchema);
+
+// USER SCHEMA
 const userSchema = new Schema<IUser, UserModal>(
   {
     name: {
@@ -126,4 +142,4 @@ userSchema.statics.isMatchPassword = async (
 
 
 export const User = model<IUser, UserModal>('User', userSchema);
-export const isDeleted = model<IAccountDelete, UserModal>('isDeleted', isDeletedSchema);
+
