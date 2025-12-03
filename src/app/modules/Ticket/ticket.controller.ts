@@ -125,6 +125,19 @@ const withdrawTicket = catchAsync(async (req: Request, res: Response) => {
         data: result,
     });
 });
+// WITHDRAWpromocode
+const withdrawPro = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const eventId = req.params.id;
+    const result = await TicketService.withdrawPro(userId, eventId);
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Purchase Ticket  retrived Successfully',
+        data: result,
+    });
+});
 const soldTicket = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const result = await TicketService.soldTicket(userId);
@@ -143,6 +156,34 @@ const ticketExpired = catchAsync(async (req: Request, res: Response) => {
         statusCode: StatusCodes.OK,
         success: true,
         message: 'Event Expired retrived Successfully',
+        data: result
+    });
+});
+const eventSummary = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const { sellerType, ticketType, eventId } = req.query;
+
+    console.log("sellerType", sellerType)
+    console.log("ticketType", ticketType)
+    console.log("eventId", eventId)
+
+    const result = await TicketService.eventSummary({ userId, sellerType, ticketType, eventId });
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Event Expired retrived Successfully',
+        data: result
+    });
+});
+const PromoCodePercentage = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const { id } = req.params;
+    const { code } = req.body;
+    const result = await TicketService.promocode(userId, id as string, code as string);
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Promo Code retrived Successfully',
         data: result
     });
 });
@@ -171,5 +212,8 @@ export const TicketController = {
     soldTicket,
     ticketExpired,
     getSoldEvent,
+    eventSummary,
+    PromoCodePercentage,
+    withdrawPro
     // barCodeGenerate
 };

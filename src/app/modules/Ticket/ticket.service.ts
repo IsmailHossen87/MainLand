@@ -5,8 +5,9 @@ import { TicketPurchase } from "./ticket.model";
 import { QueryBuilder } from "../../builder/QueryBuilder";
 import { excludeField } from "../../../shared/constrant";
 import mongoose from "mongoose";
-import { ITicketStatus, IResellTicket } from "./ticket.interface";
+import { ITicketStatus, IResellTicket, IDiscountCode } from "./ticket.interface";
 import { TransactionHistory } from "../Payment/transactionHistory";
+import { Event } from "../ORGANIZER/Event/Event.model";
 
 const getAllTicket = async (userId: string, query: Record<string, any>) => {
   const user = await User.findById(userId);
@@ -236,7 +237,7 @@ const sellTicketInfoUsers = async (
 // 👊👊
 const allOnsellTicketInfo = async (
   userId: string,
-  query: Record<string, any>
+  query: Record<string, any>,
 ) => {
   const user = await User.findById(userId);
   if (!user) {
@@ -454,6 +455,45 @@ const withdrawTicket = async (
     message: `${quantity} ${ticketType} tickets withdrawn successfully.`,
   };
 };
+// withdrawPro
+const withdrawPro = async (
+  userId: string,
+  eventId: string,
+) => {
+
+  // 1️⃣ Check user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  // 2️⃣ Find resold (live) tickets to withdraw
+  const liveTickets = await TicketPurchase.find({
+    ownerId: userId,
+    eventId,
+    status: ITicketStatus.onsell,
+  })
+    .sort({ createdAt: 1 })
+  // 4️⃣ Update selected tickets → available
+  const ticketIds = liveTickets.map((ticket) => ticket._id);
+
+  await TicketPurchase.updateMany(
+    { _id: { $in: ticketIds } },
+    {
+      $set: {
+        status: ITicketStatus.available,
+        sellAmount: 0,
+        totalEarned: 0,
+        discount: 0,
+      },
+    }
+  );
+
+  return {
+    success: true,
+    message: `Tickets withdrawn successfully.`,
+  };
+};
 const soldTicket = async (userId: string) => {
   const ownerId = new mongoose.Types.ObjectId(userId);
 
@@ -499,6 +539,64 @@ const ticketExpired = async (userId: string) => {
 
   return expiredTickets;
 };
+// EVENT SUMMARY
+const eventSummary = async ({ userId, sellerType, ticketType, eventId }: any) => {
+  const ownerId = new mongoose.Types.ObjectId(userId);
+
+  const user = await User.findById(ownerId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+  let allEventsTicketHistory;
+
+  if (sellerType === 'organizer') {
+    allEventsTicketHistory = await Event.findById(eventId).select('tickets.availableUnits tickets.type tickets.price -_id');
+    if (!allEventsTicketHistory) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+    }
+    return allEventsTicketHistory;
+  }
+  if (sellerType === 'user') {
+    allEventsTicketHistory = await TicketPurchase.find({ ownerId: ownerId }).select('tickets.availableUnits tickets.type tickets.price -_id');
+    if (!allEventsTicketHistory) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+    }
+    return allEventsTicketHistory;
+  }
+  return allEventsTicketHistory;
+};
+
+const promocode = async (userId: string, id: string, code: string) => {
+  // User check
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  // Event find
+  const event = await Event.findOne({
+    _id: id,
+    "discountCodes.code": code
+  });
+
+  if (!event) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Promo code not found or invalid");
+  }
+
+  // 🚀 Safely handle undefined discountCodes
+  const discountCode = event.discountCodes?.find(
+    (dc: IDiscountCode) => dc.code === code
+  );
+
+  if (!discountCode) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Discount code not found");
+  }
+
+  return discountCode;
+};
+
+
+
 // BAR-CODE generate
 // const barCodeGenerate = async (userId: string) => {
 //  const user = await User.findById(userId);
@@ -520,6 +618,9 @@ export const TicketService = {
   withdrawTicket,
   soldTicket,
   ticketExpired,
-  getSoldEvent
+  getSoldEvent,
+  eventSummary,
+  promocode,
+  withdrawPro
   // barCodeGenerate
 };
