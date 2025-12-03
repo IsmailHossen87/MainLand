@@ -32,7 +32,7 @@ const getUserProfile = catchAsync(async (req: Request, res: Response) => {
     success: true,
     statusCode: StatusCodes.OK,
     message: 'Profile data retrieved successfully',
-    data: result,
+    data: result
   });
 });
 const getAllUser = catchAsync(async (req: Request, res: Response) => {

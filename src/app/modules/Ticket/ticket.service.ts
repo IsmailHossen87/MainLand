@@ -335,53 +335,72 @@ const allOnsellTicketInfo = async (
   }
 };
 // ResellTicket
-const resellTicket = async (userId: string, eventId: string, payload: IResellTicket) => {
-  const { ticketType, quantity, resellAmount } = payload;
-
+const resellTicket = async (userId: string, eventId: string, tickets: IResellTicket[]) => {
   // 1️⃣ Check user exists
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
 
-  const availableTickets = await TicketPurchase.find({
-    ownerId: userId,
-    eventId: eventId,
-    ticketType: ticketType,
-    status: ITicketStatus.available
-  }).limit(quantity);
+  const results = [];
+  let totalSellAmount = 0;
 
-  // 3️⃣ Check if enough tickets available
-  if (availableTickets.length < quantity) {
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      `Not enough tickets available. You have ${availableTickets.length} ${ticketType} tickets, but requested ${quantity}`
+  // 2️⃣ Loop through each ticket type
+  for (const ticket of tickets) {
+    const { ticketType, quantity, resellAmount } = ticket;
+
+    // 3️⃣ Find available tickets
+    const availableTickets = await TicketPurchase.find({
+      ownerId: userId,
+      eventId: eventId,
+      ticketType: ticketType,
+      status: ITicketStatus.available
+    }).limit(quantity);
+
+    // 4️⃣ Check if enough tickets available
+    if (availableTickets.length < quantity) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        `Not enough tickets available. You have ${availableTickets.length} ${ticketType} tickets, but requested ${quantity}`
+      );
+    }
+
+    // 5️⃣ Update tickets status to 'onsell' and set resell amount
+    const ticketIds = availableTickets.map(t => t._id);
+
+    const updatedTickets = await TicketPurchase.updateMany(
+      { _id: { $in: ticketIds } },
+      {
+        $set: {
+          status: ITicketStatus.onsell,
+          sellAmount: resellAmount
+        }
+      }
     );
+
+    // 6️⃣ Add to results
+    results.push({
+      message: `Successfully listed ${quantity} ${ticketType} ticket(s) for resale`,
+      ticketsUpdated: updatedTickets.modifiedCount,
+      resellAmount: resellAmount,
+      ticketType: ticketType
+    });
+
+    totalSellAmount += resellAmount;
   }
 
-  // 4️⃣ Update tickets status to 'onsell' and set resell amount
-  const ticketIds = availableTickets.map(ticket => ticket._id);
-
-  const updatedTickets = await TicketPurchase.updateMany(
-    { _id: { $in: ticketIds } },
-    {
-      $set: {
-        status: ITicketStatus.onsell,
-        sellAmount: resellAmount
-      }
-    }
-  );
+  // 7️⃣ Update user's total sell amount
   await user.updateOne({
     $inc: {
-      sellAmount: resellAmount
+      sellAmount: totalSellAmount
     }
-  })
-  // 5️⃣ Return updated information
+  });
+
+  // 8️⃣ Return all results
   return {
-    message: `Successfully listed ${quantity} ${ticketType} ticket(s) for resale`,
-    ticketsUpdated: updatedTickets.modifiedCount,
-    resellAmount: resellAmount,
-    ticketType: ticketType
+    totalTicketTypes: tickets.length,
+    totalSellAmount: totalSellAmount,
+    details: results
   };
 };
 // withdrawTicket

@@ -98,17 +98,18 @@ const allOnsellTicketInfo = catchAsync(async (req: Request, res: Response) => {
 const resellTicket = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const eventId = req.params.id;
-    const { ticketType, quantity, resellAmount } = req.body;
+    const tickets = req.body; // Array of objects asbe
 
-    const result = await TicketService.resellTicket(userId, eventId, { ticketType, quantity, resellAmount });
+    const result = await TicketService.resellTicket(userId, eventId, tickets);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
-        message: 'Purchase Ticket  retrived Successfully',
+        message: 'Purchase Ticket retrived Successfully',
         data: result,
     });
 });
+
 
 const withdrawTicket = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;

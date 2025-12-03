@@ -10,6 +10,7 @@ import mongoose, { Types } from 'mongoose';
 import { CreateEventPayload, IEventStatus, UpdateEventPayload } from './Event.interface';
 import unlinkFile from '../../../../shared/unlinkFile';
 import { Favourite } from '../../Favoutite/Favourite.model';
+import { AggregationQueryBuilder } from '../../../builder/AggregationBuilder';
 export interface EventTicket {
   type: string;
   price: number;
@@ -232,10 +233,35 @@ const updateNotification = async (eventId: string, userId: string, payload: any)
   return updatedEvent;
 };
 
+// // Live
+// const allLiveEvent = async (query: Record<string, string>) => {
+//   console.log("Hellow Bangladesh")
+//   const baseQuery = Event.find({ EventStatus: 'Live' }).select("image eventName eventDate ticketSaleStart streetAddress2 streetAddress preSaleStart startTicketSale");
+//   const events = await baseQuery;
+
+//   for (const event of events) {
+//     if (!event) {
+//       throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not available');
+//     }
+//     if (event.eventDate && event.eventDate < new Date()) {
+//       event.EventStatus = IEventStatus.Expired;
+//       await event.save();
+//     }
+//   }
+//   const queryBuilder = new QueryBuilder(baseQuery, query);
+//   const allEvents = queryBuilder.search(excludeField).filter().dateRange().sort().fields().paginate();
+
+
+//   const [meta, data] = await Promise.all([allEvents.getMeta(), allEvents.build()]);
+
+
+//   return { meta, data };
+// };
 // Live
-const allLiveEvent = async () => {
-  const allEvents = await Event.find({ EventStatus: 'Live' }).select("image eventName eventDate ticketSaleStart streetAddress2 streetAddress preSaleStart startTicketSale");
-  for (const event of allEvents) {
+const allLiveEvent = async (query: Record<string, string>) => {
+  const eventsToUpdate = await Event.find({ EventStatus: 'Live' }).select("eventDate EventStatus");
+
+  for (const event of eventsToUpdate) {
     if (!event) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not available');
     }
@@ -245,15 +271,93 @@ const allLiveEvent = async () => {
     }
   }
 
-  if (!allEvents) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not available');
-  }
 
-  return allEvents;
+  const baseQuery = Event.find({ EventStatus: 'Live' })
+    .select("image eventName eventDate ticketSaleStart streetAddress2 streetAddress preSaleStart startTicketSale");
+
+  const queryBuilder = new QueryBuilder(baseQuery, query);
+  const allEvents = queryBuilder
+    .search(excludeField)
+    .filter()
+    .dateRange()
+    .sort()
+    .fields()
+    .paginate();
+
+  const [meta, data] = await Promise.all([
+    allEvents.getMeta(),
+    allEvents.build()
+  ]);
+
+  return { meta, data };
 };
+
+
+// const allLiveEvent = async (query: Record<string, string>) => {
+//   const baseQuery = Event.find({ EventStatus: 'Live' })
+//     .select("image eventName eventDate ticketSaleStart streetAddress2 streetAddress preSaleStart startTicketSale");
+
+//   const events = await baseQuery;
+//   for (const event of events) {
+//     if (event.eventDate && event.eventDate < new Date()) {
+//       event.EventStatus = IEventStatus.Expired;
+//       await event.save();
+//     }
+//   }
+//   const queryBuilder = new QueryBuilder(baseQuery, query);
+
+//   // Step 4: Chain query methods to search, filter, paginate, etc.
+//   const allEvents = queryBuilder
+//     .search(excludeField)  // Assuming 'excludeField' is properly defined
+//     .filter()
+//     .dateRange()
+//     .sort()
+//     .fields([
+//       'eventName',
+//       'eventDate',
+//       'image',
+//       '_id',
+//       'isFreeEvent',
+//       'streetAddress',
+//       'ticketSaleStart',
+//       'streetAddress2',
+//       'preSaleStart',
+//       'startTime',
+//       'eventCode'
+//     ])
+//     .paginate();
+
+//   // Step 5: Get metadata and final data
+//   const [meta, data] = await Promise.all([allEvents.getMeta(), allEvents.build()]);
+
+//   // Step 6: Return the result
+//   return { meta, data };
+// };
+
 // Popular Event
-const popularEvent = async () => {
-  const events = await Event.aggregate([
+
+
+const popularEvent = async (query: Record<string, string>) => {
+  // Pagination setup
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  // Search setup
+  const searchTerm = query.searchTerm || '';
+  const searchCondition = searchTerm ? {
+    eventName: { $regex: searchTerm, $options: 'i' }
+  } : {};
+
+  // Sort setup
+  const sortField = query.sortBy || 'totalTicketBuyers';
+  const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
+
+  const pipeline: any[] = [
+    // Search filter (if searchTerm exists)
+    ...(searchTerm ? [{ $match: searchCondition }] : []),
+
+    // Calculate total ticket buyers
     {
       $addFields: {
         totalTicketBuyers: {
@@ -272,7 +376,9 @@ const popularEvent = async () => {
         }
       }
     },
-    { $sort: { totalTicketBuyers: -1 } },
+
+    // Sort
+    { $sort: { [sortField]: sortOrder } },
 
     // Lookup category details
     {
@@ -321,14 +427,33 @@ const popularEvent = async () => {
         streetAddress: 1,
         streetAddress2: 1,
         isFreeEvent: 1,
-        // tickets: 1,
         totalTicketBuyers: 1,
         totalEarned: 1
       }
     },
-  ]);
+  ];
 
-  return events;
+  // Count total documents (for meta)
+  const totalPipeline = [...pipeline, { $count: 'total' }];
+  const totalResult = await Event.aggregate(totalPipeline);
+  const total = totalResult[0]?.total || 0;
+
+  // Add pagination to main pipeline
+  pipeline.push({ $skip: skip });
+  pipeline.push({ $limit: limit });
+
+  // Execute main query
+  const data = await Event.aggregate(pipeline);
+
+  // Calculate meta
+  const meta = {
+    page,
+    limit,
+    total,
+    totalPage: Math.ceil(total / limit)
+  };
+
+  return { meta, data };
 };
 
 
