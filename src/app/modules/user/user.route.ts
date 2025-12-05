@@ -26,6 +26,7 @@ router
 
 
 router.route('/').get(UserController.getAllUser);
+router.put("/mainland-fee", (auth(USER_ROLES.ADMIN)), UserController.CreateAndUpdateMainlandFee);
 
 router
   .route('/create')

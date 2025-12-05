@@ -50,12 +50,14 @@ const blockUser = catchAsync(
 const AllTicketBuyerUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const user = req.user
-    const result = await ActionService.AllTicketBuyerUser(user as JwtPayload)
+    const query = req.query
+    const result = await ActionService.AllTicketBuyerUser(user as JwtPayload, query as Record<string, string>)
     await sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
       message: "All User Retrived Sucessfully",
-      data: result,
+      meta: result.meta,
+      data: result.data,
     });
   }
 );
@@ -71,11 +73,11 @@ const ticketActivity = catchAsync(
       success: true,
       statusCode: StatusCodes.OK,
       message: "Ticket Activity Retrived Sucessfully",
-      // data: {
-      //   meta: result.meta,
-      //   data: result.data,
+      data: {
+        meta: result.meta,
+        data: result.data,
 
-      // },
+      },
     });
   }
 );

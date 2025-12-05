@@ -3,6 +3,15 @@ import { EventTicket } from "../ORGANIZER/Event/Event.Service";
 
 export type IResellTicket = { ticketType: string; quantity: number; resellAmount: number; }
 
+export interface IDiscountCode {
+    code: string;
+    discountPercentage?: number;
+    discountAmount?: number;
+    validUntil?: Date;
+    usageLimit?: number;
+    usedCount?: number;
+}
+
 export interface IAttendeeInformation {
     fullName: string,
     email: string,

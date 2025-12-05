@@ -25,9 +25,10 @@ const createEventPayment = catchAsync(async (req: Request, res: Response) => {
 // ================= Resell Ticket Payment =================
 const buyTicket = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id as string;
-  const {fullName, email, phone, tickets} = req.body;
+  const eventId = req.params.id;
+  const { fullName, email, phone, tickets } = req.body;
 
-  const paymentSession = await createPaymentService.BuyTicket({fullName, email, phone, tickets, userId});
+  const paymentSession = await createPaymentService.BuyTicket({ fullName, email, phone, tickets, userId, eventId });
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

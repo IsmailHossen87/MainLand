@@ -174,6 +174,20 @@ const accountDelete = async (
 
   return updateDoc;
 };
+const mainLandFee = async (user: JwtPayload, mainLandFee: number) => {
+  const { id } = user;
+  const isExistUser = await User.isExistUserById(id);
+  if (!isExistUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+  }
+
+  const updateDoc = await MainlandFee.findOneAndUpdate({ _id: id }, { mainlandFee: mainLandFee }, {
+    new: true,
+    upsert: true,
+  });
+
+  return updateDoc;
+};
 
 
 export const UserService = {
@@ -183,4 +197,5 @@ export const UserService = {
   updateProfileToDB,
   imageDelete,
   accountDelete,
+  mainLandFee
 };
