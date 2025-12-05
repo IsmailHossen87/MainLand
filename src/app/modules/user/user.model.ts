@@ -21,12 +21,13 @@ const mainlandFeeSchema = new Schema<IMainlandFee>({
   mainlandFee: {
     type: Number,
     default: 1,
-    min: [0.01, 'Mainland fee must be greater than 0'], // ✅ Minimum value 0.01
+    min: [0.01, 'Mainland fee must be greater than 0'],
+    max: [100, 'Mainland fee cannot be greater than 100'],
     validate: {
       validator: function (value: number) {
-        return value > 0; // ✅ Must be greater than 0
+        return value > 0 && value <= 100;
       },
-      message: 'Mainland fee must be greater than 0'
+      message: 'Mainland fee must be between 0.01 and 100'
     }
   },
 }, { timestamps: true, versionKey: false });

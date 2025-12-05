@@ -94,5 +94,17 @@ const accountDelete = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const CreateAndUpdateMainlandFee = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
 
-export const UserController = { createUser, getUserProfile, updateProfile, getAllUser, imageDelete, accountDelete };
+  const { mainLandFee } = req.body;
+  const result = await UserService.mainLandFee(user as JwtPayload, mainLandFee as number);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Mainland fee created/updated successfully',
+    data: result,
+  });
+});
+
+export const UserController = { createUser, getUserProfile, updateProfile, getAllUser, imageDelete, accountDelete, CreateAndUpdateMainlandFee };

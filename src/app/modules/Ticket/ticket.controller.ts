@@ -73,7 +73,6 @@ const sellTicketInfoUsers = catchAsync(async (req: Request, res: Response) => {
     const eventId = req.params.id;
     const query = req.query;
     const result = await TicketService.sellTicketInfoUsers(userId, eventId, query);
-
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
@@ -81,6 +80,20 @@ const sellTicketInfoUsers = catchAsync(async (req: Request, res: Response) => {
         data: result,
     });
 });
+const sellTicketInfoUsersOnsell = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const eventId = req.params.id;
+    const query = req.query;
+    const result = await TicketService.sellTicketInfoUsersOnsell(userId, eventId, query);
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Purchase Ticket  retrived Successfully',
+        data: { tickets: result },
+    });
+});
+
 // All
 const allOnsellTicketInfo = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
@@ -90,7 +103,7 @@ const allOnsellTicketInfo = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
-        message: 'Purchase Ticket  retrived Successfully',
+        message: 'All Ticket Type retrived Successfully',
         data: result,
     });
 });
@@ -111,12 +124,11 @@ const resellTicket = catchAsync(async (req: Request, res: Response) => {
 });
 
 
-const withdrawTicket = catchAsync(async (req: Request, res: Response) => {
+// WITHDRAWpromocode
+const withdrawPro = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const eventId = req.params.id;
-    const { ticketType, quantity } = req.body;
-
-    const result = await TicketService.withdrawTicket(userId, eventId, { ticketType, quantity } as IResellTicket);
+    const result = await TicketService.withdrawPro(userId, eventId);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
@@ -146,6 +158,46 @@ const ticketExpired = catchAsync(async (req: Request, res: Response) => {
         data: result
     });
 });
+const eventSummary = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const { sellerType, ticketType, eventId } = req.query;
+
+    console.log("sellerType", sellerType)
+    console.log("ticketType", ticketType)
+    console.log("eventId", eventId)
+
+    const result = await TicketService.eventSummary({ userId, sellerType, ticketType, eventId });
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Event Expired retrived Successfully',
+        data: result
+    });
+});
+const PromoCodePercentage = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const { id } = req.params;
+    const { code } = req.body;
+    const result = await TicketService.promocode(userId, id as string, code as string);
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Promo Code retrived Successfully',
+        data: result
+    });
+});
+const avaiableTypeHistory = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const { id } = req.params;
+
+    const result = await TicketService.availableTypeHistory(userId, id as string);
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Available Type retrived Successfully',
+        data: result
+    });
+});
 
 // Bar code generate
 // const barCodeGenerate = catchAsync(async (req: Request, res: Response) => {
@@ -167,9 +219,13 @@ export const TicketController = {
     sellTicketInfoUsers,
     allOnsellTicketInfo,
     resellTicket,
-    withdrawTicket,
     soldTicket,
     ticketExpired,
     getSoldEvent,
+    eventSummary,
+    PromoCodePercentage,
+    withdrawPro,
+    sellTicketInfoUsersOnsell,
+    avaiableTypeHistory,
     // barCodeGenerate
 };
