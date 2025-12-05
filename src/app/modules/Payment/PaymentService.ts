@@ -215,8 +215,104 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
 };
 
 // Ticket Payment
+// const BuyTicket = async (payload: any) => {
+//   const { fullName, email, phone, tickets, userId , eventId} = payload;
+
+//   // Validate user
+//   const user = await User.findById(userId);
+//   if (!user) {
+//     throw new ApiError(StatusCodes.NOT_FOUND, 'User not available');
+//   }
+
+//   let totalTicketPrice = 0;
+//   const ticketDetails: any[] = [];
+
+//   // Validate and calculate ticket availability
+//   for (const ticket of tickets) {
+//     const availableTickets = await TicketPurchase.find({
+//       ownerId: ticket.sellerId,
+//       ticketType: ticket.ticketType,
+//       status: "onsell",
+//       eventId: eventId,
+//       ticketPrice: ticket.amount,
+//     });
+
+//     const availableQuantity = availableTickets.length;
+
+//     // Check availability
+//     if (availableQuantity === 0) {
+//       throw new ApiError(
+//         StatusCodes.BAD_REQUEST,
+//         `No ${ticket.ticketType} tickets available from seller ${ticket.sellerId}`
+//       );
+//     }
+
+//     if (availableQuantity < ticket.quantity) {
+//       throw new ApiError(
+//         StatusCodes.BAD_REQUEST,
+//         `Only ${availableQuantity} ${ticket.ticketType} ticket(s) available, but ${ticket.quantity} requested`
+//       );
+//     }
+
+//     // Calculate price for requested quantity
+//     const selectedTickets = availableTickets.slice(0, ticket.quantity);
+//     const ticketPrice = selectedTickets.reduce((sum, t) => sum + t.ticketPrice, 0);
+//     totalTicketPrice += ticketPrice;
+
+//     ticketDetails.push({
+//       sellerId: ticket.sellerId,
+//       ticketType: ticket.ticketType,
+//       quantity: ticket.quantity,
+//       price: ticketPrice,
+//       ticketIds: selectedTickets.map(t => t._id),
+//       sellAmount: ticket.sellAmount,
+//     });
+//   }
+
+//   // Create Stripe customer
+//   const stripeCustomer = await stripe.customers.create({
+//     name: user.name,
+//     email: user.email,
+//   });
+
+//   // Create checkout session
+//   const stripeSession = await stripe.checkout.sessions.create({
+//     payment_method_types: ['card'],
+//     mode: 'payment',
+//     customer: stripeCustomer.id,
+//     line_items: ticketDetails.map(detail => ({
+//       price_data: {
+//         currency: 'usd',
+//         product_data: {
+//           name: `${detail.quantity}x ${detail.ticketType} Ticket(s)`,
+//         },
+//         unit_amount: Math.round(detail.price * 100),
+//       },
+//       quantity: 1,
+//     })),
+//     metadata: {
+//       userId: user._id.toString(),
+//       fullName,
+//       email,
+//       phone,
+//       tickets: JSON.stringify(ticketDetails),
+//       totalAmount: totalTicketPrice.toFixed(2),
+//       type: "resellPurchase",
+//       resellerId: userId.toString(),
+//     },
+//     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
+//     cancel_url: `${config.stripe.cancel_url}`,
+//   });
+
+//   return {
+//     sessionId: stripeSession.id,
+//     sessionUrl: stripeSession.url,
+//     totalAmount: totalTicketPrice,
+//   };
+// };
+
 const BuyTicket = async (payload: any) => {
-  const { fullName, email, phone, tickets, userId } = payload;
+  const { fullName, email, phone, tickets, userId, eventId } = payload;
 
   // Validate user
   const user = await User.findById(userId);
@@ -229,10 +325,23 @@ const BuyTicket = async (payload: any) => {
 
   // Validate and calculate ticket availability
   for (const ticket of tickets) {
+    // DEBUG: First check what tickets exist without price filter
+    const allTicketsForDebug = await TicketPurchase.find({
+      ownerId: ticket.sellerId,
+      ticketType: ticket.ticketType,
+      status: "onsell",
+      eventId: eventId,
+    }).select('ticketPrice sellAmount'); // Check what prices exist
+
+    console.log('🔍 Available tickets for debugging:', allTicketsForDebug);
+
+    // Now search with sellAmount instead of ticketPrice
     const availableTickets = await TicketPurchase.find({
       ownerId: ticket.sellerId,
       ticketType: ticket.ticketType,
       status: "onsell",
+      eventId: eventId,
+      sellAmount: ticket.amount, // Use sellAmount field instead
     });
 
     const availableQuantity = availableTickets.length;
@@ -241,21 +350,22 @@ const BuyTicket = async (payload: any) => {
     if (availableQuantity === 0) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
-        `No ${ticket.ticketType} tickets available from seller ${ticket.sellerId}`
+        `No ${ticket.ticketType} tickets available at $${ticket.amount} from seller ${ticket.sellerId}`
       );
     }
 
     if (availableQuantity < ticket.quantity) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
-        `Only ${availableQuantity} ${ticket.ticketType} ticket(s) available, but ${ticket.quantity} requested`
+        `Only ${availableQuantity} ${ticket.ticketType} ticket(s) available at $${ticket.amount}, but ${ticket.quantity} requested`
       );
     }
 
-    // Calculate price for requested quantity
-    const selectedTickets = availableTickets.slice(0, ticket.quantity);
-    const ticketPrice = selectedTickets.reduce((sum, t) => sum + t.sellAmount, 0);
+    // Calculate price using the amount sent by user
+    const ticketPrice = ticket.amount * ticket.quantity;
     totalTicketPrice += ticketPrice;
+
+    const selectedTickets = availableTickets.slice(0, ticket.quantity);
 
     ticketDetails.push({
       sellerId: ticket.sellerId,
@@ -263,7 +373,7 @@ const BuyTicket = async (payload: any) => {
       quantity: ticket.quantity,
       price: ticketPrice,
       ticketIds: selectedTickets.map(t => t._id),
-      sellAmount: ticket.sellAmount,
+      unitPrice: ticket.amount,
     });
   }
 
@@ -284,9 +394,9 @@ const BuyTicket = async (payload: any) => {
         product_data: {
           name: `${detail.quantity}x ${detail.ticketType} Ticket(s)`,
         },
-        unit_amount: Math.round(detail.price * 100),
+        unit_amount: Math.round(detail.unitPrice * 100),
       },
-      quantity: 1,
+      quantity: detail.quantity,
     })),
     metadata: {
       userId: user._id.toString(),
@@ -296,7 +406,7 @@ const BuyTicket = async (payload: any) => {
       tickets: JSON.stringify(ticketDetails),
       totalAmount: totalTicketPrice.toFixed(2),
       type: "resellPurchase",
-      resellerId: userId.toString(),
+      eventId: eventId.toString(),
     },
     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${config.stripe.cancel_url}`,
@@ -308,8 +418,6 @@ const BuyTicket = async (payload: any) => {
     totalAmount: totalTicketPrice,
   };
 };
-
-
 
 export const createPaymentService = {
   createPaymentIntentEvent,

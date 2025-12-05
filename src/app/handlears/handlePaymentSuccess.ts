@@ -151,6 +151,122 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
   console.log("🎉 All tickets created successfully with correct per-ticket amounts!");
 };;
 
+// const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
+//   if (!session.metadata) {
+//     throw new ApiError(StatusCodes.BAD_REQUEST, "Metadata missing in session!");
+//   }
+//   const metadata = session.metadata as any;
+//   const { userId, email, fullName, phone, totalAmount, tickets, resellerId } = metadata;
+
+//   let allTickets: any[];
+//   try {
+//     allTickets = JSON.parse(tickets);
+//   } catch (error) {
+//     console.error('Error parsing tickets metadata:', error);
+//     throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
+//   }
+
+//   const newOwnerId = new mongoose.Types.ObjectId(userId);
+//   const newResellerId = new mongoose.Types.ObjectId(resellerId);
+
+//   for (const ticketGroup of allTickets) {
+//     const { ticketIds, sellerId, ticketType, quantity, price } = ticketGroup;
+
+//     // Find tickets before updating to get eventId and calculate totals
+//     const ticketsToUpdate = await TicketPurchase.find({
+//       _id: { $in: ticketIds },
+//       ownerId: sellerId,
+//       ticketType: ticketType,
+//       status: "onsell",
+//     });
+
+//     if (ticketsToUpdate.length !== quantity) {
+//       throw new ApiError(
+//         StatusCodes.CONFLICT,
+//         `Expected ${quantity} tickets but found ${ticketsToUpdate.length}`
+//       );
+//     }
+
+//     // Calculate totals for this ticket group
+//     const totalPurchaseAmount = ticketsToUpdate.reduce(
+//       (sum, ticket) => sum + (ticket.purchaseAmount || 0),
+//       0
+//     );
+//     const totalSellAmount = price; // This is the total sell price for all tickets
+//     const totalEarnedAmount = totalSellAmount - totalPurchaseAmount;
+
+//     // Get eventId from first ticket (all tickets in group have same eventId)
+//     const eventId = ticketsToUpdate[0].eventId;
+
+//     // Update the purchased tickets
+//     const updatedTickets = await TicketPurchase.updateMany(
+//       {
+//         _id: { $in: ticketIds },
+//         ownerId: sellerId,
+//         ticketType: ticketType,
+//         status: "onsell",
+//       },
+//       {
+//         $set: {
+//           ownerId: newOwnerId,
+//           status: "available",
+//           attendeeInformation: {
+//             fullName,
+//             email,
+//             phone,
+//           },
+//           purchaseAmount: price / quantity,
+//           resellerId: newResellerId,
+//         },
+//       }
+//     );
+
+//     // Validate update
+//     if (updatedTickets.modifiedCount !== quantity) {
+//       throw new ApiError(
+//         StatusCodes.CONFLICT,
+//         `Failed to update all ${ticketType} tickets. Expected ${quantity}, updated ${updatedTickets.modifiedCount}`
+//       );
+//     }
+
+//     // Create ONE transaction history for this entire ticket group (for SELLER)
+//     await TransactionHistory.create({
+//       userId: sellerId,
+//       resellerId: newResellerId,
+//       eventId: eventId,
+//       ticketId: ticketIds[0],
+//       type: 'resellPurchase',
+//       purchaseAmount: totalPurchaseAmount,
+//       sellAmount: totalSellAmount,
+//       earnedAmount: totalEarnedAmount,
+//       ticketQuantity: Number(quantity),
+//     });
+//   }
+
+//   // Prepare email payload for NEW BUYER
+//   const emailPayload = {
+//     name: fullName,
+//     email: email,
+//     totalTicket: allTickets.map(ticket => ({
+//       ticketType: ticket.ticketType,
+//       quantity: ticket.quantity,
+//       pricePerTicket: ticket.price / ticket.quantity,
+//       totalPrice: ticket.price,
+//     })),
+//     totalAmount: parseFloat(totalAmount),
+//   };
+
+//   // Send confirmation email to NEW BUYER
+//   try {
+//     const emailSend = emailTemplate.resaleTicketPurchaseEmail(emailPayload);
+//     await emailHelper.sendEmail(emailSend);
+//     console.log("✅ Purchase confirmation email sent to:", email);
+//   } catch (emailError) {
+//     console.error("❌ Error sending email:", emailError);
+//   }
+//   console.log("🎉 All tickets transferred successfully to new owner!");
+// };
+
 const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
   if (!session.metadata) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Metadata missing in session!");
@@ -170,9 +286,9 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
   const newResellerId = new mongoose.Types.ObjectId(resellerId);
 
   for (const ticketGroup of allTickets) {
-    const { ticketIds, sellerId, ticketType, quantity, price } = ticketGroup;
+    const { ticketIds, sellerId, ticketType, quantity, price, unitPrice } = ticketGroup;
 
-    // Find tickets before updating to get eventId and calculate totals
+    // Find tickets before updating to verify availability
     const ticketsToUpdate = await TicketPurchase.find({
       _id: { $in: ticketIds },
       ownerId: sellerId,
@@ -192,13 +308,13 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
       (sum, ticket) => sum + (ticket.purchaseAmount || 0),
       0
     );
-    const totalSellAmount = price; // This is the total sell price for all tickets
+    const totalSellAmount = price; // Total sell price user paid
     const totalEarnedAmount = totalSellAmount - totalPurchaseAmount;
 
-    // Get eventId from first ticket (all tickets in group have same eventId)
+    // Get eventId from first ticket
     const eventId = ticketsToUpdate[0].eventId;
 
-    // Update the purchased tickets
+    // Update the purchased tickets with the EXACT amount user paid
     const updatedTickets = await TicketPurchase.updateMany(
       {
         _id: { $in: ticketIds },
@@ -215,7 +331,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
             email,
             phone,
           },
-          purchaseAmount: price / quantity,
+          purchaseAmount: unitPrice, // Use the exact unit price user paid
           resellerId: newResellerId,
         },
       }
@@ -229,7 +345,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
       );
     }
 
-    // Create ONE transaction history for this entire ticket group (for SELLER)
+    // Create transaction history for SELLER
     await TransactionHistory.create({
       userId: sellerId,
       resellerId: newResellerId,
@@ -250,7 +366,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
     totalTicket: allTickets.map(ticket => ({
       ticketType: ticket.ticketType,
       quantity: ticket.quantity,
-      pricePerTicket: ticket.price / ticket.quantity,
+      pricePerTicket: ticket.unitPrice, // Use unitPrice from metadata
       totalPrice: ticket.price,
     })),
     totalAmount: parseFloat(totalAmount),
@@ -264,10 +380,9 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
   } catch (emailError) {
     console.error("❌ Error sending email:", emailError);
   }
+
   console.log("🎉 All tickets transferred successfully to new owner!");
 };
-
-
 
 export const handlePayment = {
   paymentSuccess,

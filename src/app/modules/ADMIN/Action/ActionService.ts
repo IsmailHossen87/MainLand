@@ -189,7 +189,7 @@ const DashBoard = async (user: JwtPayload, query: Record<string, string>) => {
 };
 // All User
 
-const AllTicketBuyerUser = async (user: JwtPayload) => {
+const AllTicketBuyerUser = async (user: JwtPayload, query: Record<string, string>) => {
   if (user.role !== USER_ROLES.ADMIN) {
     throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
   }
@@ -197,12 +197,21 @@ const AllTicketBuyerUser = async (user: JwtPayload) => {
   // ✅ Get unique user IDs who bought tickets
   const uniqueUserIds = await TicketPurchase.distinct("ownerId");
 
-  // ✅ Fetch full user details
-  const allUsers = await User.find({
+  // ✅ Create query (don't execute with await yet)
+  const userQuery = User.find({
     _id: { $in: uniqueUserIds },
     role: { $in: [USER_ROLES.USER, USER_ROLES.ORGANIZER] }
   }).select('name email role createdAt personalInfo address');
-  return allUsers;
+
+  // ✅ Pass the query object to QueryBuilder
+  const queryBuilder = new QueryBuilder(userQuery, query);
+
+  const [meta, data] = await Promise.all([
+    queryBuilder.getMeta(),
+    queryBuilder.build(),
+  ]);
+
+  return { meta, data };
 };
 
 // // ticket Activity
@@ -210,20 +219,27 @@ const ticketActivity = async (user: JwtPayload, userId: string, query: Record<st
   if (user.role !== USER_ROLES.ADMIN) {
     throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
   }
-  // const queryBuilder = new QueryBuilder(TicketPurchase.find({ownerId: userId,...query }).select('ticketId ownerId createdAt'), query);  
 
-  const queryBuilder = new QueryBuilder(TransactionHistory.find({ ownerId: userId, ...query }).select('ticketId ownerId createdAt purchaseAmount sellAmount earnedAmount ticketQuantity'), query);
+  // ❌ Don't spread ...query here
+  const baseQuery = TransactionHistory.find({ userId: userId })
+    .select('ticketId ownerId createdAt purchaseAmount sellAmount earnedAmount ticketQuantity');
+  console.log(baseQuery)
 
+  // ✅ Pass query to QueryBuilder - it will handle the query params
+  const queryBuilder = new QueryBuilder(baseQuery, query);
 
-  const allHistory = queryBuilder.search(excludeField).sort()
-  console.log(allHistory)
+  const allHistory = queryBuilder
+    .search(excludeField)
+    .filter()  // Add this to handle filtering
+    .sort();
 
-  // const [meta, data] = await Promise.all([
-  //   allHistory.getMeta(),
-  //   allHistory.build(),
-  // ]);
+  console.log('Query Builder:', allHistory);
 
+  const [meta, data] = await Promise.all([
+    allHistory.getMeta(),
+    allHistory.build(),
+  ]);
 
-  // return { meta, data };
+  return { meta, data };
 };
 export const ActionService = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity };

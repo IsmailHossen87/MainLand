@@ -13,16 +13,18 @@ router.get('/sold-event', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketCon
 
 router.get('/sellAllTicket', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.allOnsellTicketInfo);
 
-router.post('/ticketPurchase', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), PaymentController.buyTicket);  // Ticket Purchase --payment
+router.post('/ticketPurchase/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), PaymentController.buyTicket);
 router.get("/soldTickethistory", auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.soldTicket);
 // 🔥🔥
 router.get("/event-summary", auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.eventSummary);
 router.get('/expired-ticket', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.ticketExpired);
-router.get('/withdrawTicket/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.withdrawTicket);
+// ------------------------------------------------------
 router.post('/withdraw-pro/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.withdrawPro);
-// router.get("/barCodeGenerate", auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.barCodeGenerate); //barcode generate
 router.get('/sellHistory/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.sellTicketInfoUsers);
+router.get('/avaiable-type-history/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.avaiableTypeHistory);
+router.get('/sell-history-onsell/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.sellTicketInfoUsersOnsell); //single AllType Ticket
 router.get('/resellTicket/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.resellTicket);
+// --------------------------------------------------------
 router.get('/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.getOneTicket);
 router.get('/promocode/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.PromoCodePercentage);
 
