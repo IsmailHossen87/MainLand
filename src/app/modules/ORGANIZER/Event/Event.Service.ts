@@ -587,15 +587,13 @@ const allUndewReview = async (userID: string, query: Record<string, string>) => 
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
   }
-const {EventStatus:status} = query
-
-console.log(status)
+  const { EventStatus: status } = query
   const today = new Date();
 
-const baseQuery = Event.find({
-  EventStatus:status,
-  eventDate: { $gte: today },
-});
+  const baseQuery = Event.find({
+    EventStatus: status,
+    eventDate: { $gte: today },
+  });
 
 
   // QueryBuilder chaining (search, filter, sort, pagination)
@@ -637,13 +635,13 @@ const subCategory = async (query?: string) => {
     const objectId = new Types.ObjectId(query);
 
     subCategories = await SubCategory.find({ categoryId: objectId })
-      .populate("categoryId", "title coverImage")
+      .populate("categoryId", "title coverImage ")
       .lean();
 
   } else {
     // যদি query না থাকে → সব data আনবে
     subCategories = await SubCategory.find()
-      .populate("categoryId", "title coverImage")
+      .populate("categoryId", "title coverImage categoryId")
       .lean();
   }
 
@@ -651,6 +649,7 @@ const subCategory = async (query?: string) => {
   const formattedData = subCategories.map((sub: any) => ({
     _id: sub._id,
     categoryTitle: sub.categoryId?.title || "N/A",
+    categoryId:sub.categoryId?._id,
     title: sub.title,
     coverImage: sub.categoryId?.coverImage,
     createdAt: sub.createdAt,
