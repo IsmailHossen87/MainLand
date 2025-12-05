@@ -18,15 +18,7 @@ router.post(
   EventController.createSubCategory
 );
 
-/* -----------------------------------------
-   💳 PAYMENT EVENT
------------------------------------------- */
-router
-  .route('/payment/:id')
-  .post(
-    auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.ORGANIZER),
-    PaymentController.createEventPayment
-  );
+
 
 /* -----------------------------------------
    📂 CATEGORY CREATE (With File Upload)
@@ -67,6 +59,29 @@ router.get(
   '/allCategory',
   auth(USER_ROLES.ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER),
   EventController.allCategory
+);
+
+/* -----------------------------------------
+   🛑 CLOSED EVENTS
+------------------------------------------ */
+router.get(
+  '/closed',
+  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
+  EventController.closedEvent
+);
+
+/* -----------------------------------------
+   🌈 (Decorative Section) ALL DATA (Query Based)
+------------------------------------------ */
+router.get(
+  '/',
+  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER,USER_ROLES.ADMIN),
+  EventController.allDataUseQuery
+);
+router.get(
+  '/under-review',
+  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER,USER_ROLES.ADMIN),
+  EventController.AllUnderReview
 );
 
 /* -----------------------------------------
@@ -112,6 +127,15 @@ router.patch(
   EventController.updateSubCategory
 );
 /* -----------------------------------------
+   💳 PAYMENT EVENT
+------------------------------------------ */
+router
+  .route('/payment/:id')
+  .post(
+    auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.ORGANIZER),
+    PaymentController.createEventPayment
+  );
+/* -----------------------------------------
    ✏️ CATEGORY UPDATE
 ------------------------------------------ */
 router.delete(
@@ -121,23 +145,7 @@ router.delete(
   EventController.deleteCategory
 );
 
-/* -----------------------------------------
-   🛑 CLOSED EVENTS
------------------------------------------- */
-router.get(
-  '/closed',
-  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
-  EventController.closedEvent
-);
 
-/* -----------------------------------------
-   🌈 (Decorative Section) ALL DATA (Query Based)
------------------------------------------- */
-router.get(
-  '/',
-  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
-  EventController.allDataUseQuery
-);
 
 /* -----------------------------------------
    🎬 ALL LIVE EVENTS

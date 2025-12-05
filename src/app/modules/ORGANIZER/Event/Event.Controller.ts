@@ -229,14 +229,32 @@ const popularEvent = catchAsync(
 // All Data Use Query
 const allDataUseQuery = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
+    
     const userId = req.user?.id
-    const query = req.query
+    const query = req.query 
     const result = await EventService.allDataUseQuery(userId as string, query as Record<string, string>)
 
     await sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
       message: "Event All Data Retrived Successfully",
+      meta: result.meta,
+      data: result.data,
+    });
+  }
+);
+// All Data Use Query
+const AllUnderReview = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    
+    const userId = req.user?.id
+    const query = req.query 
+    const result = await EventService.allUndewReview(userId as string, query as Record<string, string>)
+
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Event All Undew-Review Retrived Successfully",
       meta: result.meta,
       data: result.data,
     });
@@ -320,5 +338,6 @@ export const EventController = {
   deleteCategory,
   subCategory,
   allCategory,
-  eventTicketHistory
+  eventTicketHistory,
+  AllUnderReview
 };
