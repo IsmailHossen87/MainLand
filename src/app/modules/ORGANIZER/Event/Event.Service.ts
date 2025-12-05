@@ -581,6 +581,51 @@ const allDataUseQuery = async (userID: string, query: Record<string, string>) =>
 
   return { meta, data };
 };
+// AllUnderReview 
+const allUndewReview = async (userID: string, query: Record<string, string>) => {
+  const user = await User.findById(userID);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+  }
+const {EventStatus:status} = query
+
+console.log(status)
+  const today = new Date();
+
+const baseQuery = Event.find({
+  EventStatus:status,
+  eventDate: { $gte: today },
+});
+
+
+  // QueryBuilder chaining (search, filter, sort, pagination)
+  const queryBuilder = new QueryBuilder(baseQuery, query);
+
+  const allEvent = queryBuilder
+    .search(excludeField)
+    .filter()
+    .dateRange()
+    .sort()
+    .fields([
+      'eventName',
+      'eventDate',
+      'image',
+      '_id',
+      'isFreeEvent',
+      'streetAddress',
+      'EventStatus',
+      'ticketSaleStart',
+      'streetAddress2',
+      'preSaleStart',
+      'startTime',
+      'eventCode'
+    ])
+    .paginate();
+
+  const [meta, data] = await Promise.all([allEvent.getMeta(), allEvent.build()]);
+
+  return { meta, data };
+};
 
 
 // AllGetData 💛🩷🧡💙💜🤎
@@ -698,5 +743,6 @@ export const EventService = {
   subCategory,
   allCategory,
   eventTicketHistory,
-  updateSubCategory
+  updateSubCategory,
+  allUndewReview
 };
