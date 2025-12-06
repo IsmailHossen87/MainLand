@@ -336,8 +336,6 @@ const availableTypeHistory = async (
   return result;
 };
 
-
-
 // 👊👊
 const allOnsellTicketInfo = async (
   userId: string,
@@ -659,14 +657,21 @@ const promocode = async (userId: string, id: string, code: string) => {
 
 
 // BAR-CODE generate
-// const barCodeGenerate = async (userId: string) => {
-//  const user = await User.findById(userId);
-//  if (!user) {
-//    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-//  }
-//  const tickets = await TicketPurchase.find({ ownerId: userId ,status: ITicketStatus.available}); 
-//  console.log("tickets",tickets);
-// };
+const checkEvent = async (userId: string, eventCode: string) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+  const tickets = await Event.findOne({ eventCode: eventCode, ownerId: user._id });
+  if (!tickets) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+  }
+
+  if (tickets) {
+    return true
+  }
+  return false
+};
 
 
 export const TicketService = {
@@ -683,6 +688,6 @@ export const TicketService = {
   promocode,
   withdrawPro,
   sellTicketInfoUsersOnsell,
-  availableTypeHistory
-  // barCodeGenerate
+  availableTypeHistory,
+  checkEvent
 };

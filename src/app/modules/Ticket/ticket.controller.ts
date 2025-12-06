@@ -200,17 +200,20 @@ const avaiableTypeHistory = catchAsync(async (req: Request, res: Response) => {
 });
 
 // Bar code generate
-// const barCodeGenerate = catchAsync(async (req: Request, res: Response) => {
-//     const userId = req.user?.id as string;
-//     const result = await TicketService.barCodeGenerate(userId);
+const checkEvent = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const { eventCode } = req.params
 
-//     sendResponse(res, {
-//         statusCode: StatusCodes.OK,
-//         success: true,
-//         message: 'Bar Code Generated Successfully',
-//         data: result,
-//     });
-// });
+    console.log("eventCode", eventCode)
+    const result = await TicketService.checkEvent(userId, eventCode);
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Event retrived Successfully',
+        data: result,
+    });
+});
 
 export const TicketController = {
     getAllTicket,
@@ -227,5 +230,5 @@ export const TicketController = {
     withdrawPro,
     sellTicketInfoUsersOnsell,
     avaiableTypeHistory,
-    // barCodeGenerate
+    checkEvent,
 };

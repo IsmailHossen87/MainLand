@@ -1,44 +1,69 @@
 import { model, Schema } from "mongoose";
-import { IAttendeeInformation, ITicketPurchase, ITicketStatus } from "./ticket.interface";
+import {
+    IAttendeeInformation,
+    ITicketPurchase,
+    ITicketStatus,
+} from "./ticket.interface";
 
-
-const AttendInformationSchema = new Schema<IAttendeeInformation>(
+// ===============================
+// Attendee Information Schema
+// ===============================
+const AttendeeInformationSchema = new Schema<IAttendeeInformation>(
     {
-        fullName: { type: String, required: true },
-        email: { type: String, required: true },
+        fullName: { type: String, required: true, trim: true },
+        email: { type: String, required: true, lowercase: true },
         phone: { type: String, required: true },
     },
     { _id: false, versionKey: false }
 );
 
+// ===============================
+// Ticket Purchase Schema
+// ===============================
 const TicketPurchaseSchema = new Schema<ITicketPurchase>(
     {
         eventId: {
             type: Schema.Types.ObjectId,
-            ref: 'Event',
+            ref: "Event",
+            required: true,
         },
+
         ownerId: {
             type: Schema.Types.ObjectId,
-            ref: 'User',
+            ref: "User",
+            required: true,
         },
+
         sellerId: {
             type: Schema.Types.ObjectId,
-            ref: 'User',
+            ref: "User",
+            default: null,
         },
-        resellerId: [{type: Schema.Types.ObjectId, ref: 'User' }],
+
+        resellerId: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "User",
+            },
+        ],
 
         ticketName: {
             type: String,
             required: true,
-            unique: true,
+            trim: true,
+            unique: true, // ❗ If generated automatically, keep it unique.
         },
 
         attendeeInformation: {
-            type: AttendInformationSchema,
+            type: AttendeeInformationSchema,
             required: true,
         },
 
-        ticketType: { type: String, required: true },
+        ticketType: {
+            type: String,
+            required: true,
+        },
+
         status: {
             type: String,
             enum: Object.values(ITicketStatus),
@@ -47,16 +72,32 @@ const TicketPurchaseSchema = new Schema<ITicketPurchase>(
 
         mainLandFee: { type: Number, default: 0 },
         discount: { type: Number, default: 0 },
-        discountCode: { type: String, default: "" },
-        purchaseAmount: { type: Number, required: true },
-        sellAmount: { type: Number, default: 0 }
 
+        discountCode: {
+            type: String,
+            default: "",
+            trim: true,
+        },
+
+        purchaseAmount: {
+            type: Number,
+            required: true,
+            min: 0,
+        },
+
+        sellAmount: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
     },
     { timestamps: true, versionKey: false }
 );
 
-
+// ===============================
+// Model Export
+// ===============================
 export const TicketPurchase = model<ITicketPurchase>(
-    'TicketPurchase',
+    "TicketPurchase",
     TicketPurchaseSchema
 );
