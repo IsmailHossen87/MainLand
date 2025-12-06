@@ -26,6 +26,7 @@ router.get('/sell-history-onsell/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZE
 router.get('/resellTicket/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.resellTicket);
 // --------------------------------------------------------
 router.get('/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.getOneTicket);
+router.get("/check-event/:eventCode", auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), TicketController.checkEvent);
 router.get('/promocode/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.PromoCodePercentage);
 
 

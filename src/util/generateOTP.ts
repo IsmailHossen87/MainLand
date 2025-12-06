@@ -11,17 +11,32 @@ export default generateOTP;
 
 
 
+const generateRandomPrefix = (length = 3) => {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += letters.charAt(Math.floor(Math.random() * letters.length));
+  }
+  return result;
+};
+
 export const generateEventCode = (eventId: string) => {
   const now = Date.now().toString();
 
-  // Step 1: Create hash from eventId + currentTime
+  // 1️⃣ Create hash from eventId + timestamp
   const hash = crypto.createHash("sha256").update(eventId + now).digest("hex");
 
-  // Step 2: Convert 8 chars → number → take 6 digits
-  const code = parseInt(hash.substring(0, 8), 16)
-    .toString()
-    .slice(0, 6); // 6 digits
+  // 2️⃣ Convert first 8 chars → number → take 5 digits
+  let numericPart = parseInt(hash.substring(0, 8), 16).toString().slice(0, 5);
 
-  return code;
+  // Ensure numeric part is 5 digits
+  if (numericPart.length < 5) {
+    numericPart = numericPart.padStart(5, Math.floor(Math.random() * 9).toString());
+  }
+
+  // 3️⃣ Generate random 3-letter prefix
+  const prefix = generateRandomPrefix(3);
+
+  // 4️⃣ Combine prefix + numeric part
+  return `${prefix}-${numericPart}`;
 };
-

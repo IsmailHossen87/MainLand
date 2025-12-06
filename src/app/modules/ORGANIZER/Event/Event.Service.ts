@@ -11,6 +11,7 @@ import { CreateEventPayload, IEventStatus, UpdateEventPayload } from './Event.in
 import unlinkFile from '../../../../shared/unlinkFile';
 import { Favourite } from '../../Favoutite/Favourite.model';
 import { AggregationQueryBuilder } from '../../../builder/AggregationBuilder';
+import { TicketPurchase } from '../../Ticket/ticket.model';
 export interface EventTicket {
   type: string;
   price: number;
@@ -170,8 +171,6 @@ const createEvent = async (payload: any) => {
   return event;
 };
 
-
-
 // UPDATE EVENT
 const updateEvent = async (eventId: string, userId: string, payload: any) => {
   // Check event exists
@@ -215,7 +214,6 @@ const updateEvent = async (eventId: string, userId: string, payload: any) => {
   return updatedEvent;
 };
 
-
 // UPDATE Notification
 const updateNotification = async (eventId: string, userId: string, payload: any) => {
   // Check event exists
@@ -233,31 +231,6 @@ const updateNotification = async (eventId: string, userId: string, payload: any)
   return updatedEvent;
 };
 
-// // Live
-// const allLiveEvent = async (query: Record<string, string>) => {
-//   console.log("Hellow Bangladesh")
-//   const baseQuery = Event.find({ EventStatus: 'Live' }).select("image eventName eventDate ticketSaleStart streetAddress2 streetAddress preSaleStart startTicketSale");
-//   const events = await baseQuery;
-
-//   for (const event of events) {
-//     if (!event) {
-//       throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not available');
-//     }
-//     if (event.eventDate && event.eventDate < new Date()) {
-//       event.EventStatus = IEventStatus.Expired;
-//       await event.save();
-//     }
-//   }
-//   const queryBuilder = new QueryBuilder(baseQuery, query);
-//   const allEvents = queryBuilder.search(excludeField).filter().dateRange().sort().fields().paginate();
-
-
-//   const [meta, data] = await Promise.all([allEvents.getMeta(), allEvents.build()]);
-
-
-//   return { meta, data };
-// };
-// Live
 const allLiveEvent = async (query: Record<string, string>) => {
   const eventsToUpdate = await Event.find({ EventStatus: 'Live' }).select("eventDate EventStatus");
 
@@ -291,51 +264,6 @@ const allLiveEvent = async (query: Record<string, string>) => {
 
   return { meta, data };
 };
-
-
-// const allLiveEvent = async (query: Record<string, string>) => {
-//   const baseQuery = Event.find({ EventStatus: 'Live' })
-//     .select("image eventName eventDate ticketSaleStart streetAddress2 streetAddress preSaleStart startTicketSale");
-
-//   const events = await baseQuery;
-//   for (const event of events) {
-//     if (event.eventDate && event.eventDate < new Date()) {
-//       event.EventStatus = IEventStatus.Expired;
-//       await event.save();
-//     }
-//   }
-//   const queryBuilder = new QueryBuilder(baseQuery, query);
-
-//   // Step 4: Chain query methods to search, filter, paginate, etc.
-//   const allEvents = queryBuilder
-//     .search(excludeField)  // Assuming 'excludeField' is properly defined
-//     .filter()
-//     .dateRange()
-//     .sort()
-//     .fields([
-//       'eventName',
-//       'eventDate',
-//       'image',
-//       '_id',
-//       'isFreeEvent',
-//       'streetAddress',
-//       'ticketSaleStart',
-//       'streetAddress2',
-//       'preSaleStart',
-//       'startTime',
-//       'eventCode'
-//     ])
-//     .paginate();
-
-//   // Step 5: Get metadata and final data
-//   const [meta, data] = await Promise.all([allEvents.getMeta(), allEvents.build()]);
-
-//   // Step 6: Return the result
-//   return { meta, data };
-// };
-
-// Popular Event
-
 
 const popularEvent = async (query: Record<string, string>) => {
   // Pagination setup
@@ -456,8 +384,6 @@ const popularEvent = async (query: Record<string, string>) => {
   return { meta, data };
 };
 
-
-
 // Single Event ✅✅✅✅
 const singleEvent = async (userID: string, eventId: string) => {
   const user = await User.findById(userID);
@@ -482,7 +408,6 @@ const singleEvent = async (userID: string, eventId: string) => {
 
   return event;
 };
-
 
 // all Closed ✅✅✅✅
 const closedEvent = async (userID: string, query: Record<string, string>) => {
@@ -527,31 +452,26 @@ const closedEvent = async (userID: string, query: Record<string, string>) => {
   return { meta, data };
 };
 
-
-
 // AllGetData 💛🩷🧡💙💜🤎
 const allDataUseQuery = async (userID: string, query: Record<string, string>) => {
   const user = await User.findById(userID);
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
   }
+  const { EventStatus: status, isDraft } = query;
+  console.log(status);
 
   const today = new Date();
 
-  // Base query: user-এর event গুলো filter করা, eventDate >= today
   const baseQuery = Event.find({
     userId: user._id,
     $or: [
-      { isDraft: true },
+      { isDraft: isDraft },
       {
-        EventStatus: 'UnderReview',
+        EventStatus: status,
         eventDate: { $gte: today }
       },
-      {
-        EventStatus: 'Live',
-        eventDate: { $gte: today }
-      },
-    ],
+    ]
   });
 
   // QueryBuilder chaining (search, filter, sort, pagination)
@@ -569,6 +489,7 @@ const allDataUseQuery = async (userID: string, query: Record<string, string>) =>
       '_id',
       'isFreeEvent',
       'streetAddress',
+      'EventStatus',
       'ticketSaleStart',
       'streetAddress2',
       'preSaleStart',
@@ -625,7 +546,6 @@ const allUndewReview = async (userID: string, query: Record<string, string>) => 
   return { meta, data };
 };
 
-
 // AllGetData 💛🩷🧡💙💜🤎
 const subCategory = async (query?: string) => {
   let subCategories;
@@ -649,7 +569,7 @@ const subCategory = async (query?: string) => {
   const formattedData = subCategories.map((sub: any) => ({
     _id: sub._id,
     categoryTitle: sub.categoryId?.title || "N/A",
-    categoryId:sub.categoryId?._id,
+    categoryId: sub.categoryId?._id,
     title: sub.title,
     coverImage: sub.categoryId?.coverImage,
     createdAt: sub.createdAt,
@@ -658,7 +578,6 @@ const subCategory = async (query?: string) => {
 
   return formattedData;
 };
-
 
 const allCategory = async (userId: string, query: Record<string, string>) => {
   const { includeSelectedSubcategory } = query;
@@ -726,6 +645,27 @@ const eventTicketHistory = async (eventId: string) => {
   return ticketHistory;
 };
 
+// BarCode Check
+const barCodeCheck = async (ownerId: string, userId: string, eventId: string) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+  }
+
+  const event = await Event.findOne({ _id: new Types.ObjectId(eventId), userId: new Types.ObjectId(userId) });
+  if (!event) {
+    throw new ApiError(StatusCodes.NOT_FOUND, `Event is not Available for this user`);
+  }
+
+  const ticket = await TicketPurchase.find({ ownerId: new Types.ObjectId(ownerId), eventId: event._id, status: 'available' });
+  await TicketPurchase.updateMany({ ownerId: new Types.ObjectId(ownerId), eventId: event._id, status: 'available' }, { status: 'used' });
+
+  if (!ticket) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Ticket is not Available');
+  }
+  return [];
+};
+
 export const EventService = {
   creteSubCategory,
   createEvent,
@@ -743,5 +683,6 @@ export const EventService = {
   allCategory,
   eventTicketHistory,
   updateSubCategory,
-  allUndewReview
+  allUndewReview,
+  barCodeCheck
 };
