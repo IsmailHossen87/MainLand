@@ -5,6 +5,7 @@ import config from '../../../config';
 import { Event } from '../ORGANIZER/Event/Event.model';
 import { MainlandFee, User } from '../user/user.model';
 import { TicketPurchase } from '../Ticket/ticket.model';
+import mongoose from 'mongoose';
 
 
 interface TICKETS {
@@ -29,7 +30,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Event not found!');
   }
 
-  // 2️⃣ Event Status check - NEW
+  // 2️⃣ Event Status check
   if (event.EventStatus === 'UnderReview' || event.EventStatus === 'Rejected') {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
@@ -37,7 +38,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     );
   }
 
-  // 3️⃣ Event Date check - NEW
+  // 3️⃣ Event Date check
   if (event.eventDate && new Date(event.eventDate) < new Date()) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
@@ -45,11 +46,9 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     );
   }
 
-
-  // 4️⃣ Ticket Sale Period check - NEW
+  // 4️⃣ Ticket Sale Period check
   const now = new Date();
 
-  // Check if ticket sale has started
   if (event.ticketSaleStart && new Date(event.ticketSaleStart) > now) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
@@ -57,12 +56,8 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     );
   }
 
-  // Check presale period
   if (event.preSaleStart && event.preSaleEnd) {
     const preSaleStartDate = new Date(event.preSaleStart);
-
-    // If we're in presale period, you might want to add special logic
-    // For now, just checking if presale has ended and regular sale hasn't started
     if (now < preSaleStartDate) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
@@ -71,7 +66,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     }
   }
 
-  // 5️⃣ Free Event check - NEW
+  // 5️⃣ Free Event check
   if (event.isFreeEvent) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
@@ -79,7 +74,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     );
   }
 
-  // 6️⃣ Tickets validation - NEW
+  // 6️⃣ Tickets validation
   if (!tickets || tickets.length === 0) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
@@ -87,22 +82,14 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     );
   }
 
-  let totalTicketPrice = 0;
+  let totalDiscountedTicketPrice = 0;
   const updatedTickets: any[] = [];
 
   for (const selected of tickets) {
-    // Quantity validation - NEW
     if (selected.quantity <= 0) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
         'Ticket quantity must be greater than zero!'
-      );
-    }
-
-    if (event.eventDate && new Date(event.eventDate) <= now) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        'Ticket sales have ended for this event!'
       );
     }
 
@@ -117,41 +104,31 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     if (eventTicket.availableUnits < selected.quantity) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
-        `Not enough ${selected.ticketType} tickets available!`
+        `Not enough ${selected.ticketType} tickets available! Only ${eventTicket.availableUnits} left.`
       );
     }
 
     const price = eventTicket.price;
     let discountPerTicket = 0;
 
-    // 7️⃣ Discount calculation with proper date validation
+    // Apply discount
     if (discountCode) {
       const validCode = event.discountCodes?.find(d => d.code === discountCode);
       if (!validCode) {
         throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Coupon code!');
       }
 
-      // Improved date check - UPDATED
-      if (validCode.expireDate) {
-        const expireDate = new Date(validCode.expireDate);
-        const currentDate = new Date();
-
-        // Set time to start of day for fair comparison
-        expireDate.setHours(23, 59, 59, 999);
-
-        if (currentDate > expireDate) {
-          throw new ApiError(
-            StatusCodes.BAD_REQUEST,
-            'This Coupon code has expired!'
-          );
-        }
+      if (validCode.expireDate && new Date(validCode.expireDate).getTime() < Date.now()) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'This Coupon code has expired!');
       }
 
       discountPerTicket = (price * validCode.percentage) / 100;
     }
 
-    const finalPricePerTicket = price - discountPerTicket;
-    totalTicketPrice += finalPricePerTicket * selected.quantity;
+    const discountedPricePerTicket = price - discountPerTicket;
+    const totalForThisTicket = discountedPricePerTicket * selected.quantity;
+
+    totalDiscountedTicketPrice += totalForThisTicket;
 
     updatedTickets.push({
       ticketType: selected.ticketType,
@@ -159,12 +136,25 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
       availableUnits: eventTicket.availableUnits,
       price,
       discountPerTicket,
-      finalPricePerTicket,
+      finalPricePerTicket: discountedPricePerTicket,
+      totalForThisTicket,
     });
   }
+
+  // ✅ Mainland Fee Calculation
   const mainLandFee = await MainlandFee.findOne();
-  const mainlandFee = mainLandFee?.mainlandFee || 0;
-  const totalAmount = totalTicketPrice + mainlandFee;
+  const mainlandFeePercentage = mainLandFee?.mainlandFee || 0;
+
+  // Fee is % of total discounted ticket price
+  const feePercentage = Math.min(mainlandFeePercentage, 100);
+  const mainlandFeeAmount = (totalDiscountedTicketPrice * feePercentage) / 100;
+
+  // Total Amount = discounted tickets + mainland fee
+  const totalAmount = totalDiscountedTicketPrice + mainlandFeeAmount;
+
+  console.log("Discounted Ticket Total:", totalDiscountedTicketPrice);
+  console.log("Mainland Fee:", mainlandFeeAmount);
+  console.log("Total Amount:", totalAmount);
 
   if (totalAmount <= 0) {
     throw new ApiError(
@@ -173,15 +163,19 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     );
   }
 
+  // Validate user
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not available');
   }
 
-  // Stripe customer
-  const stripeCustomer = await stripe.customers.create({ name: fullName, email });
+  // Create Stripe customer
+  const stripeCustomer = await stripe.customers.create({
+    name: fullName,
+    email
+  });
 
-  // Stripe Checkout session
+  // Create Stripe Checkout session
   const stripeSession = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     mode: 'payment',
@@ -203,9 +197,12 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
       attenEmail: email,
       attenPhone: phone,
       tickets: JSON.stringify(updatedTickets),
-      totalAmount: totalAmount.toString(),
-      mailLandFee: mainlandFee.toString(),
+      totalAmount: totalAmount.toFixed(2),
+      ticketPrice: totalDiscountedTicketPrice.toFixed(2),
+      mainlandFeePercentage: feePercentage.toString(),
+      mainlandFeeAmount: mainlandFeeAmount.toFixed(2),
       discountCode: discountCode || '',
+      type: 'directPurchase',
     },
     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${config.stripe.cancel_url}?purchase_id=cancelled`,
@@ -214,189 +211,119 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
   return { url: stripeSession.url, sessionId: stripeSession.id };
 };
 
-// Ticket Payment
-// const BuyTicket = async (payload: any) => {
-//   const { fullName, email, phone, tickets, userId , eventId} = payload;
-
-//   // Validate user
-//   const user = await User.findById(userId);
-//   if (!user) {
-//     throw new ApiError(StatusCodes.NOT_FOUND, 'User not available');
-//   }
-
-//   let totalTicketPrice = 0;
-//   const ticketDetails: any[] = [];
-
-//   // Validate and calculate ticket availability
-//   for (const ticket of tickets) {
-//     const availableTickets = await TicketPurchase.find({
-//       ownerId: ticket.sellerId,
-//       ticketType: ticket.ticketType,
-//       status: "onsell",
-//       eventId: eventId,
-//       ticketPrice: ticket.amount,
-//     });
-
-//     const availableQuantity = availableTickets.length;
-
-//     // Check availability
-//     if (availableQuantity === 0) {
-//       throw new ApiError(
-//         StatusCodes.BAD_REQUEST,
-//         `No ${ticket.ticketType} tickets available from seller ${ticket.sellerId}`
-//       );
-//     }
-
-//     if (availableQuantity < ticket.quantity) {
-//       throw new ApiError(
-//         StatusCodes.BAD_REQUEST,
-//         `Only ${availableQuantity} ${ticket.ticketType} ticket(s) available, but ${ticket.quantity} requested`
-//       );
-//     }
-
-//     // Calculate price for requested quantity
-//     const selectedTickets = availableTickets.slice(0, ticket.quantity);
-//     const ticketPrice = selectedTickets.reduce((sum, t) => sum + t.ticketPrice, 0);
-//     totalTicketPrice += ticketPrice;
-
-//     ticketDetails.push({
-//       sellerId: ticket.sellerId,
-//       ticketType: ticket.ticketType,
-//       quantity: ticket.quantity,
-//       price: ticketPrice,
-//       ticketIds: selectedTickets.map(t => t._id),
-//       sellAmount: ticket.sellAmount,
-//     });
-//   }
-
-//   // Create Stripe customer
-//   const stripeCustomer = await stripe.customers.create({
-//     name: user.name,
-//     email: user.email,
-//   });
-
-//   // Create checkout session
-//   const stripeSession = await stripe.checkout.sessions.create({
-//     payment_method_types: ['card'],
-//     mode: 'payment',
-//     customer: stripeCustomer.id,
-//     line_items: ticketDetails.map(detail => ({
-//       price_data: {
-//         currency: 'usd',
-//         product_data: {
-//           name: `${detail.quantity}x ${detail.ticketType} Ticket(s)`,
-//         },
-//         unit_amount: Math.round(detail.price * 100),
-//       },
-//       quantity: 1,
-//     })),
-//     metadata: {
-//       userId: user._id.toString(),
-//       fullName,
-//       email,
-//       phone,
-//       tickets: JSON.stringify(ticketDetails),
-//       totalAmount: totalTicketPrice.toFixed(2),
-//       type: "resellPurchase",
-//       resellerId: userId.toString(),
-//     },
-//     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
-//     cancel_url: `${config.stripe.cancel_url}`,
-//   });
-
-//   return {
-//     sessionId: stripeSession.id,
-//     sessionUrl: stripeSession.url,
-//     totalAmount: totalTicketPrice,
-//   };
-// };
-
 const BuyTicket = async (payload: any) => {
   const { fullName, email, phone, tickets, userId, eventId } = payload;
 
-  // Validate user
+  // 1. Validate user
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User not available');
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not available");
+  }
+
+  // 2. Validate event exists
+  const event = await Event.findById(eventId);
+  if (!event) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+  }
+
+  // 3. Validate tickets array
+  if (!tickets || tickets.length === 0) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "No tickets selected");
   }
 
   let totalTicketPrice = 0;
   const ticketDetails: any[] = [];
 
-  // Validate and calculate ticket availability
+  // 4. Process each selected ticket type
   for (const ticket of tickets) {
-    // DEBUG: First check what tickets exist without price filter
-    const allTicketsForDebug = await TicketPurchase.find({
-      ownerId: ticket.sellerId,
-      ticketType: ticket.ticketType,
-      status: "onsell",
-      eventId: eventId,
-    }).select('ticketPrice sellAmount'); // Check what prices exist
+    const { ticketType, quantity, amount, sellerId } = ticket;
 
-    console.log('🔍 Available tickets for debugging:', allTicketsForDebug);
+    // Validate required fields
+    if (!ticketType || !quantity || !amount || !sellerId) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Missing required ticket information (ticketType, quantity, amount, or sellerId)"
+      );
+    }
 
-    // Now search with sellAmount instead of ticketPrice
+    if (quantity <= 0) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Ticket quantity must be greater than zero"
+      );
+    }
+
+    // Convert sellerId to ObjectId
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+
+    // 5. Fetch available tickets for seller
     const availableTickets = await TicketPurchase.find({
-      ownerId: ticket.sellerId,
-      ticketType: ticket.ticketType,
+      ownerId: sellerObjectId,
+      ticketType,
+      eventId,
       status: "onsell",
-      eventId: eventId,
-      sellAmount: ticket.amount, // Use sellAmount field instead
-    });
+      sellAmount: Number(amount)
+    }).sort({ createdAt: 1 }); // First come, first served
 
-    const availableQuantity = availableTickets.length;
-
-    // Check availability
-    if (availableQuantity === 0) {
+    // 6. Validate quantity
+    if (availableTickets.length === 0) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
-        `No ${ticket.ticketType} tickets available at $${ticket.amount} from seller ${ticket.sellerId}`
+        `No ${ticketType} tickets available at $${amount} from this seller`
       );
     }
 
-    if (availableQuantity < ticket.quantity) {
+    if (availableTickets.length < quantity) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
-        `Only ${availableQuantity} ${ticket.ticketType} ticket(s) available at $${ticket.amount}, but ${ticket.quantity} requested`
+        `Only ${availableTickets.length} ${ticketType} ticket(s) available at $${amount}, but ${quantity} requested`
       );
     }
 
-    // Calculate price using the amount sent by user
-    const ticketPrice = ticket.amount * ticket.quantity;
+    // 7. Select the required number of tickets
+    const selectedTickets = availableTickets.slice(0, quantity);
+
+    const ticketPrice = quantity * Number(amount);
     totalTicketPrice += ticketPrice;
 
-    const selectedTickets = availableTickets.slice(0, ticket.quantity);
-
     ticketDetails.push({
-      sellerId: ticket.sellerId,
-      ticketType: ticket.ticketType,
-      quantity: ticket.quantity,
+      sellerId: sellerObjectId.toString(),
+      ticketType,
+      quantity,
       price: ticketPrice,
-      ticketIds: selectedTickets.map(t => t._id),
-      unitPrice: ticket.amount,
+      ticketIds: selectedTickets.map(t => t._id.toString()),
+      unitPrice: Number(amount)
     });
   }
 
-  // Create Stripe customer
+  // 8. Validate total amount
+  if (totalTicketPrice <= 0) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Total amount must be greater than zero"
+    );
+  }
+
+  // 9. Create Stripe customer
   const stripeCustomer = await stripe.customers.create({
-    name: user.name,
-    email: user.email,
+    name: fullName,
+    email: email,
   });
 
-  // Create checkout session
+  // 10. Create checkout session
   const stripeSession = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    mode: 'payment',
+    payment_method_types: ["card"],
+    mode: "payment",
     customer: stripeCustomer.id,
     line_items: ticketDetails.map(detail => ({
       price_data: {
-        currency: 'usd',
+        currency: "usd",
         product_data: {
-          name: `${detail.quantity}x ${detail.ticketType} Ticket(s)`,
+          name: `${detail.quantity}x ${detail.ticketType} Ticket(s) - ${event.eventName || 'Event'}`
         },
-        unit_amount: Math.round(detail.unitPrice * 100),
+        unit_amount: Math.round(detail.unitPrice * 100)
       },
-      quantity: detail.quantity,
+      quantity: detail.quantity
     })),
     metadata: {
       userId: user._id.toString(),
@@ -406,18 +333,19 @@ const BuyTicket = async (payload: any) => {
       tickets: JSON.stringify(ticketDetails),
       totalAmount: totalTicketPrice.toFixed(2),
       type: "resellPurchase",
-      eventId: eventId.toString(),
+      eventId: eventId.toString()
     },
     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${config.stripe.cancel_url}`,
+    cancel_url: `${config.stripe.cancel_url}`
   });
 
   return {
     sessionId: stripeSession.id,
     sessionUrl: stripeSession.url,
-    totalAmount: totalTicketPrice,
+    totalAmount: totalTicketPrice
   };
 };
+
 
 export const createPaymentService = {
   createPaymentIntentEvent,

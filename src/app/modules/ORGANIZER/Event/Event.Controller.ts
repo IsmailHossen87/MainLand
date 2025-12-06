@@ -229,9 +229,9 @@ const popularEvent = catchAsync(
 // All Data Use Query
 const allDataUseQuery = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    
+
     const userId = req.user?.id
-    const query = req.query 
+    const query = req.query
     const result = await EventService.allDataUseQuery(userId as string, query as Record<string, string>)
 
     await sendResponse(res, {
@@ -246,9 +246,9 @@ const allDataUseQuery = catchAsync(
 // All Data Use Query
 const AllUnderReview = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    
+
     const userId = req.user?.id
-    const query = req.query 
+    const query = req.query
     const result = await EventService.allUndewReview(userId as string, query as Record<string, string>)
 
     await sendResponse(res, {
@@ -311,13 +311,26 @@ const allCategory = catchAsync(
 // All Event History
 const eventTicketHistory = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-
     const result = await EventService.eventTicketHistory(req.params.id as string)
-
     await sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
       message: "Event History Retrived Successfully",
+      data: result,
+    });
+  }
+);
+// Bar Code Check
+const barCodeCheck = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.id
+    const eventId = req.params.id
+    const ownerId = req.body.ownerId
+    const result = await EventService.barCodeCheck(ownerId as string, userId as string, eventId as string)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Bar Code Check Successfully",
       data: result,
     });
   }
@@ -339,5 +352,6 @@ export const EventController = {
   subCategory,
   allCategory,
   eventTicketHistory,
-  AllUnderReview
+  AllUnderReview,
+  barCodeCheck
 };

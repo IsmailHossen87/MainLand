@@ -75,12 +75,12 @@ router.get(
 ------------------------------------------ */
 router.get(
   '/',
-  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER,USER_ROLES.ADMIN),
+  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER, USER_ROLES.ADMIN),
   EventController.allDataUseQuery
 );
 router.get(
   '/under-review',
-  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER,USER_ROLES.ADMIN),
+  auth(USER_ROLES.ORGANIZER, USER_ROLES.USER, USER_ROLES.ADMIN),
   EventController.AllUnderReview
 );
 
@@ -191,5 +191,10 @@ router.put(
   parseFormDataMiddleware,
   EventController.updateCategory
 );
+
+router.patch("/bar-code-check/:id", (req, res, next) => {
+  console.log("Ticket Information", req.body)
+  next()
+}, auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), EventController.barCodeCheck)
 
 export const EventRoutes = router;
