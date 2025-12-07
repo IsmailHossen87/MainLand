@@ -122,15 +122,18 @@ const getSoldEvent = async (userId: string) => {
 
   // 1️⃣ User exists check
   const user = await User.findById(userId);
+
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
+  console.log("user-Hellowwwwwwwwwwwwww-------------", user._id);
 
   // 2️⃣ Aggregation pipeline
   const result = await TransactionHistory.aggregate([
     {
       $match: {
-        userId: new mongoose.Types.ObjectId(userId),
+        userId: user._id,
+        type: "resellPurchase",
       }
     },
     {
@@ -545,6 +548,7 @@ const withdrawPro = async (
     message: `Tickets withdrawn successfully.`,
   };
 };
+
 const soldTicket = async (userId: string) => {
   const ownerId = new mongoose.Types.ObjectId(userId);
 
@@ -553,7 +557,7 @@ const soldTicket = async (userId: string) => {
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
-  const transactions = await TransactionHistory.find({ userId: ownerId }).populate('eventId', 'name image').populate('ticketId', ' ticketType')
+  const transactions = await TransactionHistory.find({ resellerId: ownerId }).populate('eventId', 'name image').populate('ticketId', ' ticketType')
     .sort({ createdAt: -1 })
     .limit(10);
 
