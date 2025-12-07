@@ -24,6 +24,7 @@ interface IUser {
 const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
   const { fullName, email, phone, tickets, discountCode, userId } = userInfo;
 
+
   // 1️⃣ Event check
   const event = await Event.findById(eventId);
   if (!event) {
@@ -130,14 +131,23 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
 
     totalDiscountedTicketPrice += totalForThisTicket;
 
+    // updatedTickets.push({
+    //   ticketType: selected.ticketType,
+    //   quantity: selected.quantity,
+    //   availableUnits: eventTicket.availableUnits,
+    //   price,
+    //   discountPerTicket,
+    //   finalPricePerTicket: discountedPricePerTicket,
+    //   totalForThisTicket,
+    // }); 
     updatedTickets.push({
-      ticketType: selected.ticketType,
-      quantity: selected.quantity,
-      availableUnits: eventTicket.availableUnits,
-      price,
-      discountPerTicket,
-      finalPricePerTicket: discountedPricePerTicket,
-      totalForThisTicket,
+      t: selected.ticketType,
+      q: selected.quantity,
+      a: eventTicket.availableUnits,
+      p: price,
+      d: discountPerTicket,
+      f: discountedPricePerTicket,
+      tot: totalForThisTicket
     });
   }
 
@@ -152,10 +162,6 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
   // Total Amount = discounted tickets + mainland fee
   const totalAmount = totalDiscountedTicketPrice + mainlandFeeAmount;
 
-  console.log("Discounted Ticket Total:", totalDiscountedTicketPrice);
-  console.log("Mainland Fee:", mainlandFeeAmount);
-  console.log("Total Amount:", totalAmount);
-
   if (totalAmount <= 0) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
@@ -165,14 +171,15 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
 
   // Validate user
   const user = await User.findById(userId);
+
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not available');
   }
 
   // Create Stripe customer
   const stripeCustomer = await stripe.customers.create({
-    name: fullName,
-    email
+    name: user.name,
+    email: user.email,
   });
 
   // Create Stripe Checkout session
@@ -296,42 +303,62 @@ const BuyTicket = async (payload: any) => {
     });
   }
 
-  // 8. Validate total amount
-  if (totalTicketPrice <= 0) {
+  // 8. ✅ Mainland Fee Calculation
+  const mainLandFee = await MainlandFee.findOne();
+  const mainlandFeePercentage = mainLandFee?.mainlandFee || 0;
+
+  // Fee is % of total ticket price
+  const feePercentage = Math.min(mainlandFeePercentage, 100);
+  const mainlandFeeAmount = (totalTicketPrice * feePercentage) / 100;
+
+  // Total Amount = ticket price + mainland fee
+  const totalAmount = totalTicketPrice + mainlandFeeAmount;
+
+  console.log("Ticket Total:", totalTicketPrice);
+  console.log("Mainland Fee:", mainlandFeeAmount);
+  console.log("Total Amount:", totalAmount);
+
+  // 9. Validate total amount
+  if (totalAmount <= 0) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       "Total amount must be greater than zero"
     );
   }
 
-  // 9. Create Stripe customer
+  // 10. Create Stripe customer
   const stripeCustomer = await stripe.customers.create({
-    name: fullName,
-    email: email,
+    name: user.name,
+    email: user.email,
   });
 
-  // 10. Create checkout session
+  // 11. Create checkout session
   const stripeSession = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     mode: "payment",
     customer: stripeCustomer.id,
-    line_items: ticketDetails.map(detail => ({
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: `${detail.quantity}x ${detail.ticketType} Ticket(s) - ${event.eventName || 'Event'}`
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `Tickets for ${event.eventName || 'Event'}`
+          },
+          unit_amount: Math.round(totalAmount * 100)
         },
-        unit_amount: Math.round(detail.unitPrice * 100)
-      },
-      quantity: detail.quantity
-    })),
+        quantity: 1
+      }
+    ],
     metadata: {
       userId: user._id.toString(),
       fullName,
       email,
       phone,
       tickets: JSON.stringify(ticketDetails),
-      totalAmount: totalTicketPrice.toFixed(2),
+      totalAmount: totalAmount.toFixed(2),
+      ticketPrice: totalTicketPrice.toFixed(2),
+      mainlandFeePercentage: feePercentage.toString(),
+      mainlandFeeAmount: mainlandFeeAmount.toFixed(2),
       type: "resellPurchase",
       eventId: eventId.toString()
     },
@@ -342,7 +369,9 @@ const BuyTicket = async (payload: any) => {
   return {
     sessionId: stripeSession.id,
     sessionUrl: stripeSession.url,
-    totalAmount: totalTicketPrice
+    totalAmount: totalAmount,
+    ticketPrice: totalTicketPrice,
+    mainlandFeeAmount: mainlandFeeAmount
   };
 };
 
