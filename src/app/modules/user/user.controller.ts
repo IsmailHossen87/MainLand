@@ -26,7 +26,9 @@ const createUser = catchAsync(
 
 const getUserProfile = catchAsync(async (req: Request, res: Response) => {
   const user = req.user;
-  const result = await UserService.getUserProfileFromDB(user as JwtPayload);
+  const userId = req.query.userId;
+  console.log(userId)
+  const result = await UserService.getUserProfileFromDB(user as JwtPayload, userId as string);
 
   sendResponse(res, {
     success: true,
@@ -36,13 +38,15 @@ const getUserProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 const getAllUser = catchAsync(async (req: Request, res: Response) => {
-  const result = await UserService.getAllUser();
+  const query = req.query;
+  const result = await UserService.getAllUser(query as Record<string, string>);
 
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
     message: 'Users data retrieved successfully',
-    data: result,
+    meta: result.meta,
+    data: result.data,
   });
 });
 // count
