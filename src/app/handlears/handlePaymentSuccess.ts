@@ -47,17 +47,34 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
   const email = metadata.attenEmail;
   const phone = metadata.attenPhone;
   const discountCode = metadata.discountCode || "";
+  const mainlandFeeAmount = Number(metadata.mainlandFeeAmount);
+  const Amount = Number(metadata.totalAmount);
   const ownerId = new mongoose.Types.ObjectId(userId);
 
-  // Parse tickets
-  let allTickets: any[] = [];
+  // -----------------------------
+  // Safe parsing & expand compressed tickets
+  // -----------------------------
+  let compressedTickets: any[] = [];
+
   try {
-    allTickets = JSON.parse(metadata.tickets);
+    compressedTickets = JSON.parse(metadata.tickets);
   } catch {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
   }
 
-  // Create ticket purchases and collect ticket IDs
+  const allTickets = compressedTickets.map(t => ({
+    ticketType: t.t,
+    quantity: t.q,
+    availableUnits: t.a,
+    price: t.p,
+    discountPerTicket: t.d,
+    finalPricePerTicket: t.f,
+    totalForThisTicket: t.tot,
+  }));
+
+  // -----------------------------
+  // Create individual ticket purchases
+  // -----------------------------
   const createdTicketIds: mongoose.Types.ObjectId[] = [];
 
   for (const ticket of allTickets) {
@@ -68,41 +85,56 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
         ticketName: generateTicketName(ticket.ticketType),
         attendeeInformation: { fullName, email, phone },
         ticketType: ticket.ticketType,
-        purchaseAmount: ticket.finalPricePerTicket,
+        purchaseAmount: Amount,
         discount: ticket.discountPerTicket,
         discountCode,
-        sellAmount: ticket.finalPricePerTicket,
+        mainLandFee: mainlandFeeAmount,
+        sellAmount: Amount,
         status: "available",
       });
       createdTicketIds.push(newTicket._id);
     }
+
+    // -----------------------------
+    // ❗ FIX: decrease availableUnits by actual quantity
+    // -----------------------------
+    await Event.updateOne(
+      {
+        _id: eventId,
+        "tickets.type": ticket.ticketType,   // <-- CORRECTED FIELD
+      },
+      {
+        $inc: {
+          "tickets.$.availableUnits": -ticket.quantity,
+        },
+      }
+    );
   }
 
+  // -----------------------------
   // Calculate total amount
+  // -----------------------------
   const totalAmount = allTickets.reduce(
-    (sum, t) => sum + (t.finalPricePerTicket * t.quantity),
+    (sum, t) => sum + t.totalForThisTicket,
     0
   );
 
-  // Save transaction history - FIXED: Use first ticket ID instead of length
-  const transactionHistory = await TransactionHistory.create({
+  // -----------------------------
+  // Save transaction history
+  // -----------------------------
+  await TransactionHistory.create({
     userId: ownerId,
     eventId,
     type: "directPurchase",
     purchaseAmount: totalAmount,
-    ticketId: createdTicketIds[0], // Use actual ObjectId instead of number
+    ticketId: createdTicketIds[0],
     sellAmount: 0,
-    ticketQuantity: allTickets.reduce((sum, t) => sum + t.quantity, 0), // Add total quantity
+    ticketQuantity: allTickets.reduce((sum, t) => sum + t.quantity, 0),
   });
 
-  console.log("🚀 ~ handleEvent ~ ownerId:", ownerId);
-  console.log("🚀 ~ handleEvent ~ eventId:", eventId);
-  console.log("🚀 ~ handleEvent ~ PurchaseAmount:", totalAmount);
-  console.log("🚀 ~ handleEvent ~ ticketId:", createdTicketIds[0]);
-  console.log("🚀 ~ handleEvent ~ sellAmount:", 0);
-  console.log("🚀 ~ handleEvent ~ transactionHistory:", transactionHistory);
-
+  // -----------------------------
   // Send Email
+  // -----------------------------
   try {
     await emailHelper.sendEmail(
       emailTemplate.newTicketPurchaseEmail({
@@ -119,13 +151,17 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
   console.log("🎉 Ticket purchase completed successfully!");
 };
 
+
 const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
   if (!session.metadata) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Metadata missing in session!");
   }
 
+  console.log(session.metadata);
+
   const metadata = session.metadata as any;
-  const { userId, email, fullName, phone, totalAmount, tickets, eventId } = metadata;
+  const { userId, email, fullName, phone, totalAmount, ticketPrice, tickets, eventId, mainlandFeeAmount } = metadata;
+  console.log("meeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", metadata);
 
   let allTickets: any[];
 
@@ -141,6 +177,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
 
   for (const ticketGroup of allTickets) {
     const { ticketIds, sellerId, ticketType, quantity, price, unitPrice } = ticketGroup;
+
 
     // Validate sellerId
     if (!sellerId) {
@@ -195,7 +232,11 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
             phone,
           },
           purchaseAmount: unitPrice,
-          resellerId: sellerObjectId, // Previous owner becomes reseller
+          sellAmount: price,
+          mainLandFee: parseFloat(mainlandFeeAmount) || 0,
+          resellerId: sellerObjectId,
+          discount: 0,
+          discountCode: "",
         },
       }
     );
@@ -207,6 +248,14 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
         `Failed to update all ${ticketType} tickets. Expected ${quantity}, updated ${updatedTickets.modifiedCount}`
       );
     }
+    await Event.updateOne({
+      _id: ticketEventId,
+      "tickets._id": { $in: ticketObjectIds },
+    }, {
+      $inc: {
+        "tickets.$.availableUnits": -quantity,
+      },
+    });
 
     // Create transaction history for SELLER
     await TransactionHistory.create({
@@ -235,6 +284,8 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
         pricePerTicket: ticket.unitPrice,
         totalPrice: ticket.price,
       })),
+      ticketPrice: parseFloat(ticketPrice),
+      mainlandFeeAmount: parseFloat(mainlandFeeAmount),
       totalAmount: parseFloat(totalAmount),
     };
 
