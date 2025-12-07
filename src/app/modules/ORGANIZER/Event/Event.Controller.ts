@@ -325,12 +325,24 @@ const barCodeCheck = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user?.id
     const eventId = req.params.id
-    const ownerId = req.body.ownerId
-    const result = await EventService.barCodeCheck(ownerId as string, userId as string, eventId as string)
+    const query = req.query
+
+    const result = await EventService.barCodeCheck(query.ownerId as string, userId as string, eventId as string, query.isUpdate as string)
     await sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
       message: "Bar Code Check Successfully",
+      data: result,
+    });
+  }
+);
+const perticipentCount = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const result = await EventService.perticipentCount(req.params.eventCode as string)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Event Perticipent Count Retrived Successfully",
       data: result,
     });
   }
@@ -353,5 +365,6 @@ export const EventController = {
   allCategory,
   eventTicketHistory,
   AllUnderReview,
-  barCodeCheck
+  barCodeCheck,
+  perticipentCount
 };

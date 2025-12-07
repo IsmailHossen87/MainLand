@@ -5,10 +5,11 @@ export interface ITransactionHistory {
   eventId: Types.ObjectId;
   ticketId: Types.ObjectId;
   resellerId: Types.ObjectId;
-  type: 'directPurchase' | 'resellPurchase';
+  type: 'directPurchase' | 'resellPurchase' | 'adminPercentage';
   purchaseAmount: number;
   sellAmount: number;
   earnedAmount: number;
+  mainLandFee: number;
   ticketQuantity: number;
 }
 
@@ -35,9 +36,13 @@ const transactionHistorySchema = new Schema<ITransactionHistory>(
       ref: "TicketPurchase",
       index: true,
     },
+    mainLandFee: {
+      type: Number,
+      default: 0,
+    },
     type: {
       type: String,
-      enum: ['directPurchase', 'resellPurchase'],
+      enum: ['directPurchase', 'resellPurchase', 'adminPercentage'],
       default: 'directPurchase',
     },
     purchaseAmount: {

@@ -663,10 +663,12 @@ const promocode = async (userId: string, id: string, code: string) => {
 // BAR-CODE generate
 const checkEvent = async (userId: string, eventCode: string) => {
   const user = await User.findById(userId);
+
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
-  const tickets = await Event.findOne({ eventCode: eventCode, ownerId: user._id });
+  const tickets = await Event.findOne({ eventCode: eventCode, userId: user._id });
+
   if (!tickets) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
   }
