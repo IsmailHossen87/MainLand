@@ -645,26 +645,129 @@ const eventTicketHistory = async (eventId: string) => {
   return ticketHistory;
 };
 
-// BarCode Check
-const barCodeCheck = async (ownerId: string, userId: string, eventId: string) => {
+const barCodeCheck = async (
+  ownerId: string,
+  userId: string,
+  eventId: string,
+  isUpdate: boolean
+) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+    throw new ApiError(StatusCodes.NOT_FOUND, "User is not Available");
   }
+  const event = await Event.findOne({
+    _id: new Types.ObjectId(eventId),
+    userId: new Types.ObjectId(userId),
+  }).select("eventName");
 
-  const event = await Event.findOne({ _id: new Types.ObjectId(eventId), userId: new Types.ObjectId(userId) });
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, `Event is not Available for this user`);
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "Event is not Available for this user"
+    );
   }
 
-  const ticket = await TicketPurchase.find({ ownerId: new Types.ObjectId(ownerId), eventId: event._id, status: 'available' });
-  await TicketPurchase.updateMany({ ownerId: new Types.ObjectId(ownerId), eventId: event._id, status: 'available' }, { status: 'used' });
+  // -------------------------------
+  // 3. Fetch ALL available tickets of this owner for this event
+  // -------------------------------
+  const tickets = await TicketPurchase.find({
+    ownerId: new Types.ObjectId(ownerId),
+    eventId: event._id,
+    status: "available",
+  }).select("ticketType");
 
-  if (!ticket) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Ticket is not Available');
+  if (!tickets || tickets.length === 0) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Ticket is not Available");
   }
-  return [];
+
+  // -------------------------------
+  // 4. If isUpdate = true → Update ticket status
+  // -------------------------------
+  if (isUpdate === true) {
+    await TicketPurchase.updateMany(
+      {
+        ownerId: new Types.ObjectId(ownerId),
+        eventId: event._id,
+        status: "available",
+      },
+      { status: "used" }
+    );
+  }
+
+  // -------------------------------
+  // 5. Group by Ticket Type
+  // -------------------------------
+  const ticketCountMap: Record<string, number> = {};
+
+  tickets.forEach((t) => {
+    const type = String(t.ticketType);
+    if (!ticketCountMap[type]) {
+      ticketCountMap[type] = 0;
+    }
+    ticketCountMap[type] += 1;
+  });
+
+  // Convert to desired array format
+  const groupedData = Object.entries(ticketCountMap).map(
+    ([type, count]) => ({ type, count })
+  );
+
+  // -------------------------------
+  // 6. Final Response
+  // -------------------------------
+  return {
+    eventName: event.eventName,
+    data: groupedData,
+  };
 };
+
+
+// Total Perticipent this event
+const perticipentCount = async (eventCode: string) => {
+  // 1️⃣ Find the event by code
+  const event = await Event.findOne({ eventCode });
+  if (!event) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
+  }
+
+  // 2️⃣ Get all used tickets for this event
+  const tickets = await TicketPurchase.find({ eventId: event._id, status: 'used' })
+    .select('ticketType -_id'); // only need ticketType
+
+  if (!tickets || tickets.length === 0) {
+    return {
+      eventName: event.eventName,
+      eventCode: event.eventCode,
+      used: [],
+    };
+  }
+
+  // 3️⃣ Count tickets by type
+  const ticketCountMap: Record<string, number> = {};
+
+  tickets.forEach(ticket => {
+    const type = String(ticket.ticketType);
+    if (!ticketCountMap[type]) {
+      ticketCountMap[type] = 0;
+    }
+    ticketCountMap[type] += 1;
+  });
+
+
+  // 4️⃣ Convert map to array
+  const used = Object.keys(ticketCountMap).map(type => ({
+    type,
+    count: ticketCountMap[type],
+  }));
+
+  // 5️⃣ Return in desired format
+  return {
+    eventName: event.eventName,
+    eventCode: event.eventCode,
+    used,
+  };
+};
+
 
 export const EventService = {
   creteSubCategory,
@@ -684,5 +787,6 @@ export const EventService = {
   eventTicketHistory,
   updateSubCategory,
   allUndewReview,
-  barCodeCheck
+  barCodeCheck,
+  perticipentCount
 };
