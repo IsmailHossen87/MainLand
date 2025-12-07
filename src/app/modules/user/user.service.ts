@@ -7,6 +7,8 @@ import { isDeleted, MainlandFee, User } from './user.model';
 import stripe from '../../config/stripe.config';
 import bcrypt from 'bcrypt';
 import { USER_ROLES } from '../../../enums/user';
+import { QueryBuilder } from '../../builder/QueryBuilder';
+import { excludeField } from '../../../shared/constrant';
 
 const OTP_EXPIRATION = 2 * 60;
 
@@ -44,7 +46,8 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
     { _id: createUser._id },
     {
       $set: {
-        stripeAccountInfo: { stripeCustomerId: stripeCustomer.id }
+        stripeAccountInfo: { stripeCustomerId: stripeCustomer.id },
+
       }
     }
   );
@@ -54,20 +57,30 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
 
 
 const getUserProfileFromDB = async (
-  user: JwtPayload
+  user: JwtPayload,
+  userId: string
 ): Promise<any> => {
   const { id } = user;
 
   // ✅ Mainland fee fetch koro
   const mainLandFeeData = await MainlandFee.findOne();
 
-  // ✅ User check koro
+  if (userId) {
+    const isExistUser = await User.isExistUserById(userId);
+    if (!isExistUser) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+    }
+    return {
+      ...isExistUser.toObject ? isExistUser.toObject() : isExistUser,
+      mainlandFee: mainLandFeeData?.mainlandFee || 1
+    };
+  }
+
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
   }
 
-  // ✅ User object er moddhe mainland fee add kore return
   const userObject = isExistUser.toObject ? isExistUser.toObject() : isExistUser;
 
   return {
@@ -76,13 +89,23 @@ const getUserProfileFromDB = async (
   };
 };
 
-const getAllUser = async () => {
-  const isExistUser = await User.find();
-  if (!isExistUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
-  }
+const getAllUser = async (query: Record<string, string>) => {
+  const baseQuery = User.find().sort({ createdAt: -1 });
+  const qb = await new QueryBuilder(baseQuery, query)
 
-  return isExistUser;
+  const allUser = await qb.search(excludeField)
+    .filter()
+    .dateRange()
+    .sort()
+    .fields()
+    .paginate();
+
+  const [meta, data] = await Promise.all([
+    allUser.getMeta(),
+    allUser.build(),
+  ]);
+
+  return { meta, data };
 };
 
 const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Promise<Partial<IUser | null>> => {

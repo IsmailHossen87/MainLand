@@ -32,6 +32,7 @@ export interface INewPurchaseEmail {
   email: string;
   totalTicket: INewTicket[];
   totalAmount: number;
+  mainLandFee: number;
 }
 
 const createAccount = (values: { name: string; email: string; otp: number }) => {
@@ -254,7 +255,7 @@ const resaleTicketPurchaseEmail = (data: IResalePurchaseEmail) => {
 
 // Email template for NEW ticket purchase (with discount support)
 const newTicketPurchaseEmail = (data: INewPurchaseEmail) => {
-  const { name, email, totalTicket, totalAmount } = data;
+  const { name, email, totalTicket, totalAmount, mainLandFee } = data;
 
   const hasDiscount = totalTicket.some(t => t.discountPerTicket && t.discountPerTicket > 0);
 
@@ -284,6 +285,9 @@ const newTicketPurchaseEmail = (data: INewPurchaseEmail) => {
           : ''}
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">
         $${(ticket.finalPricePerTicket * ticket.quantity).toFixed(2)}
+      </td>
+      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">
+        $${mainLandFee}
       </td>
     </tr>
   `;

@@ -201,10 +201,9 @@ const avaiableTypeHistory = catchAsync(async (req: Request, res: Response) => {
 
 // Bar code generate
 const checkEvent = catchAsync(async (req: Request, res: Response) => {
+
     const userId = req.user?.id as string;
     const { eventCode } = req.params
-
-    console.log("eventCode", eventCode)
     const result = await TicketService.checkEvent(userId, eventCode);
 
     sendResponse(res, {
