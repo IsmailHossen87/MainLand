@@ -121,7 +121,28 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
 
   // -----------------------------
   // Save transaction history
-  // -----------------------------
+  // ----------------------------- 
+  const ticketPurchase = await TransactionHistory.findOne({
+    userId: ownerId,
+    eventId,
+    type: "directPurchase",
+  });
+  if (ticketPurchase) {
+    ticketPurchase.purchaseAmount += totalAmount;
+    ticketPurchase.sellAmount += totalAmount;
+    ticketPurchase.ticketQuantity += allTickets.reduce((sum, t) => sum + t.quantity, 0);
+    await ticketPurchase.save();
+  } else {
+    await TransactionHistory.create({
+      userId: ownerId,
+      eventId,
+      type: "directPurchase",
+      purchaseAmount: totalAmount,
+      sellAmount: 0,
+      ticketQuantity: allTickets.reduce((sum, t) => sum + t.quantity, 0),
+    });
+  }
+  // FOR ADMIN
   await TransactionHistory.create({
     userId: ownerId,
     eventId,
@@ -131,6 +152,31 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
     sellAmount: 0,
     ticketQuantity: allTickets.reduce((sum, t) => sum + t.quantity, 0),
   });
+
+  const adminHistory = await TransactionHistory.findOne({
+    userId: ownerId,
+    eventId,
+    type: "adminPercentage",
+  });
+
+  if (adminHistory) {
+    adminHistory.purchaseAmount += totalAmount;
+    adminHistory.sellAmount += totalAmount - mainlandFeeAmount;
+    adminHistory.mainLandFee += mainlandFeeAmount;
+    adminHistory.ticketQuantity += allTickets.reduce((sum, t) => sum + t.quantity, 0);
+    await adminHistory.save();
+  } else {
+    // Not exists → create new
+    await TransactionHistory.create({
+      userId: ownerId,
+      eventId,
+      type: "adminPercentage",
+      purchaseAmount: totalAmount,
+      sellAmount: totalAmount - mainlandFeeAmount,
+      mainLandFee: mainlandFeeAmount,
+      ticketQuantity: allTickets.reduce((sum, t) => sum + t.quantity, 0),
+    });
+  }
 
   // -----------------------------
   // Send Email
@@ -161,7 +207,6 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
 
   const metadata = session.metadata as any;
   const { userId, email, fullName, phone, totalAmount, ticketPrice, tickets, eventId, mainlandFeeAmount } = metadata;
-  console.log("meeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", metadata);
 
   let allTickets: any[];
 
@@ -257,6 +302,32 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
       },
     });
 
+    const history = await TransactionHistory.findOne({
+      userId: sellerObjectId,
+      eventId: ticketEventId,
+      ticketId: ticketObjectIds[0],
+      type: 'resellPurchase',
+    });
+    if (history) {
+      history.purchaseAmount += totalPurchaseAmount;
+      history.sellAmount += totalSellAmount;
+      history.earnedAmount += totalEarnedAmount;
+      history.ticketQuantity += Number(quantity);
+      await history.save();
+    } else {
+      await TransactionHistory.create({
+        userId: sellerObjectId,
+        resellerId: newOwnerId,
+        eventId: ticketEventId,
+        ticketId: ticketObjectIds[0], // Use ObjectId, not array
+        type: 'resellPurchase',
+        purchaseAmount: totalPurchaseAmount,
+        sellAmount: totalSellAmount,
+        earnedAmount: totalEarnedAmount,
+        ticketQuantity: Number(quantity),
+      });
+    }
+
     // Create transaction history for SELLER
     await TransactionHistory.create({
       userId: sellerObjectId,
@@ -270,7 +341,30 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
       ticketQuantity: Number(quantity),
     });
 
-    console.log(`✅ Processed ${quantity} ${ticketType} ticket(s) for seller ${sellerId}`);
+    const adminHistory = await TransactionHistory.findOne({
+      userId: newOwnerId,
+      eventId,
+      type: "adminPercentage",
+    });
+
+    if (adminHistory) {
+      adminHistory.purchaseAmount += totalAmount;
+      adminHistory.sellAmount += totalAmount - mainlandFeeAmount;
+      adminHistory.mainLandFee += mainlandFeeAmount;
+      adminHistory.ticketQuantity += allTickets.reduce((sum, t) => sum + t.quantity, 0);
+      await adminHistory.save();
+    } else {
+      // Not exists → create new
+      await TransactionHistory.create({
+        userId: newOwnerId,
+        eventId,
+        type: "adminPercentage",
+        purchaseAmount: totalAmount,
+        sellAmount: totalAmount - mainlandFeeAmount,
+        mainLandFee: mainlandFeeAmount,
+        ticketQuantity: allTickets.reduce((sum, t) => sum + t.quantity, 0),
+      });
+    }
   }
 
   // Send confirmation email to NEW BUYER
