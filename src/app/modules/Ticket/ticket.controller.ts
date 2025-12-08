@@ -201,7 +201,6 @@ const avaiableTypeHistory = catchAsync(async (req: Request, res: Response) => {
 
 // Bar code generate
 const checkEvent = catchAsync(async (req: Request, res: Response) => {
-
     const userId = req.user?.id as string;
     const { eventCode } = req.params
     const result = await TicketService.checkEvent(userId, eventCode);
@@ -211,6 +210,20 @@ const checkEvent = catchAsync(async (req: Request, res: Response) => {
         success: true,
         message: 'Event retrived Successfully',
         data: result,
+    });
+});
+// Bar code generate
+const soldTicketHistory = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const { id } = req.params
+    const result = await TicketService.soldTicketHistory(userId, id as string);
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Event retrived Successfully',
+        // data: result.flatMap((item) => item.ticketInfo),
+        data: result
     });
 });
 
@@ -230,4 +243,5 @@ export const TicketController = {
     sellTicketInfoUsersOnsell,
     avaiableTypeHistory,
     checkEvent,
+    soldTicketHistory,
 };

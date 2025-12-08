@@ -147,8 +147,7 @@ const webhookHandler = async (req: Request, res: Response): Promise<void> => {
       case 'checkout.session.completed': {
         const session: any = event.data.object;
         const metadata = session.metadata || {};
-
-        console.log("🚀 ~ webhookHandler ~ metadata:", metadata);
+        console.log("🚀 ~ webhookHandler ~ metadata:✅✅✅✅👽👽👽👽👽", metadata);
 
         // Ensure attendee info is included before calling handler
         session.attendeeInformation = {
