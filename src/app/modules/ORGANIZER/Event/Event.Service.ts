@@ -645,20 +645,12 @@ const eventTicketHistory = async (eventId: string) => {
   return ticketHistory;
 };
 
-const barCodeCheck = async (
-  ownerId: string,
-  userId: string,
-  eventId: string,
-  isUpdate: boolean
-) => {
+const barCodeCheck = async (ownerId: string, userId: string, eventId: string, isUpdate: string) => {
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User is not Available");
   }
-  const event = await Event.findOne({
-    _id: new Types.ObjectId(eventId),
-    userId: new Types.ObjectId(userId),
-  }).select("eventName");
+  const event = await Event.findOne({ _id: new Types.ObjectId(eventId), userId: new Types.ObjectId(userId), }).select("eventName");
 
   if (!event) {
     throw new ApiError(
@@ -667,9 +659,7 @@ const barCodeCheck = async (
     );
   }
 
-  // -------------------------------
-  // 3. Fetch ALL available tickets of this owner for this event
-  // -------------------------------
+
   const tickets = await TicketPurchase.find({
     ownerId: new Types.ObjectId(ownerId),
     eventId: event._id,
@@ -679,24 +669,12 @@ const barCodeCheck = async (
   if (!tickets || tickets.length === 0) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Ticket is not Available");
   }
+  console.log("ISUPDATE", isUpdate)
 
-  // -------------------------------
-  // 4. If isUpdate = true → Update ticket status
-  // -------------------------------
-  if (isUpdate === true) {
-    await TicketPurchase.updateMany(
-      {
-        ownerId: new Types.ObjectId(ownerId),
-        eventId: event._id,
-        status: "available",
-      },
-      { status: "used" }
-    );
+  if (isUpdate === "true") {
+    await TicketPurchase.updateMany({ ownerId: new Types.ObjectId(ownerId), eventId: event._id, status: "available" }, { status: "used" });
   }
 
-  // -------------------------------
-  // 5. Group by Ticket Type
-  // -------------------------------
   const ticketCountMap: Record<string, number> = {};
 
   tickets.forEach((t) => {
@@ -707,14 +685,10 @@ const barCodeCheck = async (
     ticketCountMap[type] += 1;
   });
 
-  // Convert to desired array format
   const groupedData = Object.entries(ticketCountMap).map(
     ([type, count]) => ({ type, count })
   );
 
-  // -------------------------------
-  // 6. Final Response
-  // -------------------------------
   return {
     eventName: event.eventName,
     data: groupedData,

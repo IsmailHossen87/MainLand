@@ -661,7 +661,7 @@ const promocode = async (userId: string, id: string, code: string) => {
 
 
 // BAR-CODE generate
-const checkEvent = async (userId: string, eventCode: string) => {
+const checkEvent = async (userId: string, eventId: string) => {
   const user = await User.findById(userId);
 
   if (!user) {
@@ -677,6 +677,40 @@ const checkEvent = async (userId: string, eventCode: string) => {
     return true
   }
   return false
+};
+
+const soldTicketHistory = async (userId: string, eventId: string) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  const tickets = await TransactionHistory.findOne({
+    eventId: new mongoose.Types.ObjectId(eventId),
+    resellerId: user._id,
+  }).populate("eventId", "eventName");
+
+  if (!tickets) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Ticket not found");
+  }
+
+
+  const response = {
+    eventName: (tickets.eventId as any)?.eventName || "",
+    summary: {
+      totalSellAmount: tickets.purchaseAmount,
+      totalMainlandFee: tickets.mainLandFee,
+      totalTickets: tickets.ticketQuantity,
+    },
+    details: tickets.ticketInfo.map((ticket) => ({
+      ticketType: ticket.ticketType,
+      quantity: ticket.quantity,
+      price: ticket.ticketPrice,
+    })),
+  };
+
+  return response;
 };
 
 
@@ -695,5 +729,6 @@ export const TicketService = {
   withdrawPro,
   sellTicketInfoUsersOnsell,
   availableTypeHistory,
-  checkEvent
+  checkEvent,
+  soldTicketHistory
 };
