@@ -31,174 +31,12 @@ export const generateTicketName = (ticketType: string) => {
   return `${ticketType}-${random}`;
 };
 
-
-// const handleEvent = async (session: Stripe.Checkout.Session) => {
-//   if (!session.metadata) {
-//     throw new ApiError(StatusCodes.BAD_REQUEST, "Metadata missing in session!");
-//   }
-
-//   const metadata = session.metadata as any;
-//   console.log("metadata----------------------------------------------", metadata);
-
-//   const userId = metadata.userId;
-//   const eventId = metadata.eventId;
-//   const fullName = metadata.fullName;
-//   const email = metadata.attenEmail;
-//   const phone = metadata.attenPhone;
-//   const discountCode = metadata.discountCode || "";
-//   const mainlandFeeAmount = parseFloat(metadata.mainlandFeeAmount) || 0;
-//   const ticketPrice = parseFloat(metadata.ticketPrice) || 0;
-//   const totalAmount = parseFloat(metadata.totalAmount) || 0;
-//   const ownerId = new mongoose.Types.ObjectId(userId);
-
-//   // -----------------------------
-//   // Safe parsing & expand compressed tickets
-//   // -----------------------------
-//   let compressedTickets: any[] = [];
-
-//   try {
-//     compressedTickets = JSON.parse(metadata.tickets);
-//   } catch {
-//     throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
-//   }
-
-//   const allTickets = compressedTickets.map(t => ({
-//     ticketType: t.t,
-//     quantity: t.q,
-//     availableUnits: t.a,
-//     price: t.p,
-//     discountPerTicket: t.d,
-//     finalPricePerTicket: t.f,
-//     totalForThisTicket: t.tot,
-//   }));
-//   console.log("allTickets----------------------------------------------", allTickets);
-
-//   // Calculate total quantity and mainland fee per ticket
-//   const totalQuantity = allTickets.reduce((sum, t) => sum + t.quantity, 0);
-//   const mainlandFeePerTicket = totalQuantity > 0 ? mainlandFeeAmount / totalQuantity : 0;
-
-//   // -----------------------------
-//   // Create individual ticket purchases
-//   // -----------------------------
-//   const createdTicketIds: mongoose.Types.ObjectId[] = [];
-
-//   for (const ticket of allTickets) {
-//     // Create individual tickets
-//     for (let i = 0; i < ticket.quantity; i++) {
-//       const newTicket = await TicketPurchase.create({
-//         eventId,
-//         ownerId: ownerId,
-//         ticketName: generateTicketName(ticket.ticketType),
-//         attendeeInformation: { fullName, email, phone },
-//         ticketType: ticket.ticketType,
-//         purchaseAmount: ticket.finalPricePerTicket, // Individual ticket price after discount
-//         discount: ticket.discountPerTicket || 0,
-//         discountCode,
-//         mainLandFee: mainlandFeePerTicket, // Distributed mainland fee per ticket
-//         sellAmount: 0, // Initially 0, will be set when reselling
-//         status: "available",
-//       });
-//       createdTicketIds.push(newTicket._id);
-//     }
-
-//     // ✅ FIX: Update event ticket availability - MOVED INSIDE LOOP
-//     await Event.findOneAndUpdate(
-//       { _id: eventId, "tickets.type": ticket.ticketType },
-//       {
-//         $inc: {
-//           "tickets.$.availableUnits": -ticket.quantity, // Decrease by quantity
-//           totalEarned: ticket.totalForThisTicket, // Add total for this ticket type
-//         },
-//         $push: {
-//           "tickets.$.ticketBuyerId": ownerId,
-//         },
-//       },
-//       { new: true, runValidators: true }
-//     );
-//   }
-
-//   // -----------------------------
-//   // Save transaction history - FOR USER
-//   // -----------------------------
-//   const existingUserTransaction = await TransactionHistory.findOne({
-//     userId: ownerId,
-//     eventId,
-//     type: "directPurchase",
-//   });
-
-//   if (existingUserTransaction) {
-//     // ✅ Update existing transaction
-//     existingUserTransaction.purchaseAmount += ticketPrice; // Add ticket price only
-//     existingUserTransaction.ticketQuantity += totalQuantity;
-//     await existingUserTransaction.save();
-//   } else {
-//     // ✅ Create new transaction
-//     await TransactionHistory.create({
-//       userId: ownerId,
-//       eventId,
-//       type: "directPurchase",
-//       purchaseAmount: ticketPrice, // Ticket price only (without mainland fee)
-//       ticketId: createdTicketIds[0], // First ticket ID
-//       sellAmount: 0,
-//       ticketQuantity: totalQuantity,
-//     });
-//   }
-
-//   // -----------------------------
-//   // Save transaction history - FOR ADMIN
-//   // -----------------------------
-//   const existingAdminTransaction = await TransactionHistory.findOne({
-//     userId: ownerId,
-//     eventId,
-//     type: "adminPercentage",
-//   });
-
-//   if (existingAdminTransaction) {
-//     // ✅ Update existing admin transaction
-//     existingAdminTransaction.purchaseAmount += totalAmount; // Total amount including fee
-//     existingAdminTransaction.sellAmount += ticketPrice; // Ticket price only
-//     existingAdminTransaction.mainLandFee = (existingAdminTransaction.mainLandFee || 0) + mainlandFeeAmount;
-//     existingAdminTransaction.ticketQuantity += totalQuantity;
-//     await existingAdminTransaction.save();
-//   } else {
-//     // ✅ Create new admin transaction
-//     await TransactionHistory.create({
-//       userId: ownerId,
-//       eventId,
-//       type: "adminPercentage",
-//       purchaseAmount: totalAmount, // Total amount including fee
-//       sellAmount: ticketPrice, // Ticket price only
-//       mainLandFee: mainlandFeeAmount,
-//       ticketQuantity: totalQuantity,
-//     });
-//   }
-
-//   // -----------------------------
-//   // Send Email
-//   // -----------------------------
-//   try {
-//     await emailHelper.sendEmail(
-//       emailTemplate.newTicketPurchaseEmail({
-//         name: fullName,
-//         email,
-//         totalAmount,
-//         totalTicket: allTickets,
-//       })
-//     );
-//     console.log("✅ Purchase confirmation email sent to:", email);
-//   } catch (error) {
-//     console.error("❌ Email failed:", error);
-//   }
-
-//   console.log("🎉 Ticket purchase completed successfully!");
-// };
 const handleEvent = async (session: Stripe.Checkout.Session) => {
   if (!session.metadata) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Metadata missing in session!");
   }
 
   const metadata = session.metadata as any;
-  console.log("metadata----------------------------------------------", metadata);
 
   const userId = metadata.userId;
   const eventId = metadata.eventId;
@@ -207,13 +45,9 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
   const phone = metadata.attenPhone;
   const discountCode = metadata.discountCode || "";
   const mainlandFeeAmount = parseFloat(metadata.mainlandFeeAmount) || 0;
-  const ticketPrice = parseFloat(metadata.ticketPrice) || 0;
   const totalAmount = parseFloat(metadata.totalAmount) || 0;
   const ownerId = new mongoose.Types.ObjectId(userId);
-
-  // -----------------------------
   // Safe parsing & expand compressed tickets
-  // -----------------------------
   let compressedTickets: any[] = [];
 
   try {
@@ -230,52 +64,50 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
     discountPerTicket: t.d,
     finalPricePerTicket: t.f,
     totalForThisTicket: t.tot,
+    ticketPrice: t.tp,
   }));
-  console.log("allTickets----------------------------------------------", allTickets);
 
-  // Calculate total quantity and mainland fee per ticket
+
   const totalQuantity = allTickets.reduce((sum, t) => sum + t.quantity, 0);
   const mainlandFeePerTicket = totalQuantity > 0 ? mainlandFeeAmount / totalQuantity : 0;
 
-  // -----------------------------
+
   // Create individual ticket purchases
-  // -----------------------------
-  const createdTicketIds: mongoose.Types.ObjectId[] = [];
+
+  const allNewTickets: any[] = [];
+  const updatedEventTickets: any[] = [];
 
   for (const ticket of allTickets) {
-    // Create individual tickets
     for (let i = 0; i < ticket.quantity; i++) {
-      const newTicket = await TicketPurchase.create({
+      allNewTickets.push({
         eventId,
-        ownerId: ownerId,
+        ownerId,
         ticketName: generateTicketName(ticket.ticketType),
         attendeeInformation: { fullName, email, phone },
         ticketType: ticket.ticketType,
-        purchaseAmount: ticket.finalPricePerTicket, // Individual ticket price after discount
+        purchaseAmount: ticket.finalPricePerTicket + mainlandFeePerTicket,
         discount: ticket.discountPerTicket || 0,
         discountCode,
-        mainLandFee: mainlandFeePerTicket, // Distributed mainland fee per ticket
-        sellAmount: 0, // Initially 0, will be set when reselling
+        mainLandFee: mainlandFeePerTicket,
+        sellAmount: ticket.finalPricePerTicket + mainlandFeePerTicket,
         status: "available",
-      });
-      createdTicketIds.push(newTicket._id);
+      })
     }
-
-    // ✅ FIX: Update event ticket availability - MOVED INSIDE LOOP
-    await Event.findOneAndUpdate(
-      { _id: eventId, "tickets.type": ticket.ticketType },
-      {
-        $inc: {
-          "tickets.$.availableUnits": -ticket.quantity,
-          totalEarned: ticket.totalForThisTicket,
-        },
-        $push: {
-          "tickets.$.ticketBuyerId": ownerId,
+    updatedEventTickets.push({
+      updateOne: {
+        filter: { _id: eventId, "tickets.type": ticket.ticketType },
+        update: {
+          $inc: {
+            "tickets.$.availableUnits": -ticket.quantity,
+            totalEarned: ticket.totalForThisTicket,
+          },
+          $addToSet: { "tickets.$.ticketBuyerId": ownerId }
         },
       },
-      { new: true, runValidators: true }
-    );
+    })
   }
+  await TicketPurchase.insertMany(allNewTickets);
+  await Event.bulkWrite(updatedEventTickets);
 
   // -----------------------------
   // Save transaction history - FOR USER
@@ -287,53 +119,42 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
   });
 
   if (existingUserTransaction) {
-    // ✅ Update existing transaction
-    existingUserTransaction.purchaseAmount += ticketPrice; // Add ticket price only
+    existingUserTransaction.purchaseAmount += totalAmount;
     existingUserTransaction.ticketQuantity += totalQuantity;
+    existingUserTransaction.adminPercentageTotal += mainlandFeeAmount;
+    existingUserTransaction.mainLandFee += mainlandFeeAmount;
+    for (const t of allTickets) {
+      const existingType = existingUserTransaction.ticketInfo.find(
+        (info) => info.ticketType === t.ticketType && info.ticketPrice === t.ticketPrice
+      );
+
+      if (existingType) {
+        existingType.quantity += t.quantity;
+      } else {
+        existingUserTransaction.ticketInfo.push({
+          ticketType: t.ticketType,
+          quantity: t.quantity,
+          ticketPrice: t.ticketPrice,
+        });
+      }
+    }
     await existingUserTransaction.save();
   } else {
-    // ✅ Create new transaction
     await TransactionHistory.create({
       userId: ownerId,
       eventId,
       type: "directPurchase",
-      purchaseAmount: ticketPrice,
+      purchaseAmount: totalAmount,
       mainLandFee: mainlandFeeAmount,
-      ticketId: createdTicketIds[0],
       sellAmount: 0,
       ticketQuantity: totalQuantity,
-    });
-  }
-
-  // -----------------------------
-  // Save transaction history - FOR ADMIN (Single entry per user per event)
-  // -----------------------------
-  const existingAdminTransaction = await TransactionHistory.findOne({
-    userId: ownerId,
-    eventId,
-    type: "adminPercentage",
-  });
-
-  if (existingAdminTransaction) {
-    // ✅ Update existing admin transaction - INCREMENT values
-    existingAdminTransaction.purchaseAmount += totalAmount; // Add total amount including fee
-    existingAdminTransaction.sellAmount += ticketPrice;
-    existingAdminTransaction.mainLandFee = (existingAdminTransaction.mainLandFee || 0) + mainlandFeeAmount;
-    existingAdminTransaction.ticketQuantity += totalQuantity; // Add ticket quantity
-    await existingAdminTransaction.save();
-    console.log("✅ Admin transaction updated for userId:", ownerId, "eventId:", eventId);
-  } else {
-    // ✅ Create new admin transaction - FIRST TIME for this user + event
-    await TransactionHistory.create({
-      userId: ownerId,
-      eventId,
-      type: "adminPercentage",
-      purchaseAmount: totalAmount, // Total amount including fee
-      sellAmount: ticketPrice, // Ticket price only
-      mainLandFee: mainlandFeeAmount, // Total mainland fee
-      ticketQuantity: totalQuantity,
-    });
-    console.log("✅ Admin transaction created for userId:", ownerId, "eventId:", eventId);
+      ticketInfo: allTickets.map((t) => ({
+        ticketType: t.ticketType,
+        quantity: t.quantity,
+        ticketPrice: t.ticketPrice,
+      })),
+      adminPercentageTotal: mainlandFeeAmount
+    })
   }
 
   // -----------------------------
@@ -365,8 +186,6 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Metadata missing in session!");
   }
 
-  console.log("metadata----------------------------------", session.metadata);
-
   const metadata = session.metadata as any;
   const { userId, email, fullName, phone, totalAmount, ticketPrice, tickets, eventId, mainlandFeeAmount } = metadata;
 
@@ -383,8 +202,16 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
   const newOwnerId = new mongoose.Types.ObjectId(userId);
 
   for (const ticketGroup of allTickets) {
-    const { ticketIds, sellerId, ticketType, quantity, price, unitPrice } = ticketGroup;
-
+    const {
+      ticketIds,
+      sellerId,
+      ticketType,
+      quantity,
+      price,
+      unitPrice,
+      mainlandFeeForTicket,
+      mainlandFeePerTicket
+    } = ticketGroup;
 
     // Validate sellerId
     if (!sellerId) {
@@ -410,16 +237,11 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
       );
     }
 
-    // Calculate totals for this ticket group
-    const totalPurchaseAmount = ticketsToUpdate.reduce(
-      (sum, ticket) => sum + (ticket.purchaseAmount || 0),
-      0
-    );
-    const totalSellAmount = price;
-    const totalEarnedAmount = totalSellAmount - totalPurchaseAmount;
-
     // Get eventId from metadata or first ticket
     const ticketEventId = eventId || ticketsToUpdate[0].eventId;
+
+    // ✅ Calculate per-ticket purchase amount (unit price + mainland fee per ticket)
+    const purchaseAmountPerTicket = unitPrice + mainlandFeePerTicket;
 
     // Update the purchased tickets
     const updatedTickets = await TicketPurchase.updateMany(
@@ -438,9 +260,9 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
             email,
             phone,
           },
-          purchaseAmount: unitPrice,
-          sellAmount: unitPrice,
-          mainLandFee: parseFloat(mainlandFeeAmount) || 0,
+          purchaseAmount: purchaseAmountPerTicket,
+          sellAmount: purchaseAmountPerTicket,
+          mainLandFee: mainlandFeePerTicket, // ✅ Mainland fee for this single ticket
           resellerId: sellerObjectId,
           discount: 0,
           discountCode: "",
@@ -456,70 +278,68 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
       );
     }
 
+    // ✅ Calculate earned amount for this ticket group
+    const totalPriceWithFee = price + mainlandFeeForTicket; // What buyer paid for this ticket type
+    const earnedAmountForThisGroup = totalPriceWithFee - price; // Just the mainland fee
 
+    // Update transaction history
     const history = await TransactionHistory.findOne({
       userId: sellerObjectId,
       eventId: ticketEventId,
-      ticketId: ticketObjectIds[0],
       type: 'resellPurchase',
     });
+
     if (history) {
-      history.purchaseAmount += totalPurchaseAmount;
-      history.sellAmount += totalSellAmount;
-      history.earnedAmount += totalEarnedAmount;
+      history.purchaseAmount += Number(totalPriceWithFee);
+      history.sellAmount += Number(price);
+      history.earnedAmount += Number(earnedAmountForThisGroup);
       history.ticketQuantity += Number(quantity);
+      history.adminPercentageTotal += Number(mainlandFeeForTicket);
+      history.mainLandFee += Number(mainlandFeeForTicket);
+
+      const existingTicket = history.ticketInfo.find(
+        (t: any) => t.ticketType === ticketType && t.ticketPrice === price
+      );
+
+      if (existingTicket) {
+        existingTicket.quantity += Number(quantity);
+      } else {
+        history.ticketInfo.push({
+          ticketType,
+          quantity: Number(quantity),
+          ticketPrice: Number(price),
+        });
+      }
+
       await history.save();
     } else {
       await TransactionHistory.create({
         userId: sellerObjectId,
         resellerId: newOwnerId,
         eventId: ticketEventId,
-        ticketId: ticketObjectIds[0], // Use ObjectId, not array
-        type: 'resellPurchase',
-        purchaseAmount: totalPurchaseAmount,
-        sellAmount: totalSellAmount,
-        earnedAmount: totalEarnedAmount,
+        mainLandFee: parseFloat(mainlandFeeForTicket),
+        type: "resellPurchase",
+        purchaseAmount: Number(totalPriceWithFee),
+        sellAmount: Number(price),
+        earnedAmount: Number(earnedAmountForThisGroup),
         ticketQuantity: Number(quantity),
+        adminPercentageTotal: Number(mainlandFeeForTicket),
+
+        ticketInfo: [
+          {
+            ticketType,
+            quantity: Number(quantity),
+            ticketPrice: Number(price),
+          },
+        ],
       });
     }
 
-    // Create transaction history for SELLER
-    await TransactionHistory.create({
-      userId: sellerObjectId,
-      resellerId: newOwnerId,
-      eventId: ticketEventId,
-      ticketId: ticketObjectIds[0], // Use ObjectId, not array
-      type: 'resellPurchase',
-      purchaseAmount: totalPurchaseAmount,
-      sellAmount: totalSellAmount,
-      earnedAmount: totalEarnedAmount,
-      ticketQuantity: Number(quantity),
-    });
 
-    const adminHistory = await TransactionHistory.findOne({
-      userId: newOwnerId,
-      eventId,
-      type: "adminPercentage",
-    });
 
-    if (adminHistory) {
-      adminHistory.purchaseAmount += totalAmount;
-      adminHistory.sellAmount += totalAmount - mainlandFeeAmount;
-      adminHistory.mainLandFee += mainlandFeeAmount;
-      adminHistory.ticketQuantity += allTickets.reduce((sum, t) => sum + t.quantity, 0);
-      await adminHistory.save();
-    } else {
-      // Not exists → create new
-      await TransactionHistory.create({
-        userId: newOwnerId,
-        eventId,
-        type: "adminPercentage",
-        purchaseAmount: totalAmount,
-        sellAmount: totalAmount - mainlandFeeAmount,
-        mainLandFee: mainlandFeeAmount,
-        ticketQuantity: allTickets.reduce((sum, t) => sum + t.quantity, 0),
-      });
-    }
+
+
+
   }
 
   // Send confirmation email to NEW BUYER
@@ -532,6 +352,8 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
         quantity: ticket.quantity,
         pricePerTicket: ticket.unitPrice,
         totalPrice: ticket.price,
+        mainlandFeePerTicket: ticket.mainlandFeePerTicket, // ✅ Include in email
+        mainlandFeeTotal: ticket.mainlandFeeForTicket, // ✅ Total for this ticket type
       })),
       ticketPrice: parseFloat(ticketPrice),
       mainlandFeeAmount: parseFloat(mainlandFeeAmount),
