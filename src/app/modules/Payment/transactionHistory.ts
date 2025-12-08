@@ -1,15 +1,22 @@
 import { Schema, model, Document, Types } from "mongoose";
+import { TicketType } from "../ORGANIZER/Event/Event.interface";
 
 export interface ITransactionHistory {
   userId: Types.ObjectId;
   eventId: Types.ObjectId;
   ticketId: Types.ObjectId;
   resellerId: Types.ObjectId;
-  type: 'directPurchase' | 'resellPurchase' | 'adminPercentage';
+  type: 'directPurchase' | 'resellPurchase';
+  ticketInfo: {
+    ticketType: TicketType,
+    quantity: number,
+    ticketPrice: number,
+  }[];
   purchaseAmount: number;
   sellAmount: number;
   earnedAmount: number;
   mainLandFee: number;
+  adminPercentageTotal: number;
   ticketQuantity: number;
 }
 
@@ -31,6 +38,7 @@ const transactionHistorySchema = new Schema<ITransactionHistory>(
       ref: "Event",
       index: true,
     },
+    ticketInfo: [{ ticketType: { type: String, }, quantity: { type: Number, default: 0 }, ticketPrice: { type: Number, default: 0 } },],
     ticketId: {
       type: Schema.Types.ObjectId,
       ref: "TicketPurchase",
@@ -40,9 +48,13 @@ const transactionHistorySchema = new Schema<ITransactionHistory>(
       type: Number,
       default: 0,
     },
+    adminPercentageTotal: {
+      type: Number,
+      default: 0,
+    },
     type: {
       type: String,
-      enum: ['directPurchase', 'resellPurchase', 'adminPercentage'],
+      enum: ['directPurchase', 'resellPurchase'],
       default: 'directPurchase',
     },
     purchaseAmount: {

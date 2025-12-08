@@ -131,15 +131,6 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
 
     totalDiscountedTicketPrice += totalForThisTicket;
 
-    // updatedTickets.push({
-    //   ticketType: selected.ticketType,
-    //   quantity: selected.quantity,
-    //   availableUnits: eventTicket.availableUnits,
-    //   price,
-    //   discountPerTicket,
-    //   finalPricePerTicket: discountedPricePerTicket,
-    //   totalForThisTicket,
-    // }); 
     updatedTickets.push({
       t: selected.ticketType,
       q: selected.quantity,
@@ -147,7 +138,8 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
       p: price,
       d: discountPerTicket,
       f: discountedPricePerTicket,
-      tot: totalForThisTicket
+      tot: totalForThisTicket,
+      tp: price,
     });
   }
 
@@ -238,7 +230,13 @@ const BuyTicket = async (payload: any) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, "No tickets selected");
   }
 
+
+  const mainLandFee = await MainlandFee.findOne();
+  const mainlandFeePercentage = mainLandFee?.mainlandFee || 0;
+  const feePercentage = Math.min(mainlandFeePercentage, 100);
+
   let totalTicketPrice = 0;
+  let totalMainlandFee = 0;
   const ticketDetails: any[] = [];
 
   // 4. Process each selected ticket type
@@ -291,7 +289,12 @@ const BuyTicket = async (payload: any) => {
     const selectedTickets = availableTickets.slice(0, quantity);
 
     const ticketPrice = quantity * Number(amount);
+
+    // ✅ Calculate mainland fee for THIS ticket type
+    const mainlandFeeForThisTicket = (ticketPrice * feePercentage) / 100;
+
     totalTicketPrice += ticketPrice;
+    totalMainlandFee += mainlandFeeForThisTicket;
 
     ticketDetails.push({
       sellerId: sellerObjectId.toString(),
@@ -299,24 +302,14 @@ const BuyTicket = async (payload: any) => {
       quantity,
       price: ticketPrice,
       ticketIds: selectedTickets.map(t => t._id.toString()),
-      unitPrice: Number(amount)
+      unitPrice: Number(amount),
+      mainlandFeeForTicket: mainlandFeeForThisTicket,
+      mainlandFeePerTicket: mainlandFeeForThisTicket / quantity
     });
   }
 
-  // 8. ✅ Mainland Fee Calculation
-  const mainLandFee = await MainlandFee.findOne();
-  const mainlandFeePercentage = mainLandFee?.mainlandFee || 0;
+  const totalAmount = totalTicketPrice + totalMainlandFee;
 
-  // Fee is % of total ticket price
-  const feePercentage = Math.min(mainlandFeePercentage, 100);
-  const mainlandFeeAmount = (totalTicketPrice * feePercentage) / 100;
-
-  // Total Amount = ticket price + mainland fee
-  const totalAmount = totalTicketPrice + mainlandFeeAmount;
-
-  console.log("Ticket Total:", totalTicketPrice);
-  console.log("Mainland Fee:", mainlandFeeAmount);
-  console.log("Total Amount:", totalAmount);
 
   // 9. Validate total amount
   if (totalAmount <= 0) {
@@ -358,7 +351,7 @@ const BuyTicket = async (payload: any) => {
       totalAmount: totalAmount.toFixed(2),
       ticketPrice: totalTicketPrice.toFixed(2),
       mainlandFeePercentage: feePercentage.toString(),
-      mainlandFeeAmount: mainlandFeeAmount.toFixed(2),
+      mainlandFeeAmount: totalMainlandFee.toFixed(2), // ✅ Total mainland fee
       type: "resellPurchase",
       eventId: eventId.toString()
     },
@@ -371,7 +364,7 @@ const BuyTicket = async (payload: any) => {
     sessionUrl: stripeSession.url,
     totalAmount: totalAmount,
     ticketPrice: totalTicketPrice,
-    mainlandFeeAmount: mainlandFeeAmount
+    mainlandFeeAmount: totalMainlandFee
   };
 };
 
