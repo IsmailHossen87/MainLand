@@ -506,45 +506,58 @@ const allDataUseQuery = async (userID: string, query: Record<string, string>) =>
 const allUndewReview = async (userID: string, query: Record<string, string>) => {
   const user = await User.findById(userID);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+    throw new ApiError(StatusCodes.NOT_FOUND, "User is not Available");
   }
-  const { EventStatus: status } = query
+
+  const { EventStatus: status, searchTerm } = query;
+
   const today = new Date();
 
-  const baseQuery = Event.find({
+  // 🔥 Base filter
+  const baseFilter: any = {
     EventStatus: status,
     eventDate: { $gte: today },
-  });
+  };
 
+  // 🔥 If searchTerm exists → apply manual search (BEST)
+  if (searchTerm) {
+    baseFilter.$or = [
+      { eventName: { $regex: searchTerm, $options: "i" } },
+      { streetAddress: { $regex: searchTerm, $options: "i" } },
+      { streetAddress2: { $regex: searchTerm, $options: "i" } },
+      { eventCode: { $regex: searchTerm, $options: "i" } },
+    ];
+  }
 
-  // QueryBuilder chaining (search, filter, sort, pagination)
-  const queryBuilder = new QueryBuilder(baseQuery, query);
+  // ✔ Base Query
+  const baseQuery = Event.find(baseFilter);
 
-  const allEvent = queryBuilder
-    .search(excludeField)
+  // ✔ Apply QueryBuilder (NO `.search()` because search manually handled)
+  const qb = new QueryBuilder(baseQuery, query)
     .filter()
     .dateRange()
     .sort()
     .fields([
-      'eventName',
-      'eventDate',
-      'image',
-      '_id',
-      'isFreeEvent',
-      'streetAddress',
-      'EventStatus',
-      'ticketSaleStart',
-      'streetAddress2',
-      'preSaleStart',
-      'startTime',
-      'eventCode'
+      "eventName",
+      "eventDate",
+      "image",
+      "_id",
+      "isFreeEvent",
+      "streetAddress",
+      "EventStatus",
+      "ticketSaleStart",
+      "streetAddress2",
+      "preSaleStart",
+      "startTime",
+      "eventCode",
     ])
     .paginate();
 
-  const [meta, data] = await Promise.all([allEvent.getMeta(), allEvent.build()]);
+  const [meta, data] = await Promise.all([qb.getMeta(), qb.build()]);
 
   return { meta, data };
 };
+
 
 // AllGetData 💛🩷🧡💙💜🤎
 const subCategory = async (query?: string) => {
