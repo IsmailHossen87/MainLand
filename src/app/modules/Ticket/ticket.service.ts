@@ -8,6 +8,7 @@ import mongoose from "mongoose";
 import { ITicketStatus, IResellTicket, IDiscountCode } from "./ticket.interface";
 import { TransactionHistory } from "../Payment/transactionHistory";
 import { Event } from "../ORGANIZER/Event/Event.model";
+import { USER_ROLES } from "../../../enums/user";
 
 const getAllTicket = async (userId: string, query: Record<string, any>) => {
   const user = await User.findById(userId);
@@ -667,7 +668,7 @@ const checkEvent = async (userId: string, eventId: string) => {
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
-  const tickets = await Event.findOne({ eventCode: eventCode, userId: user._id });
+  const tickets = await Event.findOne({ eventCode: eventId, userId: user._id });
 
   if (!tickets) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
@@ -679,38 +680,89 @@ const checkEvent = async (userId: string, eventId: string) => {
   return false
 };
 
-const soldTicketHistory = async (userId: string, eventId: string) => {
+const soldTicketHistory = async (
+  userId: string,
+  eventId: string,
+  expired?: string
+) => {
   const user = await User.findById(userId);
-
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   const tickets = await TransactionHistory.findOne({
     eventId: new mongoose.Types.ObjectId(eventId),
-    resellerId: user._id,
-  }).populate("eventId", "eventName");
+    userId: user._id,
+  }).populate("eventId", "eventName eventDate");
 
   if (!tickets) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Ticket not found");
   }
 
+  const eventDate = new Date((tickets.eventId as any).eventDate);
+  const now = new Date();
+  const isExpiredEvent = eventDate < now;
 
-  const response = {
+  // ----------------------------------------------------
+  // CASE 1: expired=true but event NOT expired → return NO DATA
+  // ----------------------------------------------------
+  if (expired === "true" && !isExpiredEvent) {
+    return {
+      eventName: (tickets.eventId as any)?.eventName || "",
+      expired: false,
+      message: "Event not expired yet",
+      summary: {},
+      details: [],
+    };
+  }
+
+  // ----------------------------------------------------
+  // CASE 2: expired=true AND event is expired → return full data
+  // CASE 3: expired not provided → return full data
+  // ----------------------------------------------------
+
+  // COUNT UNIQUE TICKET TYPES
+  const typeCount: Record<string, number> = {};
+
+  tickets.ticketInfo.forEach((t) => {
+    typeCount[t.ticketType] = (typeCount[t.ticketType] || 0) + 1;
+  });
+
+  const typeSummary = Object.entries(typeCount).map(([ticketType, count]) => ({
+    ticketType,
+    count,
+  }));
+
+  return {
     eventName: (tickets.eventId as any)?.eventName || "",
+    expired: isExpiredEvent,
     summary: {
       totalSellAmount: tickets.purchaseAmount,
       totalMainlandFee: tickets.mainLandFee,
       totalTickets: tickets.ticketQuantity,
+      types: typeSummary,
     },
-    details: tickets.ticketInfo.map((ticket) => ({
-      ticketType: ticket.ticketType,
-      quantity: ticket.quantity,
-      price: ticket.ticketPrice,
+    details: tickets.ticketInfo.map((t) => ({
+      ticketType: t.ticketType,
+      quantity: t.quantity,
+      price: t.ticketPrice,
+      commission: t.commission,
     })),
   };
+};
+const historyTickets = async (userId: string, eventId: string) => {
+  const user = await User.findById(userId);
 
-  return response;
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+  if (user.role === USER_ROLES.USER) {
+    const tickets = await TicketPurchase.find({ resellerId: user._id, eventId });
+    if (!tickets) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Ticket not found");
+    }
+    return tickets;
+  }
 };
 
 
@@ -730,5 +782,6 @@ export const TicketService = {
   sellTicketInfoUsersOnsell,
   availableTypeHistory,
   checkEvent,
-  soldTicketHistory
+  soldTicketHistory,
+  historyTickets
 };

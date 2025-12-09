@@ -105,7 +105,7 @@ export class QueryBuilder<T> {
 
   // 📊 Meta info (for pagination)
   async getMeta() {
-    const countQuery = this.modelQuery.clone(); // Important!
+    const countQuery = this.modelQuery.clone();
 
     const totalDocuments = await countQuery.countDocuments();
 
