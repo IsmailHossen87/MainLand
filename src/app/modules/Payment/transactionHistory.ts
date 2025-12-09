@@ -11,6 +11,7 @@ export interface ITransactionHistory {
     ticketType: TicketType,
     quantity: number,
     ticketPrice: number,
+    commission: number,
   }[];
   purchaseAmount: number;
   sellAmount: number;
@@ -38,7 +39,12 @@ const transactionHistorySchema = new Schema<ITransactionHistory>(
       ref: "Event",
       index: true,
     },
-    ticketInfo: [{ ticketType: { type: String, }, quantity: { type: Number, default: 0 }, ticketPrice: { type: Number, default: 0 } },],
+    ticketInfo: [{
+      ticketType: { type: String, },
+      quantity: { type: Number, default: 0 },
+      commission: { type: Number, default: 0 },
+      ticketPrice: { type: Number, default: 0 }
+    },],
     ticketId: {
       type: Schema.Types.ObjectId,
       ref: "TicketPurchase",
