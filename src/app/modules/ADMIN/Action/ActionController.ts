@@ -81,6 +81,32 @@ const ticketActivity = catchAsync(
     });
   }
 );
+const accountDeleteHistory = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user
+    const result = await ActionService.accountDeleteHistory(user as JwtPayload)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Account Delete History Retrived Sucessfully",
+      data: result,
+    });
+  }
+)
+const allNotification = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user
+    const query = req.query
+    const result = await ActionService.allNotification(user as JwtPayload, query as Record<string, string>)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "All Notification Retrived Sucessfully",
+      meta: result.meta,
+      data: result.data,
+    });
+  }
+)
 
 
 // const allResellTicket = catchAsync(
@@ -100,4 +126,4 @@ const ticketActivity = catchAsync(
 
 
 
-export const ActionController = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity }
+export const ActionController = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, accountDeleteHistory, allNotification }

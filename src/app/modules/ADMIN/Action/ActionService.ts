@@ -1,7 +1,7 @@
 import { JwtPayload } from 'jsonwebtoken';
 import { StatusCodes } from 'http-status-codes';
 import ApiError from '../../../../errors/ApiError';
-import { User } from '../../user/user.model';
+import { isDeleted, User } from '../../user/user.model';
 import { Category, Event } from '../../ORGANIZER/Event/Event.model';
 import { USER_ROLES } from '../../../../enums/user';
 import { generateEventCode } from '../../../../util/generateOTP';
@@ -9,6 +9,7 @@ import { QueryBuilder } from '../../../builder/QueryBuilder';
 import { TicketPurchase } from '../../Ticket/ticket.model';
 import { TransactionHistory } from '../../Payment/transactionHistory';
 import { excludeField } from '../../../../shared/constrant';
+import { Notification } from '../../Notification/notification.model';
 
 
 
@@ -242,4 +243,35 @@ const ticketActivity = async (user: JwtPayload, userId: string, query: Record<st
 
   return { meta, data };
 };
-export const ActionService = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity };
+
+const accountDeleteHistory = async (user: JwtPayload) => {
+  if (user.role !== USER_ROLES.ADMIN) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
+  }
+
+  const accountDeleteHistory = await isDeleted.find().sort({ createdAt: -1 });
+
+  return accountDeleteHistory;
+};
+
+const allNotification = async (user: JwtPayload, query: Record<string, string>) => {
+  if (user.role !== USER_ROLES.ADMIN) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
+  }
+
+  const baseQuery = Notification.find().sort({ createdAt: -1 });
+  const queryBuilder = new QueryBuilder(baseQuery, query);
+
+  const allNotification = queryBuilder
+    .search(excludeField)
+    .filter()
+    .sort();
+
+  const [meta, data] = await Promise.all([
+    allNotification.getMeta(),
+    allNotification.build(),
+  ]);
+
+  return { meta, data };
+};
+export const ActionService = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, accountDeleteHistory, allNotification };

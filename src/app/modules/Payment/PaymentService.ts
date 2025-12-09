@@ -350,8 +350,8 @@ const BuyTicket = async (payload: any) => {
       tickets: JSON.stringify(ticketDetails),
       totalAmount: totalAmount.toFixed(2),
       ticketPrice: totalTicketPrice.toFixed(2),
-      mainlandFeePercentage: feePercentage.toString(),
-      mainlandFeeAmount: totalMainlandFee.toFixed(2), // ✅ Total mainland fee
+      mp: feePercentage.toString(),
+      mfa: totalMainlandFee.toFixed(2), // ✅ Total mainland fee
       type: "resellPurchase",
       eventId: eventId.toString()
     },

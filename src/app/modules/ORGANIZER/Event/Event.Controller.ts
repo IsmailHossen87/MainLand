@@ -249,6 +249,7 @@ const AllUnderReview = catchAsync(
 
     const userId = req.user?.id
     const query = req.query
+    console.log(query)
     const result = await EventService.allUndewReview(userId as string, query as Record<string, string>)
 
     await sendResponse(res, {

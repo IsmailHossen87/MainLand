@@ -43,13 +43,13 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
   const fullName = metadata.fullName;
   const email = metadata.attenEmail;
   const phone = metadata.attenPhone;
+  const mainlandFeePercentage = metadata.mainlandFeePercentage
   const discountCode = metadata.discountCode || "";
   const mainlandFeeAmount = parseFloat(metadata.mainlandFeeAmount) || 0;
   const totalAmount = parseFloat(metadata.totalAmount) || 0;
   const ownerId = new mongoose.Types.ObjectId(userId);
   // Safe parsing & expand compressed tickets
   let compressedTickets: any[] = [];
-
   try {
     compressedTickets = JSON.parse(metadata.tickets);
   } catch {
@@ -135,6 +135,7 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
           ticketType: t.ticketType,
           quantity: t.quantity,
           ticketPrice: t.ticketPrice,
+          commission: Number(mainlandFeePercentage),
         });
       }
     }
@@ -152,8 +153,9 @@ const handleEvent = async (session: Stripe.Checkout.Session) => {
         ticketType: t.ticketType,
         quantity: t.quantity,
         ticketPrice: t.ticketPrice,
+        commission: mainlandFeePercentage,
       })),
-      adminPercentageTotal: mainlandFeeAmount
+      adminPercentageTotal: Number(mainlandFeeAmount)
     })
   }
 
@@ -187,7 +189,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
   }
 
   const metadata = session.metadata as any;
-  const { userId, email, fullName, phone, totalAmount, ticketPrice, tickets, eventId, mainlandFeeAmount } = metadata;
+  const { userId, email, fullName, phone, totalAmount, ticketPrice, tickets, eventId, mfa: mainlandFeeAmount, mp: mainlandFeePercentage } = metadata;
 
   let allTickets: any[];
 
@@ -279,8 +281,8 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
     }
 
     // ✅ Calculate earned amount for this ticket group
-    const totalPriceWithFee = price + mainlandFeeForTicket; // What buyer paid for this ticket type
-    const earnedAmountForThisGroup = totalPriceWithFee - price; // Just the mainland fee
+    const totalPriceWithFee = price + mainlandFeeForTicket;
+    const earnedAmountForThisGroup = totalPriceWithFee - price;
 
     // Update transaction history
     const history = await TransactionHistory.findOne({
@@ -308,6 +310,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
           ticketType,
           quantity: Number(quantity),
           ticketPrice: Number(price),
+          commission: Number(mainlandFeePercentage),
         });
       }
 
@@ -330,6 +333,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session) => {
             ticketType,
             quantity: Number(quantity),
             ticketPrice: Number(price),
+            commission: Number(mainlandFeePercentage),
           },
         ],
       });

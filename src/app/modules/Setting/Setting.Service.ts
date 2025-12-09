@@ -173,7 +173,28 @@ const contactEmail = async (id: string, adminMessage: string, adminId: string) =
   await emailHelper.sendEmail(email);
   return updatedContact;
 };
+const faqDelete = async (id: string) => {
+  const result = await Settings.findByIdAndDelete(id);
+  if (!result) {
+    throw new Error("Faq not found");
+  }
+  return result;
+}
+const faqUpdate = async (id: string, payload: { question: string, answer: string[] }) => {
+  const result = await Settings.findByIdAndUpdate(id, payload, { new: true });
+  if (!result) {
+    throw new Error("Faq not found");
+  }
+  return result;
+}
 
+const deleteContact = async (id: string) => {
+  const result = await Contact.findByIdAndDelete(id);
+  if (!result) {
+    throw new Error("Contact not found");
+  }
+  return result;
+}
 export const SettingService = {
   updateSetting,
   faqSetting,
@@ -183,7 +204,10 @@ export const SettingService = {
   contactSetting,
   getContact,
   getContactById,
-  contactEmail
+  contactEmail,
+  faqDelete,
+  faqUpdate,
+  deleteContact
 };
 
 

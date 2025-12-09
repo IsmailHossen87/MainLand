@@ -199,6 +199,53 @@ const contactEmail = async (req: Request, res: Response) => {
     });
   }
 };
+const faqDelete = async (req: Request, res: Response) => {
+  try {
+    const result = await SettingService.faqDelete(req.params.id as string);
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Faq deleted successfully",
+      data: result
+    });
+  } catch (error: any) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+const faqUpdate = async (req: Request, res: Response) => {
+  try {
+    const result = await SettingService.faqUpdate(req.params.id as string, req.body);
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Faq updated successfully",
+      data: result
+    });
+  } catch (error: any) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+const deleteContact = async (req: Request, res: Response) => {
+  try {
+    const result = await SettingService.deleteContact(req.params.id as string);
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Contact deleted successfully",
+      data: result
+    });
+  } catch (error: any) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
 
 export const SettingController = {
   updateSetting,
@@ -209,5 +256,8 @@ export const SettingController = {
   contactCreate,
   getContact,
   getContactById,
-  contactEmail
+  contactEmail,
+  faqDelete,
+  faqUpdate,
+  deleteContact,
 };

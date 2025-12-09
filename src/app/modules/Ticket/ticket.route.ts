@@ -28,7 +28,10 @@ router.get('/resellTicket/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), Tic
 router.get('/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.getOneTicket);
 router.get("/check-event/:eventCode", auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), TicketController.checkEvent);
 router.get('/promocode/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.PromoCodePercentage);
-router.get("/sold-view-history/:id", auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.soldTicketHistory)
+router.get("/sold-view-history/:id",
+    auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.soldTicketHistory)
+router.get("/history-tickets/:id", auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.historyTickets) //adminDashboard
+
 
 
 
