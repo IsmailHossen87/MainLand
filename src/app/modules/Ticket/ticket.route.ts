@@ -9,7 +9,7 @@ const router = Router()
 
 router.get('/getAllTicket', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.getAllTicket);
 router.get('/unique-event', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.getUniqueEvents);
-router.get('/sold-event', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.getSoldEvent);
+router.get('/sold-event', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.getSoldEvent);  //..............
 
 router.get('/sellAllTicket', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.allOnsellTicketInfo);
 
@@ -17,7 +17,7 @@ router.post('/ticketPurchase/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), 
 router.get("/soldTickethistory", auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.soldTicket);
 // 🔥🔥
 router.get("/event-summary", auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.eventSummary);
-router.get('/expired-ticket', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.ticketExpired);
+router.get('/expired-ticket', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.ticketExpired);  //..............
 // ------------------------------------------------------
 router.post('/withdraw-pro/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.withdrawPro);
 router.get('/sellHistory/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.sellTicketInfoUsers);

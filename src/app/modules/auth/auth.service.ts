@@ -61,14 +61,56 @@ const loginUserFromDB = async (payload: ILoginData) => {
     refreshToken
   };
 };
-// 🔄 Get a new access token using a valid refresh token
 
-// const getNewAccessToken = async (refreshToken: string) => {
-//    const newAccessToken = await createNewAccessTokenWinthRefreshToken(refreshToken);
-//    return {
-//       accessToken: newAccessToken
-//    }
-// }
+
+const getNewAccessToken = async (token: string) => {
+  try {
+    // 1️⃣ Verify Refresh Token
+    const decoded = jwtHelper.verifyToken(
+      token,
+      config.jwt.jwt_secret as Secret
+    ) as {
+      id: string;
+      role: string;
+      email: string;
+    };
+
+    if (!decoded?.id || !decoded?.role || !decoded?.email) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid refresh token payload");
+    }
+
+    // 2️⃣ Check if user actually exists
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, "User no longer exists");
+    }
+
+
+    // 3️⃣ Create a new access token
+    const newAccessToken = jwtHelper.createToken(
+      { id: user._id.toString(), role: user.role },
+      config.jwt.jwt_secret as Secret,
+      config.jwt.jwt_expire_in as string
+    );
+    const newRefreshToken = jwtHelper.refreshToken(
+      { id: user._id.toString(), role: user.role },
+      config.jwt.jwt_secret as Secret,
+      config.jwt.jwt_refresh_in as string
+    );
+
+    return {
+      access_token: newAccessToken,
+      refresh_token: newRefreshToken
+    };
+  } catch (error) {
+    throw new ApiError(
+      StatusCodes.UNAUTHORIZED,
+      "Invalid or expired refresh token"
+    );
+  }
+};
+
 
 // Verify Email or OTP
 const resendOtpToDB = async (email: string) => {
@@ -276,5 +318,6 @@ export const AuthService = {
   forgetPasswordToDB,
   resetPasswordToDB,
   changePasswordToDB,
-  resendOtpToDB
+  resendOtpToDB,
+  getNewAccessToken
 };

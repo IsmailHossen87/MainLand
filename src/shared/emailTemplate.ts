@@ -17,7 +17,20 @@ export interface INewTicket {
   discountPerTicket?: number;
   finalPricePerTicket: number;
 }
-
+interface ReportEmailPayload {
+  reporterName: string;
+  reportedUserName: string;
+  reportedUserEmail: string;
+  reportDetails: {
+    Privacy_concerns: boolean;
+    Obscene: boolean;
+    Defamation: boolean;
+    Copyright_violations: boolean;
+    Erotic_content: boolean;
+    Others: string;
+  };
+  reportDate?: Date;
+}
 // Email payload for resale tickets
 export interface IResalePurchaseEmail {
   name: string;
@@ -602,7 +615,43 @@ const contactResponseEmail = (data: IContactEmailData) => {
   };
 };
 
+const userReportConfirmation = (payload: ReportEmailPayload) => {
+  const {
+    reporterName,
+    reportedUserName,
+    reportedUserEmail,
+    reportDetails,
+    reportDate,
+  } = payload;
 
+  const formatDate = (date?: Date) =>
+    date ? new Date(date).toLocaleString("en-US", { timeZone: "Asia/Dhaka" }) : "N/A";
+
+  return {
+    to: reportedUserEmail, // The reporter's email will be set in sendEmail function
+    subject: `Report Confirmation for ${reportedUserName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2 style="color: #2c3e50;">Hello ${reportedUserName},</h2>
+      
+        <h3>Report Details:</h3>
+        <ul>
+          <li>Privacy Concerns: ${reportDetails.Privacy_concerns ? "Yes" : "No"}</li>
+          <li>Obscene Content: ${reportDetails.Obscene ? "Yes" : "No"}</li>
+          <li>Defamation: ${reportDetails.Defamation ? "Yes" : "No"}</li>
+          <li>Copyright Violations: ${reportDetails.Copyright_violations ? "Yes" : "No"}</li>
+          <li>Erotic Content: ${reportDetails.Erotic_content ? "Yes" : "No"}</li>
+          <li>Others: ${reportDetails.Others || "N/A"}</li>
+        </ul>
+
+        <p>Report submitted on: <strong>${formatDate(reportDate)}</strong></p>
+
+        <p style="margin-top: 20px;">Thank you for helping us maintain a safe community.</p>
+        <p style="color: #888;">— The MainLand Team</p>
+      </div>
+    `,
+  };
+}
 
 export const emailTemplate = {
   createAccount,
@@ -611,4 +660,5 @@ export const emailTemplate = {
   resaleTicketPurchaseEmail,
   newTicketPurchaseEmail,
   contactResponseEmail,
+  userReportConfirmation,
 };

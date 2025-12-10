@@ -14,7 +14,7 @@ const messageSchema = new Schema<IMessage>(
             default: null,
         },
 
-        replies: [{ // ADDED: Missing field
+        replies: [{
             type: Schema.Types.ObjectId,
             ref: "Message",
         }],
@@ -35,10 +35,10 @@ const messageSchema = new Schema<IMessage>(
             trim: true,
         },
 
-        image: {
+        image: [{
             type: String,
             default: null,
-        },
+        }],
 
         isDeleted: {
             type: Boolean,

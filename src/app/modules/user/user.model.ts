@@ -67,6 +67,10 @@ const userSchema = new Schema<IUser, UserModal>(
         type: String,
         required: false,
       },
+      stripeAccountId: {
+        type: String,
+        required: false,
+      },
       loginUrl: {
         type: String,
         required: false,
