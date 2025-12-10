@@ -7,6 +7,8 @@ export default {
   database_url: process.env.DATABASE_URL,
   node_env: process.env.NODE_ENV,
   FRONTEND_URL: process.env.FRONTEND_URL,
+  FRONTEND_URL_DASHBOARD: process.env.FRONTEND_URL_DASHBOARD,
+  BACKEND_URL: process.env.BACKEND_URL,
   port: process.env.PORT,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,

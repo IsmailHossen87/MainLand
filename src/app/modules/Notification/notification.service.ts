@@ -112,9 +112,11 @@ const getNotificationFromDB = async (
     .paginate()
     .fields();
 
+  await Notification.updateMany({ receiver: user.id }, { read: true });
+
   // Build & meta should come from qb (not result of build)
-  const dataPromise = qb.build();   // Returns Promise<INotification[]>
-  const metaPromise = qb.getMeta(); // Returns Promise<PaginationMeta>
+  const dataPromise = qb.build();
+  const metaPromise = qb.getMeta();
 
   const [data, meta] = await Promise.all([dataPromise, metaPromise]);
 

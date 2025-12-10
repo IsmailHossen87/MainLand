@@ -580,7 +580,7 @@ const ticketExpired = async (userId: string) => {
   today.setHours(0, 0, 0, 0);
 
   const tickets = await TicketPurchase.find({ ownerId })
-    .populate("eventId", "name eventDate image")
+    .populate("eventId", "eventName eventDate image streetAddress isFreeEvent ")
     .lean();
 
   const expiredTickets = tickets.filter((ticket: any) => {
@@ -592,15 +592,32 @@ const ticketExpired = async (userId: string) => {
     return false;
   });
 
-  // ⭐ Make unique by eventId
+  // ⭐ Unique by eventId
   const uniqueExpired = [
     ...new Map(
       expiredTickets.map((item: any) => [item.eventId._id.toString(), item])
     ).values(),
   ];
 
-  return uniqueExpired;
+  console.log("uniqueExpired", uniqueExpired);
+
+  // ⭐ Return formatted response like sold ticket API
+  const formattedResponse = uniqueExpired.map((ticket: any) => ({
+    ticketId: ticket._id || null,
+    purchaseAmount: ticket.purchaseAmount || 0,
+    sellAmount: ticket.sellAmount || 0,
+    type: "expired",
+    eventId: ticket.eventId._id,
+    eventName: ticket?.eventId?.eventName,
+    eventDate: ticket?.eventId?.eventDate,
+    image: ticket?.eventId?.image,
+    streetAddress: ticket?.eventId?.streetAddress || null,
+    isFreeEvent: ticket?.eventId?.isFreeEvent ?? false,
+  }));
+
+  return formattedResponse;
 };
+
 
 
 // EVENT SUMMARY

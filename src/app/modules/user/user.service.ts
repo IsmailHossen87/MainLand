@@ -68,7 +68,7 @@ const getUserProfileFromDB = async (
   if (userId) {
     const isExistUser = await User.isExistUserById(userId);
     if (!isExistUser) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+      throw new ApiError(StatusCodes.UNAUTHORIZED, "User doesn't exist!");
     }
     return {
       ...isExistUser.toObject ? isExistUser.toObject() : isExistUser,
@@ -78,7 +78,7 @@ const getUserProfileFromDB = async (
 
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+    throw new ApiError(StatusCodes.UNAUTHORIZED, "User doesn't exist!");
   }
 
   const userObject = isExistUser.toObject ? isExistUser.toObject() : isExistUser;
@@ -113,7 +113,7 @@ const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Pro
   const { id } = user;
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+    throw new ApiError(StatusCodes.UNAUTHORIZED, "User doesn't exist!");
   }
 
   //unlink file here
