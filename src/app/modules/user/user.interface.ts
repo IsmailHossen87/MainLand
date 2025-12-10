@@ -50,6 +50,7 @@ export type IUser = {
   // StripeAccountInfo
   stripeAccountInfo?: {
     stripeCustomerId?: string;
+    stripeAccountId?: string;
     loginUrl?: string;
   } | null;
   location?: string;
