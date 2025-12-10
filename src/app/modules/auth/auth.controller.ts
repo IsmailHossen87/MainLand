@@ -141,6 +141,24 @@ const googleCallbackController = catchAsync(
   }
 );
 
+const refrestToken = catchAsync(async (req: Request, res: Response) => {
+  const refreshToken = req.headers["refreshtoken"] as string;
+  console.log(refreshToken);
+
+  if (!refreshToken) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No refresh token received from header");
+  }
+  const tokenInfo = await AuthService.getNewAccessToken(refreshToken);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "New Access Token Retrieved successfully",
+    data: tokenInfo,
+  });
+});
+
+
 export const AuthController = {
   verifyEmail,
   loginUser,
@@ -148,5 +166,6 @@ export const AuthController = {
   resetPassword,
   changePassword,
   googleCallbackController,
-  resendOtp
+  resendOtp,
+  refrestToken
 };

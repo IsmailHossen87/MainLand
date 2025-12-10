@@ -25,14 +25,17 @@ router.post(
   validateRequest(AuthValidation.createForgetPasswordZodSchema),
   AuthController.forgetPassword
 );
-
+router.post(
+  '/refresh-token',
+  AuthController.refrestToken
+)
 router.post(
   '/verify-email',
   validateRequest(AuthValidation.createVerifyEmailZodSchema),
   AuthController.verifyEmail
 );
 router.post(
-"/resend-otp",
+  "/resend-otp",
   AuthController.resendOtp
 );
 

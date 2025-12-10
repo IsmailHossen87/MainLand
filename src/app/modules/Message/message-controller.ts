@@ -9,12 +9,15 @@ import ApiError from "../../../errors/ApiError";
 const sendMessage = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const user = req?.user as JwtPayload;
 
-    let image;
-    if (req.files && 'image' in req.files && req.files.image[0]) {
-        image = `/image/${req.files.image[0].filename}`;
+    // Handle multiple images (array)
+    let images: string[] = [];
+    if (req.files && "image" in req.files) {
+        // Check if it's an array of files
+        const fileArray = req.files.image as Express.Multer.File[];
+        images = fileArray.map(file => `/image/${file.filename}`);
     }
 
-    // Parse data if it's a string
+    // Parse data if it's a string (when sent with multipart/form-data)
     let bodyData: any = req.body;
     if (req.body.data && typeof req.body.data === "string") {
         try {
@@ -26,7 +29,7 @@ const sendMessage = catchAsync(async (req: Request, res: Response, next: NextFun
 
     const payload = {
         ...bodyData,
-        image: image,
+        image: images,
         sender: user.id,
     };
 
@@ -50,7 +53,7 @@ const getMessage = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
-        message: 'Message Retrieved Successfully', // FIXED: Typo
+        message: 'Message Retrieved Successfully',
         data: messages,
     });
 });
@@ -58,18 +61,29 @@ const getMessage = catchAsync(async (req: Request, res: Response) => {
 const replyMessage = catchAsync(async (req: Request, res: Response) => {
     const user = req?.user as JwtPayload;
 
-    let image;
-    if (req.files && 'image' in req.files && req.files.image[0]) {
-        image = `/image/${req.files.image[0].filename}`;
+    // Fixed: Changed from "images" to "image" to match sendMessage
+    let images: string[] = [];
+    if (req.files && "image" in req.files) {
+        const fileArray = req.files.image as Express.Multer.File[];
+        images = fileArray.map(file => `/image/${file.filename}`);
+    }
+
+    // Parse data if it's a string
+    let bodyData: any = req.body;
+    if (req.body.data && typeof req.body.data === "string") {
+        try {
+            bodyData = JSON.parse(req.body.data);
+        } catch (err) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid JSON in data field");
+        }
     }
 
     const payload = {
-        ...req.body,
+        ...bodyData,
         replyTo: req.params.messageId,
-        image: image,
+        image: images,
         sender: user.id,
     };
-
 
     const message = await MessageService.replyMessageToDB(payload);
 
