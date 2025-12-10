@@ -10,6 +10,7 @@ import { FavouriteRouter } from '../app/modules/Favoutite/Favourite.route';
 import { NotificationRoutes } from '../app/modules/Notification/notification.route';
 import { MessageRouter } from '../app/modules/Message/message-route';
 import { ChatRoutes } from '../app/modules/Chat/chat.router';
+import stripeAccountRoutes from '../app/modules/stripeAccount/stripeAccount.route';
 
 
 
@@ -62,6 +63,10 @@ const apiRoutes = [
     path: '/message',
     route: MessageRouter,
   },
+  {
+    path: '/stripe-account',
+    route: stripeAccountRoutes,
+  }
 ];
 
 apiRoutes.forEach(route => router.use(route.path, route.route));
