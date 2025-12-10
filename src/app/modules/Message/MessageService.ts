@@ -6,6 +6,7 @@ import { Chat } from "../Chat/chat.model";
 import { IMessage } from "./message-interface";
 import { Message } from "./message-model";
 
+
 const sendMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> => {
     try {
         if (!payload.chatId) {
@@ -22,7 +23,7 @@ const sendMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> =>
             throw new ApiError(StatusCodes.NOT_FOUND, "Chat not found");
         }
 
-        // Sender must be a participant
+        // Sender must be a participant 
         const isParticipant = chat.participants.some(
             (p) => p.toString() === payload.sender?.toString()
         );
@@ -32,7 +33,7 @@ const sendMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> =>
             throw new ApiError(StatusCodes.FORBIDDEN, "You are not a participant of this chat");
         }
 
-        // Create message
+        // Create message 
         const message = await Message.create(payload);
 
         if (!message) {
@@ -40,25 +41,57 @@ const sendMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> =>
             throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to send message");
         }
 
-        // Update chat last activity
+        // ✅ Populate the message with sender and replyTo details
+        const populatedMessage = await Message.findById(message._id)
+            .populate({
+                path: 'sender',
+                select: '_id name email image'
+            })
+            .populate({
+                path: 'replyTo',
+                select: '_id sender text image',
+                // Optionally populate sender of replied message too
+                // populate: {
+                //     path: 'sender',
+                //     select: '_id name email image'
+                // }
+            })
+            .lean();
+
+        if (!populatedMessage) {
+            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to populate message");
+        }
+
+        // ✅ Add isOwnMessage flag for each participant
+        const createMessageForParticipant = (participantId: string) => ({
+            ...populatedMessage,
+            isOwnMessage: participantId === payload.sender?.toString()
+        });
+
+        // Update chat last activity 
         const chatUpdate = chat.set({
             lastText: payload.text || '',
             lastImage: payload.image || [],
         });
         await chatUpdate.save();
-        console.log("Chat updated:", chatUpdate);
 
-        // Emit socket events
+        // Emit socket events 
         const io = (global as any).io;
         if (io) {
             chat.participants.forEach((participant) => {
-                if (participant.toString() !== payload.sender?.toString()) {
-                    io.emit(`message::${participant}`, message);
-                }
+                const participantId = participant.toString();
+                const messageForParticipant = createMessageForParticipant(participantId);
+
+                // Emit to each participant with their personalized message
+                io.emit(`message::${participantId}`, messageForParticipant);
             });
         }
 
-        return message;
+        // Return populated message for the sender
+        return {
+            ...populatedMessage,
+            isOwnMessage: true
+        } as IMessage;
 
     } catch (error) {
         if (payload.image) payload.image.forEach((img) => unlinkFile(img));
@@ -67,120 +100,6 @@ const sendMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> =>
 };
 
 
-// const getMessageFromDB = async (
-//     chatId: string,
-//     user: any,
-//     query: any
-// ): Promise<any> => {
-
-//     const chat = await Chat.findById(chatId).populate('participants', 'full_name image email');
-//     if (!chat) {
-//         throw new ApiError(StatusCodes.NOT_FOUND, "Chat not found");
-//     }
-
-//     // Check if user is a participant (FIXED: was !== should be ===)
-//     const isParticipant = chat.participants.some(
-//         (p: any) => p._id.toString() === user.id
-//     );
-
-//     if (!isParticipant) {
-//         throw new ApiError(StatusCodes.FORBIDDEN, "You are not a participant of this chat");
-//     }
-
-//     // Find the OTHER participant (not the current user)
-//     const otherParticipant = chat.participants.find(
-//         (p: any) => p._id.toString() !== user.id
-//     );
-
-//     const page = Number(query.page) || 1;
-//     const limit = Number(query.limit) || 50;
-//     const skip = (page - 1) * limit;
-
-//     const messages = await Message.find({
-//         chatId: chatId,
-//         isDeleted: false,
-//     })
-//         .populate("sender", "full_name image email")
-//         .populate("replyTo", "text sender image")
-//         .sort({ createdAt: -1 })
-//         .skip(skip)
-//         .limit(limit)
-//         .lean();
-
-//     // Return messages with other participant info
-//     return {
-//         messages,
-//         otherParticipant: {
-//             _id: otherParticipant?._id,
-//             full_name: otherParticipant?.name,
-//             image: otherParticipant?.image,
-//             email: otherParticipant?.email,
-//         }
-//     };
-// };
-
-// const getMessageFromDB = async (
-//     chatId: string,
-//     user: any,
-//     query: any
-// ): Promise<any> => {
-
-//     const chat = await Chat.findById(chatId).populate('participants', 'name image email');
-//     if (!chat) {
-//         throw new ApiError(StatusCodes.NOT_FOUND, "Chat not found");
-//     }
-
-//     // Type assertion for populated participants
-//     const populatedParticipants = chat.participants as unknown as Array<{
-//         _id: Types.ObjectId;
-//         name: string;
-//         image: string;
-//         email: string;
-//     }>;
-
-//     // Check if user is a participant
-//     const isParticipant = populatedParticipants.some(
-//         (p) => p._id.toString() === user.id
-//     );
-
-//     if (!isParticipant) {
-//         throw new ApiError(StatusCodes.FORBIDDEN, "You are not a participant of this chat");
-//     }
-
-//     // Find the OTHER participant (not the current user)
-//     const otherParticipant = populatedParticipants.find(
-//         (p) => p._id.toString() !== user.id
-//     );
-
-//     const page = Number(query.page) || 1;
-//     const limit = Number(query.limit) || 50;
-//     const skip = (page - 1) * limit;
-
-//     const messages = await Message.find({
-//         chatId: chatId,
-//         isDeleted: false,
-//     })
-//         .populate("sender", "name image email")
-//         .populate("replyTo", "text sender image")
-//         .sort({ createdAt: -1 })
-//         .skip(skip)
-//         .limit(limit)
-//         .lean();
-
-//     // Return messages with other participant info
-//     return {
-//         messages,
-//         otherParticipant: otherParticipant ? {
-//             _id: otherParticipant._id,
-//             name: otherParticipant.name,
-//             image: otherParticipant.image,
-//             email: otherParticipant.email,
-//         } : null
-//     };
-// };
-
-
-// Alternative approach: Transform messages to always show other participant
 const getMessageFromDB = async (
     chatId: string,
     user: any,
@@ -254,14 +173,17 @@ const replyMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> =
             throw new ApiError(StatusCodes.NOT_FOUND, "Parent message not found");
         }
 
-        const chat = await Chat.findById(parentMessage.chatId);
+        // Fetch chat with populated participants
+        const chat = await Chat.findById(parentMessage.chatId)
+            .populate('participants', '_id name email image');
+
         if (!chat) {
             if (payload.image) payload.image.forEach((img) => unlinkFile(img));
             throw new ApiError(StatusCodes.NOT_FOUND, "Chat not found");
         }
 
         const isParticipant = chat.participants.some(
-            (p) => p.toString() === payload.sender?.toString()
+            (p: any) => p._id.toString() === payload.sender?.toString()
         );
 
         if (!isParticipant) {
@@ -269,6 +191,7 @@ const replyMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> =
             throw new ApiError(StatusCodes.FORBIDDEN, "You are not a participant of this chat");
         }
 
+        // Create reply message
         const replyMessage = await Message.create({
             chatId: parentMessage.chatId,
             replyTo: parentMessage._id,
@@ -277,27 +200,63 @@ const replyMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> =
             image: payload.image || [],
         });
 
-        parentMessage.replies?.push(replyMessage._id);
-        await parentMessage.save();
+        // Update parent message replies and chat in parallel
+        const [populatedReplyMessage] = await Promise.all([
+            // Populate the reply message
+            Message.findById(replyMessage._id)
+                .populate({
+                    path: 'sender',
+                    select: '_id name email image'
+                })
+                .populate({
+                    path: 'replyTo',
+                    select: '_id sender text image'
+                })
+                .lean(),
 
-        // SOCKET
+            // Update parent message
+            Message.findByIdAndUpdate(parentMessage._id, {
+                $push: { replies: replyMessage._id }
+            }),
+
+            // Update chat last activity
+            Chat.findByIdAndUpdate(parentMessage.chatId, {
+                lastText: payload.text || '',
+                lastImage: payload.image || [],
+            })
+        ]);
+
+        if (!populatedReplyMessage) {
+            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to populate reply message");
+        }
+
+        // SOCKET - Emit to all participants with populated data
         const io = (global as any).io;
         if (io) {
-            chat.participants.forEach((participant) => {
-                if (participant.toString() !== payload.sender?.toString()) {
-                    io.emit(`message::${participant}`, replyMessage);
-                }
+            chat.participants.forEach((participant: any) => {
+                const participantId = participant._id.toString();
+
+                // Create message with isOwnMessage flag
+                const messageForParticipant = {
+                    ...populatedReplyMessage,
+                    isOwnMessage: participantId === payload.sender?.toString()
+                };
+
+                io.emit(`message::${participantId}`, messageForParticipant);
             });
         }
 
-        return replyMessage;
+        // Return with isOwnMessage true for sender
+        return {
+            ...populatedReplyMessage,
+            isOwnMessage: true
+        } as IMessage;
 
     } catch (error) {
         if (payload.image) payload.image.forEach((img) => unlinkFile(img));
         throw error;
     }
 };
-
 
 export const MessageService = {
     sendMessageToDB,
