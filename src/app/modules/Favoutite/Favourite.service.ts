@@ -2,6 +2,7 @@ import mongoose, { Types } from "mongoose";
 import { Favourite, IFavourite } from "./Favourite.model";
 import ApiError from "../../../errors/ApiError";
 import { Event } from "../ORGANIZER/Event/Event.model";
+import { StatusCodes } from "http-status-codes";
 
 const createFavourite = async (userId: string, payload: IFavourite[]) => {
     if (payload.length === 0) {
@@ -17,6 +18,10 @@ const createFavourite = async (userId: string, payload: IFavourite[]) => {
 };
 const getUserFavouriteEvents = async (userId: string) => {
     const favourites = await Favourite.find({ favouriterUserId: userId });
+
+    if (!favourites) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "No favourite events found");
+    }
 
     const matchConditions: { categoryId: Types.ObjectId; subCategoryId: Types.ObjectId }[] = [];
 

@@ -21,7 +21,7 @@ router.get('/expired-ticket', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), Ticke
 // ------------------------------------------------------
 router.post('/withdraw-pro/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.withdrawPro);
 router.get('/sellHistory/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.sellTicketInfoUsers);
-router.get('/avaiable-type-history/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.avaiableTypeHistory);
+router.get('/available-type-history/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.avaiableTypeHistory);
 router.get('/sell-history-onsell/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.sellTicketInfoUsersOnsell); //single AllType Ticket
 router.get('/resellTicket/:id', auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), TicketController.resellTicket);
 // --------------------------------------------------------
