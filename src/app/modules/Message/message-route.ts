@@ -11,7 +11,7 @@ router.post(
     "/",
     auth(USER_ROLES.USER, USER_ROLES.ORGANIZER),
     fileUploadHandler(),
-    parseMultipleFilesdata('image'),
+    // parseMultipleFilesdata('document'),
     messageController.sendMessage
 );
 

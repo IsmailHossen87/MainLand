@@ -54,9 +54,7 @@ const getOneTicket = async (userId: string, ticeketId: string) => {
   // 5️⃣ Return result
   return ticket;
 };
-//////////////////
-//  GET UNIQUE EVENTS
-//////////////////
+
 const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
   const { status } = query;
   console.log("status", status);
@@ -116,9 +114,7 @@ const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
   const result = await baseQuery.exec();
   return result;
 };
-//////////////////
-//  GET SOLD EVENTS
-//////////////////
+
 const getSoldEvent = async (userId: string) => {
 
   // 1️⃣ User exists check
@@ -127,7 +123,6 @@ const getSoldEvent = async (userId: string) => {
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
-  console.log("user-Hellowwwwwwwwwwwwww-------------", user._id);
 
   // 2️⃣ Aggregation pipeline
   const result = await TransactionHistory.aggregate([
@@ -181,65 +176,69 @@ const getSoldEvent = async (userId: string) => {
   return result;
 };
 
-
 const sellTicketInfoUsers = async (
   userId: string,
   eventId: string,
   query: Record<string, any>
 ) => {
+  // 1️⃣ Check user exists
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
 
-  // 1️⃣ Base query (fixed filters)
-  const baseQuery = TicketPurchase.find({
+  // 2️⃣ Base query (no status filtering here!)
+  let baseQuery = TicketPurchase.find({
     ownerId: userId,
     eventId: eventId,
   });
 
-  // 2️⃣ Apply QueryBuilder filters
+  if (query.limit) delete query.limit;
+  if (query.page) delete query.page;
+
+  query.limit = 99999;
+
+  // 3️⃣ Apply QueryBuilder safely
   const qb = new QueryBuilder(baseQuery, query)
     .search(["ticketName", "ticketType"])
     .filter()
     .dateRange()
     .sort()
     .fields()
-    .paginate();
+    .paginate(); // safe now (limit=99999)
 
-  // 3️⃣ Execute filtered query
+  // 4️⃣ Get filtered tickets
   const tickets = await qb.build();
+
+  console.log("Tickets after QueryBuilder:", tickets.length);
 
   if (!tickets || tickets.length === 0) {
     throw new ApiError(StatusCodes.NOT_FOUND, "No tickets found for this event");
   }
 
-  // 4️⃣ Group tickets by type AND sellPrice
-  const ticketsByTypeAndPrice: Record<string, {
-    ticketType: string;
-    sellPrice: number;
-    unit: number;
-  }> = {};
+  // 5️⃣ Group tickets by type & price
+  const grouped: Record<string, any> = {};
 
   tickets.forEach((ticket: any) => {
     const type = String(ticket.ticketType || "Unknown");
-    const sellPrice = ticket.sellAmount || 0;
+    const sellPrice = ticket.sellAmount ?? 0;
 
-    // Create a unique key combining type and sellPrice
     const key = `${type}_${sellPrice}`;
 
-    if (!ticketsByTypeAndPrice[key]) {
-      ticketsByTypeAndPrice[key] = {
+    if (!grouped[key]) {
+      grouped[key] = {
         ticketType: type,
         sellPrice: sellPrice,
         unit: 0,
       };
     }
 
-    ticketsByTypeAndPrice[key].unit += 1;
+    grouped[key].unit += 1;
   });
 
-  return Object.values(ticketsByTypeAndPrice);
+  console.log("Grouped Result:", grouped);
+
+  return Object.values(grouped);
 };
 
 const sellTicketInfoUsersOnsell = async (
@@ -287,6 +286,7 @@ const sellTicketInfoUsersOnsell = async (
       grouped[key] = {
         type: type,
         price: price,
+        sellerId: ticket.ownerId?._id,
         ownerName: ticket.ownerId?.name || "Unknown",
         availableUnits: 0,
       };
@@ -336,6 +336,8 @@ const availableTypeHistory = async (
     type,
     quantity,
   }));
+
+  console.log("result", result);
 
   return result;
 };
@@ -618,8 +620,6 @@ const ticketExpired = async (userId: string) => {
   return formattedResponse;
 };
 
-
-
 // EVENT SUMMARY
 const eventSummary = async ({ userId, sellerType, ticketType, eventId }: any) => {
   const ownerId = new mongoose.Types.ObjectId(userId);
@@ -675,8 +675,6 @@ const promocode = async (userId: string, id: string, code: string) => {
 
   return discountCode;
 };
-
-
 
 // BAR-CODE generate
 const checkEvent = async (userId: string, eventId: string) => {

@@ -30,8 +30,8 @@ const fileUploadHandler = () => {
         case 'media':
           uploadDir = path.join(baseUploadDir, 'media');
           break;
-        case 'doc':
-          uploadDir = path.join(baseUploadDir, 'doc');
+        case 'document':
+          uploadDir = path.join(baseUploadDir, 'document');
           break;
         default:
           throw new ApiError(StatusCodes.BAD_REQUEST, 'File is not supported');
@@ -81,7 +81,7 @@ const fileUploadHandler = () => {
           )
         );
       }
-    } else if (file.fieldname === 'doc') {
+    } else if (file.fieldname === 'document') {  // ✅ 'doc' থেকে 'document' change করুন
       if (file.mimetype === 'application/pdf') {
         cb(null, true);
       } else {
@@ -98,7 +98,7 @@ const fileUploadHandler = () => {
   }).fields([
     { name: 'image', maxCount: 3 },
     { name: 'media', maxCount: 3 },
-    { name: 'doc', maxCount: 3 },
+    { name: 'document', maxCount: 3 },
     { name: 'data', maxCount: 1 },
   ]);
   return upload;
