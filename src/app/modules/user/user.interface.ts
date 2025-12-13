@@ -46,6 +46,7 @@ export type IUser = {
     street?: string;
   };
   sellAmount?: number;
+  totalTicketPurchase?: number;
   withDrawAmount?: number;
   // StripeAccountInfo
   stripeAccountInfo?: {

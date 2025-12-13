@@ -3,7 +3,7 @@ import ApiError from '../../../errors/ApiError';
 import stripe from '../../config/stripe.config';
 import { JwtPayload } from 'jsonwebtoken';
 import { User } from '../user/user.model';
-import { StripeAccount } from './stripeAccount.model';
+
 import { successHTMLstripeConnection } from './stripeAccount.utils';
 import config from '../../../config';
 
@@ -88,18 +88,15 @@ const onConnectedStripeAccountSuccess = async (accountId: string) => {
           image: string;
      };
 
-     const stripeAccounts = await StripeAccount.findOne({ accountId }).populate({
-          path: 'userId',
-          select: 'full_name email image',
-     });
+     const stripeAccounts = await User.findOne({ stripeAccountInfo: { stripeAccountId: accountId } });
 
      if (!stripeAccounts) {
           throw new ApiError(StatusCodes.NOT_FOUND, 'account not found');
      }
 
-     await StripeAccount.updateOne({ accountId }, { isCompleted: true });
+     await User.updateOne({ stripeAccountInfo: { stripeAccountId: accountId } }, { isCompleted: true });
 
-     const userUpdate = await User.findByIdAndUpdate(stripeAccounts.userId._id, { $set: { stripeConnectedAccount: accountId } }, { new: true });
+     const userUpdate = await User.findByIdAndUpdate(stripeAccounts._id, { $set: { stripeConnectedAccount: accountId } }, { new: true });
 
      if (!userUpdate) {
           throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
@@ -120,26 +117,20 @@ const onConnectedStripeAccountSuccess = async (accountId: string) => {
      return html;
 };
 
-const stripeLoginLink = async (user: JwtPayload) => {
-     console.log('🚀 ~ stripeLoginLink ~ user:', user);
-     // Get the logged-in user's data (ensure the user is authenticated)
-     const userId = user.id;
-
-     // // Retrieve the user's Stripe account information from the database
-     // const isExistUser = await User.findById(userId).select("stripeConnectedAccount");
-     // if (!isExistUser || !isExistUser.stripeConnectedAccount) {
-     //   throw new ApiError(StatusCodes.NOT_FOUND, "Stripe account not connected");
-     // }
-
-     // const stripeAccountId = isExistUser.stripeConnectedAccount;
-
+const stripeLoginLink = async (userPayload: JwtPayload) => {
+     const userId = userPayload.id;
+     const user = await User.findById(userId);
+     if (!user) {
+          throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+     }
      // check if shop owner has stripe connected account
-     const hasStripeAccount = await StripeAccount.findOne({ userId, isCompleted: true });
+     const hasStripeAccount = await User.findOne({ "stripeAccountInfo.stripeAccountId": user.stripeAccountInfo?.stripeAccountId });
+
      if (!hasStripeAccount) {
           throw new ApiError(StatusCodes.NOT_FOUND, 'Stripe account not found');
      }
 
-     const stripeAccountId = hasStripeAccount.accountId;
+     const stripeAccountId = hasStripeAccount?.stripeAccountInfo?.stripeAccountId || '';
      const loginLink = await stripe.accounts.createLoginLink(stripeAccountId);
      return loginLink.url;
 };

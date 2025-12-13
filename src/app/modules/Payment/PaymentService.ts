@@ -361,7 +361,7 @@ const BuyTicket = async (payload: any) => {
 
   return {
     sessionId: stripeSession.id,
-    sessionUrl: stripeSession.url,
+    url: stripeSession.url,
     totalAmount: totalAmount,
     ticketPrice: totalTicketPrice,
     mainlandFeeAmount: totalMainlandFee

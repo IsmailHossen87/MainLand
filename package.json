@@ -11,7 +11,9 @@
     "prettier:fix": "prettier --write .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "stripe": "stripe listen --forward-to=http://10.10.7.102:4000/api/v1/stripe/webhook",
-    "dev:stripe": "concurrently \"ts-node-dev --respawn --transpile-only src/server.ts\" \"npm run stripe\""
+    "dev:stripe": "concurrently \"ts-node-dev --respawn --transpile-only src/server.ts\" \"npm run stripe\"",
+    "build": "tsc",
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",

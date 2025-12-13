@@ -96,35 +96,97 @@ const getAllChatList = async (userId: string, search?: string) => {
 
 
 const createReport = async (payload: IReport) => {
-    const { reporterUserId, reportedUserId } = payload;
+    const { reporterUserId, chatId } = payload;
 
+    // 1️⃣ Find the chat and populate participants
+    const chat = await Chat.findById(chatId).populate('participants');
+    if (!chat) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Chat not found");
+    }
+
+    // 2️⃣ Find the OTHER user (reported user) from participants
+    const reportedUserId = chat.participants.find(
+        (participantId) => participantId.toString() !== reporterUserId.toString()
+    );
+
+    if (!reportedUserId) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "Unable to identify reported user");
+    }
+
+    // 3️⃣ Self-report check
     if (reporterUserId.toString() === reportedUserId.toString()) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "You cannot report yourself");
     }
 
-    // Ensure both users exist
+    // 4️⃣ Ensure both users exist
     const users = await User.find({ _id: { $in: [reporterUserId, reportedUserId] } });
     if (users.length !== 2) {
         throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
     }
 
-    // Check for duplicate report
-    const existing = await Report.findOne({ reporterUserId, reportedUserId });
-    if (existing) {
-        await Chat.updateMany(
-            { participants: { $all: [reporterUserId, reportedUserId] } },
-            { status: false }
-        );
-        throw new ApiError(StatusCodes.FORBIDDEN, "You cannot report this user again or chat with them");
-    }
-
-    // Create new report
-    const result = await Report.create(payload);
-
-    // Send structured email to the REPORTED user
     const reportedUser = users.find(u => u._id.toString() === reportedUserId.toString());
     const reporter = users.find(u => u._id.toString() === reporterUserId.toString());
 
+    // 5️⃣ Check for existing report (1st or 2nd time reporting)
+    const existingReport = await Report.findOne({
+        reporterUserId,
+        reportedUserId
+    });
+
+    if (existingReport) {
+        // 🔴 2nd time report - Mark chat as reported and disable communication
+        await Chat.updateOne(
+            { _id: chatId },
+            {
+                isReported: true,
+                status: false // Disable the chat
+            }
+        );
+
+        // Optional: Delete all messages or mark them as inaccessible
+        // await Message.deleteMany({ chatId });
+
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            "You have already reported this user. Further communication is now disabled."
+        );
+    }
+
+    // 6️⃣ Create new report (1st time)
+    const result = await Report.create({
+        ...payload,
+        reportedUserId, // ✅ Now we have the reported user ID
+    });
+
+    // 7️⃣ Send email to REPORTED user
+    if (reportedUser?.email) {
+        try {
+            const emailPayload = {
+                reporterName: reporter?.name || "Someone",
+                reportedUserName: reportedUser.name,
+                reportedUserEmail: reportedUser.email,
+                reportDetails: {
+                    Privacy_concerns: payload.Privacy_concerns,
+                    Obscene: payload.Obscene,
+                    Defamation: payload.Defamation,
+                    Copyright_violations: payload.Copyright_violations,
+                    Erotic_content: payload.Erotic_content,
+                    Others: payload.Others || "N/A",
+                },
+                reportDate: result.createdAt,
+            };
+
+            const emailSend = emailTemplate.userReportConfirmation(emailPayload);
+            await emailHelper.sendEmail(emailSend);
+
+            console.log("✅ Report email sent to reported user:", reportedUser.email);
+        } catch (emailError) {
+            console.error("❌ Error sending report email:", emailError);
+        }
+    }
+
+    // 8️⃣ Optional: Send warning email to REPORTER as well
+    // 7️⃣ Send email to REPORTED user (1st time report only)
     if (reportedUser?.email) {
         try {
             const emailPayload = {
@@ -153,7 +215,6 @@ const createReport = async (payload: IReport) => {
 
     return result;
 };
-
 
 const getAllReports = async () => {
     const reports = await Report.find()

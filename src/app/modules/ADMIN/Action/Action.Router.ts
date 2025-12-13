@@ -10,6 +10,7 @@ router.get("/all-notification", auth(USER_ROLES.ADMIN), ActionController.allNoti
 router.get("/all-user", auth(USER_ROLES.ADMIN), ActionController.AllTicketBuyerUser)
 router.patch('/block-user/:id', auth(USER_ROLES.ADMIN), ActionController.blockUser);
 router.get("/ticket-activity/:id", auth(USER_ROLES.ADMIN), ActionController.ticketActivity)
+router.get("/ticket-history/:id", auth(USER_ROLES.ADMIN), ActionController.ticketHistory)
 // .get("/allResellTicket",auth(USER_ROLES.ADMIN),ActionController.allResellTicket)
 router.patch('/event/:id', auth(USER_ROLES.ADMIN), ActionController.statusChange);
 

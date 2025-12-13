@@ -7,14 +7,13 @@ import auth from '../../middlewares/auth';
 // import { auth } from "../../middlewares/auth.js";
 
 const stripeAccountRoutes = Router();
-
+stripeAccountRoutes.post('/connected-user/login-link', auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), stripeAccountController.stripeLoginLink);
 stripeAccountRoutes
      .post('/create-connected-account', auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), stripeAccountController.createStripeAccount)
-     // .get('/success-account/:id', stripeAccountController.successPageAccount)
+     .get('/success-account/:id', stripeAccountController.successPageAccount)
      .get('/refreshAccountConnect/:id', stripeAccountController.refreshAccountConnect);
 
 stripeAccountRoutes.get('/success-account/:accountId', stripeAccountController.onConnectedStripeAccountSuccess);
 
-stripeAccountRoutes.get('/connected-user/login-link', auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), stripeAccountController.stripeLoginLink);
 
 export default stripeAccountRoutes;
