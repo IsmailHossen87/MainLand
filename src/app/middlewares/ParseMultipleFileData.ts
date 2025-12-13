@@ -4,12 +4,12 @@ import { getMultipleFilesPath, IFolderName } from "../../shared/getFilePath";
 export const parseMultipleFilesdata = (fieldName: IFolderName) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const image = getMultipleFilesPath(req.files, fieldName);
+            const file = getMultipleFilesPath(req.files, fieldName);
             if (req.body.data) {
                 const data = JSON.parse(req.body.data);
-                req.body = { ...data, [fieldName]: image };
+                req.body = { ...data, [fieldName]: file };
             } else {
-                req.body = { ...req.body, [fieldName]: image };
+                req.body = { ...req.body, [fieldName]: file };
             }
             next();
         } catch (error) {

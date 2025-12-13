@@ -8,12 +8,13 @@ export interface IReaction {
 export interface IMessage {
     _id?: Types.ObjectId;
     chatId: Types.ObjectId;
-    replyTo?: Types.ObjectId | null;  //repliedId
+    replyTo?: Types.ObjectId | null;
     replies?: Types.ObjectId[];
     read: boolean;
     sender: Types.ObjectId;
     text?: string;
     image?: string[];
+    files?: string[];
     isDeleted?: boolean;
     deletedAt?: Date;
     createdAt?: Date;

@@ -40,6 +40,11 @@ const messageSchema = new Schema<IMessage>(
             default: null,
         }],
 
+        files: [{
+            type: String,
+            default: null,
+        }],
+
         isDeleted: {
             type: Boolean,
             default: false,
