@@ -46,15 +46,16 @@ const loginUserFromDB = async (payload: ILoginData) => {
   const accessToken = jwtHelper.createToken(
     { id: isExistUser._id, role: isExistUser.role, email: isExistUser.email },
     config.jwt.jwt_secret as Secret,
-    config.jwt.jwt_expire_in as string
+    config.jwt.jwt_expire_in
   );
 
   // Create Refresh Token
   const refreshToken = jwtHelper.refreshToken(
     { id: isExistUser._id, role: isExistUser.role, email: isExistUser.email },
     config.jwt.jwt_secret as Secret,
-    config.jwt.jwt_refresh_in as string
+    config.jwt.jwt_refresh_in
   );
+
 
   return {
     accessToken,

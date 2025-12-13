@@ -15,7 +15,8 @@ passport.use(
     {
       clientID: config.GOOGLE_CLIENT_ID!,
       clientSecret: config.GOOGLE_CLIENT_SECRET!,
-      callbackURL: config.GOOGLE_CALLBACK_URL!},
+      callbackURL: config.GOOGLE_CALLBACK_URL!
+    },
     async (
       accessToken: string,
       refreshToken: string,
@@ -55,7 +56,7 @@ passport.use(
           });
         }
 
-        return done(null, isUserExites);
+        return done(null, isUserExites as any);
       } catch (error) {
         console.log('Google Strategy Error', error);
         return done(error);

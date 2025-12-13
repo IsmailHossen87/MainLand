@@ -102,18 +102,20 @@ const createEvent = (0, catchAsync_1.default)((req, res, next) => __awaiter(void
     if (!user) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
     }
-    if (!((_b = user.stripeAccountInfo) === null || _b === void 0 ? void 0 : _b.stripeAccountId)) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You must connect your Stripe account before creating paid events. Please connect your account from Settings.');
-    }
-    // Verify Stripe account is active
-    try {
-        const account = yield stripe_config_1.default.accounts.retrieve(user.stripeAccountInfo.stripeAccountId);
-        if (!account.charges_enabled || !account.payouts_enabled) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Your Stripe account is not fully activated. Please complete the onboarding process.');
+    if (req.body.isDraft === 'true') {
+        if (!((_b = user.stripeAccountInfo) === null || _b === void 0 ? void 0 : _b.stripeAccountId)) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You must connect your Stripe account before creating paid events. Please connect your account from Settings.');
         }
-    }
-    catch (error) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Stripe account. Please reconnect your account.');
+        // Verify Stripe account is active
+        try {
+            const account = yield stripe_config_1.default.accounts.retrieve(user.stripeAccountInfo.stripeAccountId);
+            if (!account.charges_enabled || !account.payouts_enabled) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Your Stripe account is not fully activated. Please complete the onboarding process.');
+            }
+        }
+        catch (error) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Stripe account. Please reconnect your account.');
+        }
     }
     const event = yield Event_Service_1.EventService.createEvent(Object.assign(Object.assign({}, req.body), { userId,
         isDraft }));
