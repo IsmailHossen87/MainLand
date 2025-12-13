@@ -27,16 +27,6 @@ const sendMessageToDB = async (payload: any): Promise<IMessage> => {
             throw new ApiError(StatusCodes.NOT_FOUND, "Chat not found");
         }
 
-        const isParticipant = chat.participants.some(
-            (p: any) => p._id.toString() === payload.sender?.toString()
-        );
-
-        // if (!isParticipant) {
-        //     if (payload.image) payload.image.forEach((img) => unlinkFile(img));
-        //     if (payload.files) payload.files.forEach((file) => unlinkFile(file));
-        //     throw new ApiError(StatusCodes.FORBIDDEN, "You are not a participant of this chat");
-        // }
-
         // ✅ Find the OTHER participant
         const otherParticipant = chat.participants.find(
             (p: any) => p._id.toString() !== payload.sender?.toString()
@@ -263,8 +253,54 @@ const replyMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> =
     }
 };
 
+const updateMessageToDB = async (messageId: string, payload: any, user: any): Promise<IMessage> => {
+    try {
+        const message = await Message.findById(messageId);
+        if (!message) {
+            throw new ApiError(StatusCodes.NOT_FOUND, "Message not found");
+        }
+
+        if (message.sender.toString() !== user.id) {
+            throw new ApiError(StatusCodes.FORBIDDEN, "You are not authorized to update this message");
+        }
+
+        const updatedMessage = await Message.findByIdAndUpdate(messageId, payload, { new: true });
+        if (!updatedMessage) {
+            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to update message");
+        }
+
+        return updatedMessage;
+    } catch (error) {
+        throw error;
+    }
+};
+
+const deleteMessageToDB = async (messageId: string, user: any): Promise<IMessage> => {
+    try {
+        const message = await Message.findById(messageId);
+        if (!message) {
+            throw new ApiError(StatusCodes.NOT_FOUND, "Message not found");
+        }
+
+        if (message.sender.toString() !== user.id) {
+            throw new ApiError(StatusCodes.FORBIDDEN, "You are not authorized to delete this message");
+        }
+
+        const deletedMessage = await Message.findByIdAndUpdate(message._id, { isDeleted: true, text: "", image: [], files: [], replyTo: null }, { new: true });
+        if (!deletedMessage) {
+            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to delete message");
+        }
+
+        return deletedMessage;
+    } catch (error) {
+        throw error;
+    }
+};
+
 export const MessageService = {
     sendMessageToDB,
     getMessageFromDB,
-    replyMessageToDB
+    replyMessageToDB,
+    updateMessageToDB,
+    deleteMessageToDB
 };

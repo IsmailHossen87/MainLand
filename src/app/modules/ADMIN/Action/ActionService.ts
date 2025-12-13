@@ -274,4 +274,100 @@ const allNotification = async (user: JwtPayload, query: Record<string, string>) 
 
   return { meta, data };
 };
-export const ActionService = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, accountDeleteHistory, allNotification };
+
+const ticketHistory = async (
+  user: JwtPayload,
+  query: Record<string, string>,
+  id: string
+) => {
+  // 🔒 Only Admin can access
+  if (user.role !== USER_ROLES.ADMIN) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
+  }
+
+  const usersData = await User.findById(id);
+  if (!usersData) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  let data = {};
+
+  if (usersData.role === USER_ROLES.ORGANIZER) {
+    // Organizer stats
+    const totalEvent = await Event.countDocuments({ userId: usersData._id });
+    const activeEvents = await Event.countDocuments({
+      userId: usersData._id,
+      EventStatus: "Live"
+    });
+
+    // Total ticket sold & revenue
+    const totalSold = await User.findById(usersData._id).select("totalTicketPurchase");
+    const revenue = await TransactionHistory.find({
+      organizerId: usersData._id
+    }).select("totalRevenue");
+
+    // Get all live events with tickets data
+    const allLiveEvent = await Event.find({
+      userId: usersData._id,
+      EventStatus: "Live"
+    }).select("eventName ticketSaleStart eventCode organizerName");
+
+    const totalRevenue = revenue.reduce(
+      (sum, t) => sum + (t.revenue || 0),
+      0
+    );
+
+    // Calculate total outstanding units across all events
+    const totalOutstandingUnits = allLiveEvent.reduce((total, event) => {
+      const eventOutstanding = event.tickets?.reduce(
+        (sum, ticket) => sum + (ticket.outstandingUnits || 0),
+        0
+      ) || 0;
+      return total + eventOutstanding;
+    }, 0);
+
+    // Format events with their outstanding units
+    const eventsWithOutstanding = allLiveEvent.map(event => {
+      const eventOutstanding = event.tickets?.reduce(
+        (sum, ticket) => sum + (ticket.outstandingUnits || 0),
+        0
+      ) || 0;
+
+      return {
+        eventName: event.eventName,
+        eventCode: event.eventCode,
+        organizerName: event.organizerName,
+        ticketSaleStart: event.ticketSaleStart,
+        outstandingUnits: eventOutstanding,
+      };
+    });
+
+    data = {
+      totalEvent,
+      activeEvents,
+      totalSold: totalSold?.totalTicketPurchase,
+      totalRevenue,
+      totalOutstandingUnits,
+      allLiveEvent: eventsWithOutstanding
+    };
+  }
+
+  if (usersData.role === USER_ROLES.USER) {
+    // User stats
+    const purchaseQuantity = 10;
+    const totalTicketSold = 7;
+    const user = await User.findById(usersData._id).select("name email role createdAt personalInfo.dateOfBirth createdAt personalInfo.phone address.city address.country address.streetAddress");
+
+    data = {
+      totalTicketSold,
+      purchaseQuantity,
+      user
+    };
+  }
+
+  console.log("Debug data:", data);
+
+  return data;
+};
+
+export const ActionService = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, ticketHistory, accountDeleteHistory, allNotification };

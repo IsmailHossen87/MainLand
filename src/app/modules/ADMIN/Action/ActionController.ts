@@ -108,7 +108,20 @@ const allNotification = catchAsync(
   }
 )
 
-
+const ticketHistory = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user
+    const query = req.query
+    const id = req?.params.id
+    const result = await ActionService.ticketHistory(user as JwtPayload, query as Record<string, string>, id as string)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Ticket History Retrived Sucessfully",
+      data: result,
+    });
+  }
+)
 // const allResellTicket = catchAsync(
 //   async (req: Request, res: Response, next: NextFunction) => {
 //     const user = req.user
@@ -126,4 +139,7 @@ const allNotification = catchAsync(
 
 
 
-export const ActionController = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, accountDeleteHistory, allNotification }
+export const ActionController = {
+  statusChange,
+  DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, accountDeleteHistory, allNotification, ticketHistory
+}
