@@ -4,6 +4,7 @@ import unlinkFile from "../../../shared/unlinkFile";
 import { Chat } from "../Chat/chat.model";
 import { IMessage } from "./message-interface";
 import { Message } from "./message-model";
+import mongoose from "mongoose";
 
 const sendMessageToDB = async (payload: any): Promise<IMessage> => {
     try {
@@ -133,6 +134,17 @@ const getMessageFromDB = async (
         .skip(skip)
         .limit(limit)
         .lean();
+
+
+    console.log("ChatId", new mongoose.Types.ObjectId(chatId), "Sender Not Id", { sender: { $ne: user.id } })
+
+    await Message.updateMany({
+        chatId: new mongoose.Types.ObjectId(chatId),
+        sender: { $ne: new mongoose.Types.ObjectId(user.id) },
+        read: false
+    }, {
+        $set: { read: true },
+    });
 
     // Transform each message to show the other participant's info
     const transformedMessages = messages.map((msg: any) => {

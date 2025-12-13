@@ -21,6 +21,10 @@ const chatSchema = new mongoose_1.Schema({
             type: String,
             default: '',
         }],
+    isReported: {
+        type: Boolean,
+        default: false,
+    },
 }, {
     timestamps: true,
 });
@@ -33,6 +37,10 @@ const reportSchema = new mongoose_1.Schema({
     reportedUserId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
+    },
+    chatId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Chat',
     },
     Privacy_concerns: {
         type: Boolean,

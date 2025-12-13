@@ -396,7 +396,6 @@ const allDataUseQuery = (userID, query) => __awaiter(void 0, void 0, void 0, fun
     const [meta, data] = yield Promise.all([allEvent.getMeta(), allEvent.build()]);
     return { meta, data };
 });
-// AllUnderReview 
 const allUndewReview = (userID, query) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userID);
     if (!user) {
@@ -404,12 +403,23 @@ const allUndewReview = (userID, query) => __awaiter(void 0, void 0, void 0, func
     }
     const { EventStatus: status, searchTerm } = query;
     const today = new Date();
-    // 🔥 Base filter
+    // 🔥 Base condition (always)
     const baseFilter = {
-        EventStatus: status,
-        eventDate: { $gte: today },
+        isDraft: false,
     };
-    // 🔥 If searchTerm exists → apply manual search (BEST)
+    // 🔥 Status-based logic
+    if (status) {
+        baseFilter.EventStatus = status;
+        // ✅ Only these need future events
+        if (status === "UnderReview" || status === "Live") {
+            baseFilter.eventDate = { $gte: today };
+        }
+        // ❌ Expired → no date condition
+        if (status === "Expired") {
+            delete baseFilter.eventDate;
+        }
+    }
+    // 🔥 Search logic
     if (searchTerm) {
         baseFilter.$or = [
             { eventName: { $regex: searchTerm, $options: "i" } },
@@ -418,9 +428,8 @@ const allUndewReview = (userID, query) => __awaiter(void 0, void 0, void 0, func
             { eventCode: { $regex: searchTerm, $options: "i" } },
         ];
     }
-    // ✔ Base Query
+    // ✔ Query
     const baseQuery = Event_model_1.Event.find(baseFilter);
-    // ✔ Apply QueryBuilder (NO `.search()` because search manually handled)
     const qb = new QueryBuilder_1.QueryBuilder(baseQuery, query)
         .filter()
         .dateRange()
@@ -440,7 +449,10 @@ const allUndewReview = (userID, query) => __awaiter(void 0, void 0, void 0, func
         "eventCode",
     ])
         .paginate();
-    const [meta, data] = yield Promise.all([qb.getMeta(), qb.build()]);
+    const [meta, data] = yield Promise.all([
+        qb.getMeta(),
+        qb.build(),
+    ]);
     return { meta, data };
 });
 // AllGetData 💛🩷🧡💙💜🤎

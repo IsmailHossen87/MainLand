@@ -24,6 +24,7 @@ const ticket_model_1 = require("../../Ticket/ticket.model");
 const transactionHistory_1 = require("../../Payment/transactionHistory");
 const constrant_1 = require("../../../../shared/constrant");
 const notification_model_1 = require("../../Notification/notification.model");
+const userExcludeField_1 = __importDefault(require("./userExcludeField"));
 const statusChange = (userId, eventId) => __awaiter(void 0, void 0, void 0, function* () {
     // ✅ Check user
     const isExistUser = yield user_model_1.User.findById(userId);
@@ -185,12 +186,18 @@ const AllTicketBuyerUser = (user, query) => __awaiter(void 0, void 0, void 0, fu
     const userQuery = user_model_1.User.find({
         _id: { $in: uniqueUserIds },
         role: { $in: [user_1.USER_ROLES.USER, user_1.USER_ROLES.ORGANIZER] }
-    }).select('name email role createdAt personalInfo address');
+    }).select('name email role createdAt personalInfo address status');
     // ✅ Pass the query object to QueryBuilder
     const queryBuilder = new QueryBuilder_1.QueryBuilder(userQuery, query);
+    const result = queryBuilder.search(userExcludeField_1.default)
+        .filter()
+        .dateRange()
+        .sort()
+        .fields()
+        .paginate();
     const [meta, data] = yield Promise.all([
-        queryBuilder.getMeta(),
-        queryBuilder.build(),
+        result.getMeta(),
+        result.build(),
     ]);
     return { meta, data };
 });
@@ -239,4 +246,73 @@ const allNotification = (user, query) => __awaiter(void 0, void 0, void 0, funct
     ]);
     return { meta, data };
 });
-exports.ActionService = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, accountDeleteHistory, allNotification };
+const ticketHistory = (user, query, id) => __awaiter(void 0, void 0, void 0, function* () {
+    // 🔒 Only Admin can access
+    if (user.role !== user_1.USER_ROLES.ADMIN) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
+    }
+    const usersData = yield user_model_1.User.findById(id);
+    if (!usersData) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+    }
+    let data = {};
+    if (usersData.role === user_1.USER_ROLES.ORGANIZER) {
+        // Organizer stats
+        const totalEvent = yield Event_model_1.Event.countDocuments({ userId: usersData._id });
+        const activeEvents = yield Event_model_1.Event.countDocuments({
+            userId: usersData._id,
+            EventStatus: "Live"
+        });
+        // Total ticket sold & revenue
+        const totalSold = yield user_model_1.User.findById(usersData._id).select("totalTicketPurchase");
+        const revenue = yield transactionHistory_1.TransactionHistory.find({
+            organizerId: usersData._id
+        }).select("totalRevenue");
+        // Get all live events with tickets data
+        const allLiveEvent = yield Event_model_1.Event.find({
+            userId: usersData._id,
+            EventStatus: "Live"
+        }).select("eventName ticketSaleStart eventCode organizerName").populate("userId").select("image");
+        const totalRevenue = revenue.reduce((sum, t) => sum + (t.revenue || 0), 0);
+        // Calculate total outstanding units across all events
+        const totalOutstandingUnits = allLiveEvent.reduce((total, event) => {
+            var _a;
+            const eventOutstanding = ((_a = event.tickets) === null || _a === void 0 ? void 0 : _a.reduce((sum, ticket) => sum + (ticket.outstandingUnits || 0), 0)) || 0;
+            return total + eventOutstanding;
+        }, 0);
+        // Format events with their outstanding units
+        const eventsWithOutstanding = allLiveEvent.map(event => {
+            var _a;
+            const eventOutstanding = ((_a = event.tickets) === null || _a === void 0 ? void 0 : _a.reduce((sum, ticket) => sum + (ticket.outstandingUnits || 0), 0)) || 0;
+            return {
+                eventName: event.eventName,
+                eventCode: event.eventCode,
+                organizerName: event.organizerName,
+                ticketSaleStart: event.ticketSaleStart,
+                outstandingUnits: eventOutstanding,
+            };
+        });
+        data = {
+            totalEvent,
+            activeEvents,
+            totalSold: totalSold === null || totalSold === void 0 ? void 0 : totalSold.totalTicketPurchase,
+            totalRevenue,
+            totalOutstandingUnits,
+            allLiveEvent: eventsWithOutstanding
+        };
+    }
+    if (usersData.role === user_1.USER_ROLES.USER) {
+        // User stats
+        const purchaseQuantity = 10;
+        const totalTicketSold = 7;
+        const user = yield user_model_1.User.findById(usersData._id).select("name email role image createdAt personalInfo.dateOfBirth createdAt personalInfo.phone address.city address.country address.streetAddress");
+        data = {
+            totalTicketSold,
+            purchaseQuantity,
+            user
+        };
+    }
+    console.log("Debug data:", data);
+    return data;
+});
+exports.ActionService = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, ticketHistory, accountDeleteHistory, allNotification };

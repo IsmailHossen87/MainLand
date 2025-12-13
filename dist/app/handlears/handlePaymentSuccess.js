@@ -1,4 +1,15 @@
 "use strict";
+// import { Request, Response } from 'express';
+// import Stripe from 'stripe';
+// import ApiError from '../../errors/ApiError';
+// import { StatusCodes } from 'http-status-codes';
+// import { emailHelper } from '../../helpers/emailHelper';
+// import { emailTemplate } from '../../shared/emailTemplate';
+// import { Event } from '../modules/ORGANIZER/Event/Event.model';
+// import mongoose, { mongo, Types } from 'mongoose';
+// import { TicketPurchase } from '../modules/Ticket/ticket.model';
+// import { TransactionHistory } from '../modules/Payment/transactionHistory';
+// import { User } from '../modules/user/user.model';
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -21,6 +32,7 @@ const Event_model_1 = require("../modules/ORGANIZER/Event/Event.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const ticket_model_1 = require("../modules/Ticket/ticket.model");
 const transactionHistory_1 = require("../modules/Payment/transactionHistory");
+const user_model_1 = require("../modules/user/user.model");
 const paymentSuccess = (req, res) => {
     res.status(200).json({
         success: true,
@@ -63,6 +75,11 @@ const handleEvent = (session) => __awaiter(void 0, void 0, void 0, function* () 
     catch (_a) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
     }
+    // ✅ Get organizer ID from event
+    const event = yield Event_model_1.Event.findById(eventId);
+    const organizerId = event === null || event === void 0 ? void 0 : event.userId;
+    const totalTickets = compressedTickets.reduce((sum, t) => sum + t.q, 0);
+    yield user_model_1.User.findByIdAndUpdate(ownerId, { $inc: { totalTicketPurchase: totalTickets } });
     const allTickets = compressedTickets.map(t => ({
         ticketType: t.t,
         quantity: t.q,
@@ -82,6 +99,7 @@ const handleEvent = (session) => __awaiter(void 0, void 0, void 0, function* () 
         for (let i = 0; i < ticket.quantity; i++) {
             allNewTickets.push({
                 eventId,
+                organizerId, // ✅ Added organizerId
                 ownerId,
                 ticketName: (0, exports.generateTicketName)(ticket.ticketType),
                 attendeeInformation: { fullName, email, phone },
@@ -119,7 +137,7 @@ const handleEvent = (session) => __awaiter(void 0, void 0, void 0, function* () 
     });
     if (existingUserTransaction) {
         existingUserTransaction.purchaseAmount += totalAmount;
-        existingUserTransaction.ticketQuantity += totalQuantity;
+        existingUserTransaction.purchaseQuantity += totalQuantity;
         existingUserTransaction.adminPercentageTotal += mainlandFeeAmount;
         existingUserTransaction.mainLandFee += mainlandFeeAmount;
         for (const t of allTickets) {
@@ -142,18 +160,20 @@ const handleEvent = (session) => __awaiter(void 0, void 0, void 0, function* () 
         yield transactionHistory_1.TransactionHistory.create({
             userId: ownerId,
             eventId,
+            organizerId, // ✅ Added organizerId
             type: "directPurchase",
             purchaseAmount: totalAmount,
             mainLandFee: mainlandFeeAmount,
             sellAmount: 0,
-            ticketQuantity: totalQuantity,
+            purchaseQuantity: totalQuantity,
             ticketInfo: allTickets.map((t) => ({
                 ticketType: t.ticketType,
                 quantity: t.quantity,
                 ticketPrice: t.ticketPrice,
                 commission: mainlandFeePercentage,
             })),
-            adminPercentageTotal: Number(mainlandFeeAmount)
+            adminPercentageTotal: Number(mainlandFeeAmount),
+            revenue: 0, // Direct purchase has no revenue yet
         });
     }
     // -----------------------------
@@ -182,6 +202,9 @@ const repurchaseTicket = (session) => __awaiter(void 0, void 0, void 0, function
     const metadata = session.metadata;
     const { userId, email, fullName, phone, totalAmount, ticketPrice, tickets, eventId, mfa: mainlandFeeAmount, mp: mainlandFeePercentage } = metadata;
     let allTickets;
+    // ✅ Get organizer ID from event
+    const event = yield Event_model_1.Event.findById(eventId);
+    const organizerId = event === null || event === void 0 ? void 0 : event.userId;
     try {
         allTickets = JSON.parse(tickets);
         console.log("🚀 ~ repurchaseTicket ~ allTickets:", allTickets);
@@ -200,10 +223,11 @@ const repurchaseTicket = (session) => __awaiter(void 0, void 0, void 0, function
         // Convert string IDs to ObjectIds
         const ticketObjectIds = ticketIds.map((id) => new mongoose_1.default.Types.ObjectId(id));
         const sellerObjectId = new mongoose_1.default.Types.ObjectId(sellerId);
-        // Find tickets before updating to verify availability
+        // Find tickets before updating to verify availability and get original purchase amounts
         const ticketsToUpdate = yield ticket_model_1.TicketPurchase.find({
             _id: { $in: ticketObjectIds },
             ownerId: sellerObjectId,
+            // organizerId filter removed - not all old tickets have this field
             ticketType: ticketType,
             status: "onsell",
         });
@@ -212,6 +236,8 @@ const repurchaseTicket = (session) => __awaiter(void 0, void 0, void 0, function
         }
         // Get eventId from metadata or first ticket
         const ticketEventId = eventId || ticketsToUpdate[0].eventId;
+        // ✅ Calculate original purchase amount (sum of all tickets' original purchase amounts)
+        const originalPurchaseAmount = ticketsToUpdate.reduce((sum, ticket) => sum + (ticket.purchaseAmount || 0), 0);
         // ✅ Calculate per-ticket purchase amount (unit price + mainland fee per ticket)
         const purchaseAmountPerTicket = unitPrice + mainlandFeePerTicket;
         // Update the purchased tickets
@@ -231,7 +257,7 @@ const repurchaseTicket = (session) => __awaiter(void 0, void 0, void 0, function
                 },
                 purchaseAmount: purchaseAmountPerTicket,
                 sellAmount: purchaseAmountPerTicket,
-                mainLandFee: mainlandFeePerTicket, // ✅ Mainland fee for this single ticket
+                mainLandFee: mainlandFeePerTicket,
                 resellerId: sellerObjectId,
                 discount: 0,
                 discountCode: "",
@@ -241,47 +267,66 @@ const repurchaseTicket = (session) => __awaiter(void 0, void 0, void 0, function
         if (updatedTickets.modifiedCount !== quantity) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, `Failed to update all ${ticketType} tickets. Expected ${quantity}, updated ${updatedTickets.modifiedCount}`);
         }
-        // ✅ Calculate earned amount for this ticket group
+        // ✅ Calculate seller's revenue
+        // Revenue = What they sold for - What they originally paid
+        const sellerRevenue = price - originalPurchaseAmount;
+        // ✅ Calculate earned amount for this ticket group (mainland fee earned)
         const totalPriceWithFee = price + mainlandFeeForTicket;
         const earnedAmountForThisGroup = totalPriceWithFee - price;
-        // Update transaction history
-        const history = yield transactionHistory_1.TransactionHistory.findOne({
+        // ========================================
+        // ✅ UPDATE SELLER'S ORIGINAL directPurchase REVENUE ONLY
+        // ========================================
+        const updateDirectPurchase = yield transactionHistory_1.TransactionHistory.findOne({
+            userId: sellerObjectId,
+            eventId: ticketEventId,
+            type: 'directPurchase',
+        });
+        if (updateDirectPurchase) {
+            // ✅ শুধু revenue update করছি, বাকি সব ঠিক আছে
+            updateDirectPurchase.revenue = (updateDirectPurchase.revenue || 0) + Number(sellerRevenue);
+            yield updateDirectPurchase.save();
+        }
+        // ========================================
+        // Update SELLER's transaction history (resellPurchase)
+        // ========================================
+        const sellerHistory = yield transactionHistory_1.TransactionHistory.findOne({
             userId: sellerObjectId,
             eventId: ticketEventId,
             type: 'resellPurchase',
         });
-        if (history) {
-            history.purchaseAmount += Number(totalPriceWithFee);
-            history.sellAmount += Number(price);
-            history.earnedAmount += Number(earnedAmountForThisGroup);
-            history.ticketQuantity += Number(quantity);
-            history.adminPercentageTotal += Number(mainlandFeeForTicket);
-            history.mainLandFee += Number(mainlandFeeForTicket);
-            const existingTicket = history.ticketInfo.find((t) => t.ticketType === ticketType && t.ticketPrice === price);
+        if (sellerHistory) {
+            sellerHistory.purchaseAmount += Number(totalPriceWithFee);
+            sellerHistory.sellAmount += Number(price);
+            sellerHistory.earnedAmount += Number(earnedAmountForThisGroup);
+            sellerHistory.purchaseQuantity += Number(quantity); // ✅ purchaseQuantity ঠিক আছে
+            sellerHistory.adminPercentageTotal += Number(mainlandFeeForTicket);
+            sellerHistory.mainLandFee += Number(mainlandFeeForTicket);
+            const existingTicket = sellerHistory.ticketInfo.find((t) => t.ticketType === ticketType && t.ticketPrice === price);
             if (existingTicket) {
                 existingTicket.quantity += Number(quantity);
             }
             else {
-                history.ticketInfo.push({
+                sellerHistory.ticketInfo.push({
                     ticketType,
                     quantity: Number(quantity),
                     ticketPrice: Number(price),
                     commission: Number(mainlandFeePercentage),
                 });
             }
-            yield history.save();
+            yield sellerHistory.save();
         }
         else {
             yield transactionHistory_1.TransactionHistory.create({
                 userId: sellerObjectId,
                 resellerId: newOwnerId,
                 eventId: ticketEventId,
+                organizerId, // ✅ Added organizerId
                 mainLandFee: parseFloat(mainlandFeeForTicket),
                 type: "resellPurchase",
                 purchaseAmount: Number(totalPriceWithFee),
                 sellAmount: Number(price),
                 earnedAmount: Number(earnedAmountForThisGroup),
-                ticketQuantity: Number(quantity),
+                purchaseQuantity: Number(quantity), // ✅ purchaseQuantity সঠিক
                 adminPercentageTotal: Number(mainlandFeeForTicket),
                 ticketInfo: [
                     {
@@ -304,8 +349,8 @@ const repurchaseTicket = (session) => __awaiter(void 0, void 0, void 0, function
                 quantity: ticket.quantity,
                 pricePerTicket: ticket.unitPrice,
                 totalPrice: ticket.price,
-                mainlandFeePerTicket: ticket.mainlandFeePerTicket, // ✅ Include in email
-                mainlandFeeTotal: ticket.mainlandFeeForTicket, // ✅ Total for this ticket type
+                mainlandFeePerTicket: ticket.mainlandFeePerTicket,
+                mainlandFeeTotal: ticket.mainlandFeeForTicket,
             })),
             ticketPrice: parseFloat(ticketPrice),
             mainlandFeeAmount: parseFloat(mainlandFeeAmount),

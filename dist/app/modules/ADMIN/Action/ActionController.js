@@ -104,6 +104,18 @@ const allNotification = (0, catchAsync_1.default)((req, res, next) => __awaiter(
         data: result.data,
     });
 }));
+const ticketHistory = (0, catchAsync_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = req.user;
+    const query = req.query;
+    const id = req === null || req === void 0 ? void 0 : req.params.id;
+    const result = yield ActionService_1.ActionService.ticketHistory(user, query, id);
+    yield (0, sendResponse_1.default)(res, {
+        success: true,
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        message: "Ticket History Retrived Sucessfully",
+        data: result,
+    });
+}));
 // const allResellTicket = catchAsync(
 //   async (req: Request, res: Response, next: NextFunction) => {
 //     const user = req.user
@@ -117,4 +129,7 @@ const allNotification = (0, catchAsync_1.default)((req, res, next) => __awaiter(
 //     });
 //   }
 // );
-exports.ActionController = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, accountDeleteHistory, allNotification };
+exports.ActionController = {
+    statusChange,
+    DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, accountDeleteHistory, allNotification, ticketHistory
+};

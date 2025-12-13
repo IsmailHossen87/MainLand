@@ -27,7 +27,8 @@ const auth = (...roles) => (req, res, next) => __awaiter(void 0, void 0, void 0,
             //verify token
             const verifyUser = jwtHelper_1.jwtHelper.verifyToken(token, config_1.default.jwt.jwt_secret);
             //set user to header
-            req.user = verifyUser;
+            const user = req.user;
+            user.id = verifyUser.id;
             //guard user
             if (roles.length && !roles.includes(verifyUser.role)) {
                 throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You don't have permission to access this api");
