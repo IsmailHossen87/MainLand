@@ -18,6 +18,11 @@ const transactionHistorySchema = new mongoose_1.Schema({
         ref: "Event",
         index: true,
     },
+    organizerId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "User",
+        index: true,
+    },
     ticketInfo: [{
             ticketType: { type: String, },
             quantity: { type: Number, default: 0 },
@@ -51,7 +56,11 @@ const transactionHistorySchema = new mongoose_1.Schema({
     earnedAmount: {
         type: Number,
     },
-    ticketQuantity: {
+    purchaseQuantity: {
+        type: Number,
+        default: 0,
+    },
+    revenue: {
         type: Number,
         default: 0,
     },

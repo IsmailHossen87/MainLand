@@ -19,43 +19,11 @@ const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const getFilePath_1 = require("../../../shared/getFilePath");
-// const sendMessage = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-//     const user = req?.user as JwtPayload;
-//     // Handle multiple images (array)
-//     let images: string[] = [];
-//     if (req.files && "image" in req.files) {
-//         // Check if it's an array of files
-//         const fileArray = req.files.image as Express.Multer.File[];
-//         images = fileArray.map(file => `/image/${file.filename}`);
-//     }
-//     // Parse data if it's a string (when sent with multipart/form-data)
-//     let bodyData: any = req.body;
-//     if (req.body.data && typeof req.body.data === "string") {
-//         try {
-//             bodyData = JSON.parse(req.body.data);
-//         } catch (err) {
-//             throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid JSON in data field");
-//         }
-//     }
-//     const payload = {
-//         ...bodyData,
-//         image: images,
-//         sender: user.id,
-//     };
-//     console.log("Payload after parsing:", payload);
-//     const result = await MessageService.sendMessageToDB(payload);
-//     sendResponse(res, {
-//         statusCode: StatusCodes.OK,
-//         success: true,
-//         message: "Message sent successfully",
-//         data: result
-//     });
-// });
 const sendMessage = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const image = (0, getFilePath_1.getMultipleFilesPath)(req.files, 'image');
-    const document = (0, getFilePath_1.getMultipleFilesPath)(req.files, 'document');
+    const imageFiles = (0, getFilePath_1.getMultipleFilesPath)(req.files, 'image');
+    const documentFiles = (0, getFilePath_1.getMultipleFilesPath)(req.files, 'document');
     const user = req.user;
-    const payload = Object.assign(Object.assign({}, req.body), { image, files: document, sender: user.id });
+    const payload = Object.assign(Object.assign({}, req.body), { image: imageFiles && (imageFiles === null || imageFiles === void 0 ? void 0 : imageFiles.length) > 0 ? imageFiles : [], files: documentFiles && (documentFiles === null || documentFiles === void 0 ? void 0 : documentFiles.length) > 0 ? documentFiles : [], sender: user.id });
     const result = yield MessageService_1.MessageService.sendMessageToDB(payload);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
@@ -101,8 +69,33 @@ const replyMessage = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, v
         data: message,
     });
 }));
+const updateMessage = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const messageId = req.params.id;
+    const user = req.user;
+    const payload = req.body;
+    const result = yield MessageService_1.MessageService.updateMessageToDB(messageId, payload, user);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Message updated successfully',
+        data: result,
+    });
+}));
+const deleteMessage = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const messageId = req.params.id;
+    const user = req.user;
+    const result = yield MessageService_1.MessageService.deleteMessageToDB(messageId, user);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Message deleted successfully',
+        data: result,
+    });
+}));
 exports.messageController = {
     sendMessage,
     getMessage,
     replyMessage,
+    updateMessage,
+    deleteMessage
 };

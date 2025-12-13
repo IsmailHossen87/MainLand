@@ -103,7 +103,7 @@ const getUnreadNotificationCount = (user) => __awaiter(void 0, void 0, void 0, f
         throw new Error("User ID is required");
     }
     const count = yield notification_model_1.Notification.countDocuments({ receiver: user.id, read: false });
-    const messageCount = yield message_model_1.Message.countDocuments({ sender: user.id, read: false });
+    const messageCount = yield message_model_1.Message.countDocuments({ sender: { $ne: user.id }, read: false });
     return { notificationCount: count, messageCount: messageCount, };
 });
 exports.NotificationService = {

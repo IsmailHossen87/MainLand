@@ -97,6 +97,10 @@ const userSchema = new mongoose_1.Schema({
         type: Number,
         default: 0,
     },
+    totalTicketPurchase: {
+        type: Number,
+        default: 0,
+    },
     verified: {
         type: Boolean,
         default: false,

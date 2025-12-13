@@ -10,6 +10,7 @@ import { TicketPurchase } from '../../Ticket/ticket.model';
 import { TransactionHistory } from '../../Payment/transactionHistory';
 import { excludeField } from '../../../../shared/constrant';
 import { Notification } from '../../Notification/notification.model';
+import userSearchableFields from './userExcludeField';
 
 
 
@@ -202,14 +203,20 @@ const AllTicketBuyerUser = async (user: JwtPayload, query: Record<string, string
   const userQuery = User.find({
     _id: { $in: uniqueUserIds },
     role: { $in: [USER_ROLES.USER, USER_ROLES.ORGANIZER] }
-  }).select('name email role createdAt personalInfo address');
+  }).select('name email role createdAt personalInfo address status');
 
   // ✅ Pass the query object to QueryBuilder
   const queryBuilder = new QueryBuilder(userQuery, query);
+  const result = queryBuilder.search(userSearchableFields)
+    .filter()
+    .dateRange()
+    .sort()
+    .fields()
+    .paginate();
 
   const [meta, data] = await Promise.all([
-    queryBuilder.getMeta(),
-    queryBuilder.build(),
+    result.getMeta(),
+    result.build(),
   ]);
 
   return { meta, data };
@@ -310,7 +317,7 @@ const ticketHistory = async (
     const allLiveEvent = await Event.find({
       userId: usersData._id,
       EventStatus: "Live"
-    }).select("eventName ticketSaleStart eventCode organizerName");
+    }).select("eventName ticketSaleStart eventCode organizerName").populate("userId").select("image");
 
     const totalRevenue = revenue.reduce(
       (sum, t) => sum + (t.revenue || 0),
@@ -356,7 +363,7 @@ const ticketHistory = async (
     // User stats
     const purchaseQuantity = 10;
     const totalTicketSold = 7;
-    const user = await User.findById(usersData._id).select("name email role createdAt personalInfo.dateOfBirth createdAt personalInfo.phone address.city address.country address.streetAddress");
+    const user = await User.findById(usersData._id).select("name email role image createdAt personalInfo.dateOfBirth createdAt personalInfo.phone address.city address.country address.streetAddress");
 
     data = {
       totalTicketSold,

@@ -754,7 +754,6 @@ const soldTicketHistory = async (
     summary: {
       totalSellAmount: tickets.purchaseAmount,
       totalMainlandFee: tickets.mainLandFee,
-      totalTickets: tickets.ticketQuantity,
       types: typeSummary,
     },
     details: tickets.ticketInfo.map((t) => ({

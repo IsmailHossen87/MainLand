@@ -129,7 +129,7 @@ const getUnreadNotificationCount = async (user: JwtPayload): Promise<{ notificat
   }
 
   const count = await Notification.countDocuments({ receiver: user.id, read: false });
-  const messageCount = await Message.countDocuments({ sender: user.id, read: false });
+  const messageCount = await Message.countDocuments({ sender: { $ne: user.id }, read: false });
 
   return { notificationCount: count, messageCount: messageCount, }
 };
