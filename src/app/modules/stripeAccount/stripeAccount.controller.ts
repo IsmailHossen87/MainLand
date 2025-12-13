@@ -61,7 +61,7 @@ const stripeLoginLink = catchAsync(async (req: Request, res: Response) => {
           success: true,
           statusCode: StatusCodes.OK,
           message: 'Successfully get stripe login link',
-          data: result,
+          data: { url: result },
      });
 });
 

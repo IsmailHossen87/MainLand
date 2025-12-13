@@ -502,7 +502,7 @@ const allDataUseQuery = async (userID: string, query: Record<string, string>) =>
 
   return { meta, data };
 };
-// AllUnderReview 
+
 const allUndewReview = async (userID: string, query: Record<string, string>) => {
   const user = await User.findById(userID);
   if (!user) {
@@ -510,16 +510,29 @@ const allUndewReview = async (userID: string, query: Record<string, string>) => 
   }
 
   const { EventStatus: status, searchTerm } = query;
-
   const today = new Date();
 
-  // 🔥 Base filter
+  // 🔥 Base condition (always)
   const baseFilter: any = {
-    EventStatus: status,
-    eventDate: { $gte: today },
+    isDraft: false,
   };
 
-  // 🔥 If searchTerm exists → apply manual search (BEST)
+  // 🔥 Status-based logic
+  if (status) {
+    baseFilter.EventStatus = status;
+
+    // ✅ Only these need future events
+    if (status === "UnderReview" || status === "Live") {
+      baseFilter.eventDate = { $gte: today };
+    }
+
+    // ❌ Expired → no date condition
+    if (status === "Expired") {
+      delete baseFilter.eventDate;
+    }
+  }
+
+  // 🔥 Search logic
   if (searchTerm) {
     baseFilter.$or = [
       { eventName: { $regex: searchTerm, $options: "i" } },
@@ -529,10 +542,9 @@ const allUndewReview = async (userID: string, query: Record<string, string>) => 
     ];
   }
 
-  // ✔ Base Query
+  // ✔ Query
   const baseQuery = Event.find(baseFilter);
 
-  // ✔ Apply QueryBuilder (NO `.search()` because search manually handled)
   const qb = new QueryBuilder(baseQuery, query)
     .filter()
     .dateRange()
@@ -553,10 +565,14 @@ const allUndewReview = async (userID: string, query: Record<string, string>) => 
     ])
     .paginate();
 
-  const [meta, data] = await Promise.all([qb.getMeta(), qb.build()]);
+  const [meta, data] = await Promise.all([
+    qb.getMeta(),
+    qb.build(),
+  ]);
 
   return { meta, data };
 };
+
 
 
 // AllGetData 💛🩷🧡💙💜🤎

@@ -29,6 +29,7 @@ const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const unlinkFile_1 = __importDefault(require("../../../shared/unlinkFile"));
 const chat_model_1 = require("../Chat/chat.model");
 const message_model_1 = require("./message-model");
+const mongoose_1 = __importDefault(require("mongoose"));
 const sendMessageToDB = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -51,12 +52,6 @@ const sendMessageToDB = (payload) => __awaiter(void 0, void 0, void 0, function*
                 payload.files.forEach((file) => (0, unlinkFile_1.default)(file));
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Chat not found");
         }
-        const isParticipant = chat.participants.some((p) => { var _a; return p._id.toString() === ((_a = payload.sender) === null || _a === void 0 ? void 0 : _a.toString()); });
-        // if (!isParticipant) {
-        //     if (payload.image) payload.image.forEach((img) => unlinkFile(img));
-        //     if (payload.files) payload.files.forEach((file) => unlinkFile(file));
-        //     throw new ApiError(StatusCodes.FORBIDDEN, "You are not a participant of this chat");
-        // }
         // ✅ Find the OTHER participant
         const otherParticipant = chat.participants.find((p) => { var _a; return p._id.toString() !== ((_a = payload.sender) === null || _a === void 0 ? void 0 : _a.toString()); });
         const message = yield message_model_1.Message.create(payload);
@@ -135,6 +130,14 @@ const getMessageFromDB = (chatId, user, query) => __awaiter(void 0, void 0, void
         .skip(skip)
         .limit(limit)
         .lean();
+    console.log("ChatId", new mongoose_1.default.Types.ObjectId(chatId), "Sender Not Id", { sender: { $ne: user.id } });
+    yield message_model_1.Message.updateMany({
+        chatId: new mongoose_1.default.Types.ObjectId(chatId),
+        sender: { $ne: new mongoose_1.default.Types.ObjectId(user.id) },
+        read: false
+    }, {
+        $set: { read: true },
+    });
     // Transform each message to show the other participant's info
     const transformedMessages = messages.map((msg) => {
         const { files } = msg, rest = __rest(msg, ["files"]);
@@ -226,8 +229,48 @@ const replyMessageToDB = (payload) => __awaiter(void 0, void 0, void 0, function
         throw error;
     }
 });
+const updateMessageToDB = (messageId, payload, user) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const message = yield message_model_1.Message.findById(messageId);
+        if (!message) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Message not found");
+        }
+        if (message.sender.toString() !== user.id) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You are not authorized to update this message");
+        }
+        const updatedMessage = yield message_model_1.Message.findByIdAndUpdate(messageId, payload, { new: true });
+        if (!updatedMessage) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, "Failed to update message");
+        }
+        return updatedMessage;
+    }
+    catch (error) {
+        throw error;
+    }
+});
+const deleteMessageToDB = (messageId, user) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const message = yield message_model_1.Message.findById(messageId);
+        if (!message) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Message not found");
+        }
+        if (message.sender.toString() !== user.id) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You are not authorized to delete this message");
+        }
+        const deletedMessage = yield message_model_1.Message.findByIdAndUpdate(message._id, { isDeleted: true, text: "", image: [], files: [], replyTo: null }, { new: true });
+        if (!deletedMessage) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, "Failed to delete message");
+        }
+        return deletedMessage;
+    }
+    catch (error) {
+        throw error;
+    }
+});
 exports.MessageService = {
     sendMessageToDB,
     getMessageFromDB,
-    replyMessageToDB
+    replyMessageToDB,
+    updateMessageToDB,
+    deleteMessageToDB
 };

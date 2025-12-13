@@ -8,7 +8,6 @@ const router = express.Router();
 
 router.post('/:otherUserId', auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), validateRequest(createOneToOneChatValidation), ChatController.createOneToOneChat);
 router.get('/', auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), ChatController.getAllChatList);
-
 // Report
 router.post(
     '/report/:chatId',

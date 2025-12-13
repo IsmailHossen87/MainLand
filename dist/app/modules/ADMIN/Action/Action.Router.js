@@ -15,6 +15,7 @@ router.get("/all-notification", (0, auth_1.default)(user_1.USER_ROLES.ADMIN), Ac
 router.get("/all-user", (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.AllTicketBuyerUser);
 router.patch('/block-user/:id', (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.blockUser);
 router.get("/ticket-activity/:id", (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.ticketActivity);
+router.get("/ticket-history/:id", (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.ticketHistory);
 // .get("/allResellTicket",auth(USER_ROLES.ADMIN),ActionController.allResellTicket)
 router.patch('/event/:id', (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.statusChange);
 exports.ActionRouter = router;

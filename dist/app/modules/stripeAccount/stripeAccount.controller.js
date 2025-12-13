@@ -66,7 +66,7 @@ const stripeLoginLink = (0, catchAsync_1.default)((req, res) => __awaiter(void 0
         success: true,
         statusCode: http_status_codes_1.StatusCodes.OK,
         message: 'Successfully get stripe login link',
-        data: result,
+        data: { url: result },
     });
 }));
 exports.stripeAccountController = {

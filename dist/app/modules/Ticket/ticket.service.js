@@ -623,7 +623,6 @@ const soldTicketHistory = (userId, eventId, expired) => __awaiter(void 0, void 0
         summary: {
             totalSellAmount: tickets.purchaseAmount,
             totalMainlandFee: tickets.mainLandFee,
-            totalTickets: tickets.ticketQuantity,
             types: typeSummary,
         },
         details: tickets.ticketInfo.map((t) => ({
