@@ -11,7 +11,6 @@ router.post(
     "/",
     auth(USER_ROLES.USER, USER_ROLES.ORGANIZER),
     fileUploadHandler(),
-    // parseMultipleFilesdata('document'),
     messageController.sendMessage
 );
 
@@ -29,4 +28,6 @@ router.get(
     messageController.getMessage
 );
 
+router.patch("/update-message/:id", auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), fileUploadHandler(), messageController.updateMessage)
+router.delete("/delete-message/:id", auth(USER_ROLES.USER, USER_ROLES.ORGANIZER), messageController.deleteMessage)
 export const MessageRouter = router;

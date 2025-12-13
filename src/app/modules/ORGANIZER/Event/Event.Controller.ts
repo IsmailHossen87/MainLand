@@ -119,31 +119,34 @@ const createEvent = catchAsync(
       );
     }
 
-    if (!user.stripeAccountInfo?.stripeAccountId) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        'You must connect your Stripe account before creating paid events. Please connect your account from Settings.'
-      );
-    }
-
-    // Verify Stripe account is active
-    try {
-      const account = await stripe.accounts.retrieve(
-        user.stripeAccountInfo.stripeAccountId
-      );
-
-      if (!account.charges_enabled || !account.payouts_enabled) {
+    if (req.body.isDraft === 'true') {
+      if (!user.stripeAccountInfo?.stripeAccountId) {
         throw new ApiError(
           StatusCodes.BAD_REQUEST,
-          'Your Stripe account is not fully activated. Please complete the onboarding process.'
+          'You must connect your Stripe account before creating paid events. Please connect your account from Settings.'
         );
       }
-    } catch (error) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        'Invalid Stripe account. Please reconnect your account.'
-      );
+      // Verify Stripe account is active
+      try {
+        const account = await stripe.accounts.retrieve(
+          user.stripeAccountInfo.stripeAccountId
+        );
+
+        if (!account.charges_enabled || !account.payouts_enabled) {
+          throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            'Your Stripe account is not fully activated. Please complete the onboarding process.'
+          );
+        }
+      } catch (error) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'Invalid Stripe account. Please reconnect your account.'
+        );
+      }
     }
+
+
 
 
 

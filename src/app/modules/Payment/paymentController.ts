@@ -14,6 +14,8 @@ const createEventPayment = catchAsync(async (req: Request, res: Response) => {
     { fullName, email, phone, tickets, discountCode, userId }
   );
 
+
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

@@ -89,6 +89,10 @@ const userSchema = new Schema<IUser, UserModal>(
       type: Number,
       default: 0,
     },
+    totalTicketPurchase: {
+      type: Number,
+      default: 0,
+    },
     verified: {
       type: Boolean,
       default: false,

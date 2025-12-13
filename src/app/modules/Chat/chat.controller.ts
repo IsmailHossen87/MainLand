@@ -41,12 +41,12 @@ const getAllChatList = catchAsync(async (req, res) => {
 
 const createReport = catchAsync(async (req: Request, res: Response) => {
     const reporter = req.user as JwtPayload;
-    const { reportedUserId } = req.params;
+    const { chatId } = req.params;
 
     const payload = {
         ...req.body,
         reporterUserId: reporter.id,
-        reportedUserId,
+        chatId,
     };
 
     const result = await ChatService.createReport(payload);

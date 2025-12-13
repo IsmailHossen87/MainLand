@@ -11,7 +11,7 @@ router.get('/', auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), ChatController.getA
 
 // Report
 router.post(
-    '/report/:reportedUserId',
+    '/report/:chatId',
     auth(USER_ROLES.ORGANIZER, USER_ROLES.USER),
     ChatController.createReport
 );
