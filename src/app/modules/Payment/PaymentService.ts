@@ -319,6 +319,20 @@ const BuyTicket = async (payload: any) => {
     );
   }
 
+  const metadata = {
+    userId: user._id.toString(),
+    fullName,
+    email,
+    phone,
+    tickets: JSON.stringify(ticketDetails),
+    totalAmount: totalAmount.toFixed(2),
+    ticketPrice: totalTicketPrice.toFixed(2),
+    mp: feePercentage.toString(),
+    mfa: totalMainlandFee.toFixed(2), // ✅ Total mainland fee
+    type: "resellPurchase",
+    eventId: eventId.toString()
+  };
+
   // 10. Create Stripe customer
   const stripeCustomer = await stripe.customers.create({
     name: user.name,
@@ -342,19 +356,20 @@ const BuyTicket = async (payload: any) => {
         quantity: 1
       }
     ],
-    metadata: {
-      userId: user._id.toString(),
-      fullName,
-      email,
-      phone,
-      tickets: JSON.stringify(ticketDetails),
-      totalAmount: totalAmount.toFixed(2),
-      ticketPrice: totalTicketPrice.toFixed(2),
-      mp: feePercentage.toString(),
-      mfa: totalMainlandFee.toFixed(2), // ✅ Total mainland fee
-      type: "resellPurchase",
-      eventId: eventId.toString()
-    },
+    metadata,
+    // metadata: {
+    //   userId: user._id.toString(),
+    //   fullName,
+    //   email,
+    //   phone,
+    //   tickets: JSON.stringify(ticketDetails),
+    //   totalAmount: totalAmount.toFixed(2),
+    //   ticketPrice: totalTicketPrice.toFixed(2),
+    //   mp: feePercentage.toString(),
+    //   mfa: totalMainlandFee.toFixed(2), // ✅ Total mainland fee
+    //   type: "resellPurchase",
+    //   eventId: eventId.toString()
+    // },
     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${config.stripe.cancel_url}`
   });

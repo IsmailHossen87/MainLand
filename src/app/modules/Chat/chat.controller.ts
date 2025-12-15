@@ -43,11 +43,14 @@ const createReport = catchAsync(async (req: Request, res: Response) => {
     const reporter = req.user as JwtPayload;
     const { chatId } = req.params;
 
+
+
     const payload = {
         ...req.body,
         reporterUserId: reporter.id,
         chatId,
     };
+    console.log(payload);
 
     const result = await ChatService.createReport(payload);
 

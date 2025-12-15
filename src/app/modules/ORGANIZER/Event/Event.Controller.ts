@@ -7,11 +7,12 @@ import { EventService } from './Event.Service';
 import ApiError from '../../../../errors/ApiError';
 import { User } from '../../user/user.model';
 import stripe from '../../../config/stripe.config';
+import { IJwtUser } from '../../../../types';
 
 // SubCategory
 const createSubCategory = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req?.user?.id;
+    const userId = req.user?.id as string;
     req.body.userId = userId;
 
     const result = await EventService.creteSubCategory(req.body);
@@ -26,7 +27,7 @@ const createSubCategory = catchAsync(
 );
 const createCategory = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req?.user?.id;
+    const userId = (req.user as IJwtUser)?.id;
     req.body.userId = userId;
 
     if (req.body.data) {
@@ -103,7 +104,7 @@ const deleteCategory = catchAsync(
 // 1️⃣ Create Event (Draft or Full)
 const createEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id;
+    const userId = (req.user as IJwtUser)?.id;
 
     if (req.files && 'image' in req.files && req.files.image[0]) {
       req.body.image = `/image/${req.files.image[0].filename}`;
@@ -173,7 +174,7 @@ const createEvent = catchAsync(
 // 2️⃣ Update Event (Draft update or Publish)
 const updateEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id;
+    const userId = (req.user as IJwtUser)?.id;
     const eventId = req.params.id;
 
     if (req.files && 'image' in req.files && req.files.image[0]) {
@@ -201,7 +202,7 @@ const updateEvent = catchAsync(
 // 2️⃣ UpdateNotification
 const updateNotification = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id;
+    const userId = (req.user as IJwtUser)?.id;
     const eventId = req.params.id;
     const notification = req.body.notification;
 
@@ -230,7 +231,7 @@ const updateNotification = catchAsync(
 
 const singleEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id
+    const userId = (req.user as IJwtUser)?.id
     const eventId = req.params.id
     const result = await EventService.singleEvent(userId as string, eventId as string)
     await sendResponse(res, {
@@ -277,7 +278,7 @@ const popularEvent = catchAsync(
 const allDataUseQuery = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
 
-    const userId = req.user?.id
+    const userId = (req.user as IJwtUser)?.id
     const query = req.query
     const result = await EventService.allDataUseQuery(userId as string, query as Record<string, string>)
 
@@ -294,7 +295,7 @@ const allDataUseQuery = catchAsync(
 const AllUnderReview = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
 
-    const userId = req.user?.id
+    const userId = (req.user as IJwtUser)?.id
     const query = req.query
     console.log(query)
     const result = await EventService.allUndewReview(userId as string, query as Record<string, string>)
@@ -313,7 +314,7 @@ const AllUnderReview = catchAsync(
 // Closed Event ✅✅✅✅
 const closedEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id
+    const userId = (req.user as IJwtUser)?.id
     const query = req.query
 
     const result = await EventService.closedEvent(userId as string, query as Record<string, string>)
@@ -344,7 +345,7 @@ const subCategory = catchAsync(
 // All Data Use Query
 const allCategory = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id
+    const userId = (req.user as IJwtUser)?.id
     const query = req.query
     const result = await EventService.allCategory(userId as string, query as Record<string, string>)
 
@@ -371,7 +372,7 @@ const eventTicketHistory = catchAsync(
 // Bar Code Check
 const barCodeCheck = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id
+    const userId = (req.user as IJwtUser)?.id
     const eventId = req.params.id
     const query = req.query
 

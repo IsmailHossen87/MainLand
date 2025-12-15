@@ -4,10 +4,11 @@ import sendResponse from "../../../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import { ActionService } from "./ActionService";
 import { JwtPayload } from "jsonwebtoken";
+import { IJwtUser } from "../../../../types";
 
 const statusChange = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id
+    const userId = (req.user as IJwtUser)?.id;
     const eventId = req.params.id
     const result = await ActionService.statusChange(userId as string, eventId as string)
     await sendResponse(res, {
@@ -113,6 +114,7 @@ const ticketHistory = catchAsync(
     const user = req.user
     const query = req.query
     const id = req?.params.id
+
     const result = await ActionService.ticketHistory(user as JwtPayload, query as Record<string, string>, id as string)
     await sendResponse(res, {
       success: true,

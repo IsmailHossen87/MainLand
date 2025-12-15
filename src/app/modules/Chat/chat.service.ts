@@ -119,8 +119,8 @@ const createReport = async (payload: IReport) => {
     }
 
     // 4️⃣ Ensure both users exist
-    const users = await User.find({ _id: { $in: [reporterUserId, reportedUserId] } });
-    if (users.length !== 2) {
+    const users = await User.find({ _id: { $in: [reporterUserId] } });
+    if (users.length !== 1) {
         throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
     }
 
