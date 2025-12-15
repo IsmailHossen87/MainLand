@@ -10,32 +10,44 @@ const auth =
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const tokenWithBearer = req.headers.authorization;
+
+        // Check if token exists
         if (!tokenWithBearer) {
           throw new ApiError(StatusCodes.UNAUTHORIZED, 'You are not authorized');
         }
 
-        if (tokenWithBearer && tokenWithBearer.startsWith('Bearer')) {
-          const token = tokenWithBearer.split(' ')[1];
-
-          //verify token
-          const verifyUser = jwtHelper.verifyToken(
-            token,
-            config.jwt.jwt_secret as Secret
-          );
-          //set user to header
-          const user = req.user as JwtPayload;
-          user.id = verifyUser.id;
-
-          //guard user
-          if (roles.length && !roles.includes(verifyUser.role)) {
-            throw new ApiError(
-              StatusCodes.FORBIDDEN,
-              "You don't have permission to access this api"
-            );
-          }
-
-          next();
+        // Check if token starts with Bearer
+        if (!tokenWithBearer.startsWith('Bearer ')) {
+          throw new ApiError(StatusCodes.UNAUTHORIZED, 'Invalid token format');
         }
+
+        // Extract token
+        const token = tokenWithBearer.split(' ')[1];
+
+        // Verify token
+        const verifyUser = jwtHelper.verifyToken(
+          token,
+          config.jwt.jwt_secret as Secret
+        ) as JwtPayload;
+
+        // ✅ FIX: Set user to request object
+        req.user = {
+          id: verifyUser.id,
+          role: verifyUser.role,
+          email: verifyUser.email,
+        };
+
+        console.log('Authenticated user:', req.user);
+
+        // Guard user - check role authorization
+        if (roles.length && !roles.includes(verifyUser.role)) {
+          throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            "You don't have permission to access this api"
+          );
+        }
+
+        next();
       } catch (error) {
         next(error);
       }

@@ -3,12 +3,14 @@ import sendResponse from '../../../shared/sendResponse';
 import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { createPaymentService } from './PaymentService';
+import { IJwtUser } from '../../../types';
 
 // ================= Primary Event Ticket Purchase =================
 const createEventPayment = catchAsync(async (req: Request, res: Response) => {
   const eventId = req.params.id;
-  const userId = req.user?.id as string;
+  const userId = (req.user as IJwtUser)?.id;
   const { fullName, email, phone, tickets, discountCode } = req.body;
+  console.log(userId)
   const paymentSession = await createPaymentService.createPaymentIntentEvent(
     eventId as string,
     { fullName, email, phone, tickets, discountCode, userId }
@@ -26,7 +28,7 @@ const createEventPayment = catchAsync(async (req: Request, res: Response) => {
 
 // ================= Resell Ticket Payment =================
 const buyTicket = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?.id as string;
+  const userId = (req.user as IJwtUser)?.id;
   const eventId = req.params.id;
   const { fullName, email, phone, tickets } = req.body;
 

@@ -3,6 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import { SettingService } from "./Setting.Service";
 import { JwtPayload } from "jsonwebtoken";
 import mongoose from "mongoose";
+import { IJwtUser } from "../../../types";
 
 
 // Create or update
@@ -134,7 +135,7 @@ const getSpecificSetting = async (req: Request, res: Response) => {
 
 // CONTACT
 const contactCreate = async (req: Request, res: Response) => {
-  let userId = req.user?.id as string;
+  let userId = (req.user as IJwtUser)?.id;
 
   const result = await SettingService.contactSetting(userId, req.body);
   res.status(StatusCodes.CREATED).json({
@@ -184,7 +185,7 @@ const contactEmail = async (req: Request, res: Response) => {
     if (!adminMessage) {
       throw new Error("Admin message is required");
     }
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
 
     const result = await SettingService.contactEmail(req.params.id as string, adminMessage, userId);
     res.status(StatusCodes.OK).json({

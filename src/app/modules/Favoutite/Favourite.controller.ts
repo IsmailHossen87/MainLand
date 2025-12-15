@@ -4,9 +4,10 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { FavouriteService } from "./Favourite.service";
 import mongoose from "mongoose";
+import { IJwtUser } from "../../../types";
 
 const FavouriteCreate = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?.id;
+  const userId = (req.user as IJwtUser)?.id;
   console.log("body", req.body)
   const result = await FavouriteService.createFavourite(userId as string, req.body);
 
@@ -18,7 +19,7 @@ const FavouriteCreate = catchAsync(async (req: Request, res: Response) => {
   });
 });
 const FavouriteEvent = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?.id;
+  const userId = (req.user as IJwtUser)?.id;
   console.log("body", req.body)
   const result = await FavouriteService.getUserFavouriteEvents(userId as string);
 

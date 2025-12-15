@@ -1,3 +1,105 @@
+// import { Request, Response } from 'express';
+// import Stripe from 'stripe';
+// import config from '../../../config';
+// import stripe from '../../config/stripe.config';
+// import { logger } from '../../../shared/logger';
+// import ApiError from '../../../errors/ApiError';
+// import { StatusCodes } from 'http-status-codes';
+// import { handlePayment } from '../../handlears/handlePaymentSuccess';
+// import { User } from '../user/user.model';
+
+// const webhookHandler = async (req: Request, res: Response): Promise<void> => {
+//   const sig = req.headers['stripe-signature'];
+//   const webhookSecret = config.stripe.stripe_webhook_secret;
+
+//   if (!webhookSecret) {
+//     console.error('Stripe webhook secret not set');
+//     res.status(500).send('Webhook secret not configured');
+//     return;
+//   }
+
+//   let event: Stripe.Event;
+
+//   try {
+//     event = stripe.webhooks.constructEvent(
+//       req.body,
+//       sig as string,
+//       webhookSecret
+//     );
+//   } catch (err: any) {
+//     console.error('Webhook signature verification failed:', err.message);
+//     res.status(400).send(`Webhook Error: ${err.message}`);
+//     return;
+//   }
+
+//   if (!event) {
+//     logger.error('Invalid event received - event object is null or undefined');
+//     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid event received!');
+//   }
+
+//   console.log('event.type', event.type);
+
+//   try {
+//     switch (event.type) {
+//       case 'checkout.session.completed': {
+//         const session: any = event.data.object;
+//         const metadata = session.metadata || {};
+
+//         // Ensure attendee info is included before calling handler
+//         session.attendeeInformation = {
+//           email: metadata.email,
+//           phone: metadata.phone,
+//         };
+
+//         if (metadata.type === 'resellPurchase') {
+//           await handlePayment.repurchaseTicket(session);
+//         } else if (metadata.eventId && metadata.userId) {
+//           await handlePayment.handleEvent(session);
+//         } else {
+//           console.log('⚠️ Unknown payment type received in webhook');
+//         }
+//         break;
+//       }
+
+//       case 'transfer.created':
+//         console.log(`Transfer created for:`, event.data.object);
+//         break;
+//       case 'account.updated':
+//         const data: any = event.data.object;
+//         console.log('session', event.data.object);
+//         const email = data.email;
+//         const accountId = data.id
+
+//         const loginLink = await stripe.accounts.createLoginLink(accountId);
+
+//         console.log('loginLink', loginLink.url);
+
+//         // await User.updateOne({ email }, { $set: { 'stripeAccountInfo.$.loginUrl': loginLink.url } });
+//         await User.updateOne(
+//           { email },
+//           {
+//             $set: {
+//               "stripeAccountInfo.loginUrl": loginLink.url
+//             }
+//           }
+//         );
+
+
+//         break;
+
+//       default:
+//         console.log(`Unhandled event type: ${event.type}`);
+//         break;
+//     }
+
+//     res.status(200).json({ received: true });
+//   } catch (err: any) {
+//     console.error('Error handling the event:', err);
+//     res.status(500).send(`Internal Server Error: ${err.message}`);
+//   }
+// };
+
+// export default webhookHandler;
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import config from '../../../config';
@@ -8,13 +110,18 @@ import { StatusCodes } from 'http-status-codes';
 import { handlePayment } from '../../handlears/handlePaymentSuccess';
 import { User } from '../user/user.model';
 
+type AttendeeInfo = {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+};
+
 const webhookHandler = async (req: Request, res: Response): Promise<void> => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = config.stripe.stripe_webhook_secret;
 
   if (!webhookSecret) {
-    console.error('Stripe webhook secret not set');
-    res.status(500).send('Webhook secret not configured');
+    res.status(500).send('Stripe webhook secret not configured');
     return;
   }
 
@@ -27,75 +134,103 @@ const webhookHandler = async (req: Request, res: Response): Promise<void> => {
       webhookSecret
     );
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
+    logger.error('Webhook signature verification failed', err.message);
     res.status(400).send(`Webhook Error: ${err.message}`);
     return;
   }
 
-  if (!event) {
-    logger.error('Invalid event received - event object is null or undefined');
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid event received!');
-  }
-
-  console.log('event.type', event.type);
-
   try {
     switch (event.type) {
+      // ======================================
+      // ✅ CHECKOUT PAYMENT COMPLETED
+      // ======================================
       case 'checkout.session.completed': {
-        const session: any = event.data.object;
+        const session = event.data.object as Stripe.Checkout.Session;
         const metadata = session.metadata || {};
 
-        // Ensure attendee info is included before calling handler
-        session.attendeeInformation = {
-          email: metadata.email,
-          phone: metadata.phone,
-        };
+        // 🔑 Get PaymentIntent
+        const paymentIntentId = session.payment_intent;
 
-        if (metadata.type === 'resellPurchase') {
-          await handlePayment.repurchaseTicket(session);
-        } else if (metadata.eventId && metadata.userId) {
-          await handlePayment.handleEvent(session);
-        } else {
-          console.log('⚠️ Unknown payment type received in webhook');
+        if (!paymentIntentId) {
+          throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            'PaymentIntent not found in checkout session'
+          );
         }
+
+        const paymentIntent = await stripe.paymentIntents.retrieve(
+          paymentIntentId as string
+        );
+
+        // ✅ Ensure payment success
+        if (paymentIntent.status !== 'succeeded') {
+          logger.warn(
+            `Payment not successful. Status: ${paymentIntent.status}`
+          );
+          break;
+        }
+
+        console.log("session", session)
+
+        console.log("metadata", metadata)
+
+
+        // 🔁 Route by payment type
+        if (metadata.type === 'resellPurchase') {
+          await handlePayment.repurchaseTicket(
+            session,
+            paymentIntent
+          );
+        } else if (metadata.eventId && metadata.userId) {
+          await handlePayment.handleEvent(
+            session,
+            paymentIntent
+          );
+        } else {
+          logger.warn('Unknown payment type received in webhook metadata');
+        }
+
         break;
       }
 
+      // ======================================
+      // 💸 STRIPE TRANSFER CREATED
+      // ======================================
       case 'transfer.created':
-        console.log(`Transfer created for:`, event.data.object);
+        logger.info('Transfer created', event.data.object);
         break;
-      case 'account.updated':
-        const data: any = event.data.object;
-        console.log('session', event.data.object);
-        const email = data.email;
-        const accountId = data.id
 
-        const loginLink = await stripe.accounts.createLoginLink(accountId);
+      // ======================================
+      // 🏦 CONNECTED ACCOUNT UPDATED
+      // ======================================
+      case 'account.updated': {
+        const account = event.data.object as Stripe.Account;
 
-        console.log('loginLink', loginLink.url);
+        if (!account.email) break;
 
-        // await User.updateOne({ email }, { $set: { 'stripeAccountInfo.$.loginUrl': loginLink.url } });
+        const loginLink = await stripe.accounts.createLoginLink(account.id);
+
         await User.updateOne(
-          { email },
+          { email: account.email },
           {
             $set: {
-              "stripeAccountInfo.loginUrl": loginLink.url
-            }
+              'stripeAccountInfo.loginUrl': loginLink.url,
+            },
           }
         );
 
-
         break;
+      }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        logger.info(`Unhandled event type: ${event.type}`);
         break;
     }
 
     res.status(200).json({ received: true });
   } catch (err: any) {
-    console.error('Error handling the event:', err);
-    res.status(500).send(`Internal Server Error: ${err.message}`);
+    logger.error('Webhook processing error', err);
+    res.status(500).send(`Webhook Error: ${err.message}`);
   }
 };
 

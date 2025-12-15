@@ -8,6 +8,7 @@ import mongoose from "mongoose";
 
 const sendMessageToDB = async (payload: any): Promise<IMessage> => {
     try {
+
         if (!payload.chatId) {
             throw new ApiError(StatusCodes.BAD_REQUEST, "Chat ID is required");
         }
@@ -20,7 +21,13 @@ const sendMessageToDB = async (payload: any): Promise<IMessage> => {
         }
 
         // ✅ Populate participants to get other user info
-        const chat = await Chat.findById(payload.chatId).populate('participants', 'name image email');
+        const chat = await Chat.findById(payload.chatId).populate('participants', 'name image email isReported');
+
+        if (chat?.isReported) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, "Chat is reported");
+        }
+
+
         if (!chat) {
             // ✅ Clean up both images and files
             if (payload.image) payload.image.forEach((img: string) => unlinkFile(img));

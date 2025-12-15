@@ -4,12 +4,13 @@ import { query, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { TicketService } from './ticket.service';
 import { IResellTicket } from './ticket.interface';
+import { IJwtUser } from '../../../types';
 
 
 // ================= Primary Event Ticket Purchase =================
 const getAllTicket = catchAsync(async (req: Request, res: Response) => {
     //   const eventId = req.params.id;
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const query = req.query;
     const result = await TicketService.getAllTicket(
         userId,
@@ -27,7 +28,7 @@ const getAllTicket = catchAsync(async (req: Request, res: Response) => {
 
 // GetOneTicket
 const getOneTicket = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const ticketId = req.params.id;
     const result = await TicketService.getOneTicket(
         userId,
@@ -43,7 +44,7 @@ const getOneTicket = catchAsync(async (req: Request, res: Response) => {
 });
 // UNIQUE EVENT
 const getUniqueEvents = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const query = req.query;
 
     const result = await TicketService.getUniqueEvents(userId, query as Record<string, string>);
@@ -58,7 +59,7 @@ const getUniqueEvents = catchAsync(async (req: Request, res: Response) => {
 // UNIQUE SOLD
 // UNIQUE EVENT
 const getSoldEvent = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const result = await TicketService.getSoldEvent(userId);
     sendResponse(res, {
         statusCode: StatusCodes.OK,
@@ -69,7 +70,7 @@ const getSoldEvent = catchAsync(async (req: Request, res: Response) => {
 });
 
 const sellTicketInfoUsers = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const eventId = req.params.id;
     const query = req.query;
     const result = await TicketService.sellTicketInfoUsers(userId, eventId, query);
@@ -81,7 +82,7 @@ const sellTicketInfoUsers = catchAsync(async (req: Request, res: Response) => {
     });
 });
 const sellTicketInfoUsersOnsell = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const eventId = req.params.id;
     const query = req.query;
     const result = await TicketService.sellTicketInfoUsersOnsell(userId, eventId, query);
@@ -96,7 +97,7 @@ const sellTicketInfoUsersOnsell = catchAsync(async (req: Request, res: Response)
 
 // All
 const allOnsellTicketInfo = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const query = req.query;
     const result = await TicketService.allOnsellTicketInfo(userId, query);
 
@@ -109,7 +110,7 @@ const allOnsellTicketInfo = catchAsync(async (req: Request, res: Response) => {
 });
 
 const resellTicket = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const eventId = req.params.id;
     const tickets = req.body; // Array of objects asbe
 
@@ -126,7 +127,7 @@ const resellTicket = catchAsync(async (req: Request, res: Response) => {
 
 // WITHDRAWpromocode
 const withdrawPro = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const eventId = req.params.id;
     const result = await TicketService.withdrawPro(userId, eventId);
 
@@ -138,7 +139,7 @@ const withdrawPro = catchAsync(async (req: Request, res: Response) => {
     });
 });
 const soldTicket = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const result = await TicketService.soldTicket(userId);
 
     sendResponse(res, {
@@ -149,7 +150,7 @@ const soldTicket = catchAsync(async (req: Request, res: Response) => {
     });
 });
 const ticketExpired = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const result = await TicketService.ticketExpired(userId);
     sendResponse(res, {
         statusCode: StatusCodes.OK,
@@ -159,7 +160,7 @@ const ticketExpired = catchAsync(async (req: Request, res: Response) => {
     });
 });
 const eventSummary = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const { sellerType, ticketType, eventId } = req.query;
 
     console.log("sellerType", sellerType)
@@ -175,7 +176,7 @@ const eventSummary = catchAsync(async (req: Request, res: Response) => {
     });
 });
 const PromoCodePercentage = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const { id } = req.params;
     const { code } = req.body;
     const result = await TicketService.promocode(userId, id as string, code as string);
@@ -187,7 +188,7 @@ const PromoCodePercentage = catchAsync(async (req: Request, res: Response) => {
     });
 });
 const avaiableTypeHistory = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const { id } = req.params;
 
     const result = await TicketService.availableTypeHistory(userId, id as string);
@@ -201,7 +202,7 @@ const avaiableTypeHistory = catchAsync(async (req: Request, res: Response) => {
 
 // Bar code generate
 const checkEvent = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const { eventCode } = req.params
     const result = await TicketService.checkEvent(userId, eventCode);
 
@@ -214,7 +215,7 @@ const checkEvent = catchAsync(async (req: Request, res: Response) => {
 });
 // Bar code generate
 const soldTicketHistory = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const { id } = req.params
     const { expired } = req.query;
 
@@ -231,7 +232,7 @@ const soldTicketHistory = catchAsync(async (req: Request, res: Response) => {
     });
 });
 const historyTickets = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id as string;
+    const userId = (req.user as IJwtUser)?.id;
     const { id } = req.params
     console.log("id", id)
     const result = await TicketService.historyTickets(userId, id as string);
