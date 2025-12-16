@@ -211,6 +211,19 @@ const mainLandFee = async (user: JwtPayload, mainLandFee: number) => {
 
   return updateDoc;
 };
+const getMainlandFee = async (user: JwtPayload) => {
+  const { id } = user;
+  const isExistUser = await User.isExistUserById(id);
+  if (!isExistUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+  }
+  const isExistUserMainlandFee = await MainlandFee.findOne();
+  if (!isExistUserMainlandFee) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+  }
+
+  return isExistUserMainlandFee;
+};
 
 
 export const UserService = {
@@ -220,5 +233,7 @@ export const UserService = {
   updateProfileToDB,
   imageDelete,
   accountDelete,
-  mainLandFee
+  mainLandFee,
+  getMainlandFee,
+
 };

@@ -71,6 +71,23 @@ const userSchema = new Schema<IUser, UserModal>(
         type: String,
         required: false,
       },
+      stripeAccountStatus: {
+        type: String,
+        enum: ['pending', 'active', 'restricted'],
+        default: 'pending',
+      },
+      pendingBalance: {
+        type: Number,
+        default: 0,
+      },
+      availableBalance: {
+        type: Number,
+        default: 0,
+      },
+      totalEarnings: {
+        type: Number,
+        default: 0,
+      },
       loginUrl: {
         type: String,
         required: false,
