@@ -76,8 +76,30 @@ const getQuestionById = async (id: string) => {
   return result;
 }
 
+// const getSpecificSetting = async (key: string) => {
+//   // key কে SettingType এ convert করুন
+//   const setting = await Settings.findOne({ type: key });
+
+
+//   if (!setting) {
+//     return null;
+//   }
+
+//   return setting;
+// };
 const getSpecificSetting = async (key: string) => {
-  // key কে SettingType এ convert করুন
+  if (key === 'terms_and_conditions') {
+    const termsAndConditions = await Settings.findOne({ type: SettingType.TermsAndConditions });
+    const privacyPolicy = await Settings.findOne({ type: SettingType.PrivacyPolicy });
+
+    const data = {
+      termsAndConditions: termsAndConditions?.content || "",
+      privacyPolicy: privacyPolicy?.content || ""
+    };
+
+    return data;
+  }
+
   const setting = await Settings.findOne({ type: key });
 
   if (!setting) {
@@ -195,6 +217,18 @@ const deleteContact = async (id: string) => {
   }
   return result;
 }
+
+const createTerms = async (data: { type: string; title: string; content: string }) => {
+  const { type, title, content } = data;
+
+  const result = await Settings.findOneAndUpdate(
+    { type },
+    { title, content },
+    { upsert: true, new: true }
+  );
+
+  return result;
+};
 export const SettingService = {
   updateSetting,
   faqSetting,
@@ -207,7 +241,8 @@ export const SettingService = {
   contactEmail,
   faqDelete,
   faqUpdate,
-  deleteContact
+  deleteContact,
+  createTerms
 };
 
 

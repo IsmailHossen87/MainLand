@@ -14,6 +14,11 @@ export interface ITransactionHistory {
     ticketPrice: number,
     commission: number,
   }[];
+  organizerPayout?: number; // Organizer/Seller কত টাকা পাবে
+  payoutStatus: 'pending' | 'processing' | 'completed' | 'failed';
+  payoutDate?: Date;
+  payoutEligibleDate?: Date;
+  stripeTransferId?: string;
   paymentIntentId: string;
   purchaseAmount: number;
   sellAmount: number;
@@ -22,6 +27,7 @@ export interface ITransactionHistory {
   adminPercentageTotal: number;
   purchaseQuantity: number;
   revenue: number;
+  createdAt: Date;
 }
 
 
@@ -36,6 +42,21 @@ const transactionHistorySchema = new Schema<ITransactionHistory>(
       type: Schema.Types.ObjectId,
       ref: "User",
       index: true,
+    },
+    organizerPayout: {
+      type: Number,
+      default: 0,
+    },
+    payoutStatus: {
+      type: String,
+      enum: ['pending', 'processing', 'completed', 'failed'],
+      default: 'pending',
+    },
+    payoutDate: {
+      type: Date,
+    },
+    stripeTransferId: {
+      type: String,
     },
     eventId: {
       type: Schema.Types.ObjectId,
@@ -79,11 +100,16 @@ const transactionHistorySchema = new Schema<ITransactionHistory>(
       sparse: true,
       unique: true,
     },
+
     sellAmount: {
       type: Number,
     },
     earnedAmount: {
       type: Number,
+    },
+
+    payoutEligibleDate: {
+      type: Date
     },
     purchaseQuantity: {
       type: Number,

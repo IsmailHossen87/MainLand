@@ -61,7 +61,8 @@ const EventSchema = new Schema<IEvent>(
     EventStatus: { type: String, enum: Object.values(IEventStatus), default: IEventStatus.Draft },
     notification: { type: String, default: "" },
     notificationStatus: { type: String, enum: ["idle", "pending", "success", "rejected"], default: "idle" },
-
+    payoutStatus: { type: String, enum: ['pending', 'processing', 'completed'], default: 'pending' },
+    payoutDate: { type: Date, default: null },
     eventCode: { type: String, default: "" },
     tickets: [
       {
@@ -99,6 +100,10 @@ const EventSchema = new Schema<IEvent>(
     totalEarned: { type: Number, default: 0 },
     totalReview: [{ type: Schema.Types.ObjectId, ref: "Review" }],
     isDraft: { type: Boolean, default: true },
+
+    payoutEligibleDate: {
+      type: Date
+    },
   },
   {
     timestamps: true,
@@ -106,6 +111,15 @@ const EventSchema = new Schema<IEvent>(
   }
 );
 
+EventSchema.pre('save', function (next) {
+  if (this.eventDate && !this.payoutEligibleDate) {
+    // Event শেষ হওয়ার 14 দিন পর payout eligible
+    const eligibleDate = new Date(this.eventDate);
+    eligibleDate.setDate(eligibleDate.getDate() + 15);
+    this.payoutEligibleDate = eligibleDate;
+  }
+  next();
+});
 
 // 🧩 Export Models
 export const SubCategory = model('SubCategory', SubCategorySchema);

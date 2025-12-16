@@ -201,6 +201,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
       mainlandFeePercentage: feePercentage.toString(),
       mainlandFeeAmount: mainlandFeeAmount.toFixed(2),
       discountCode: discountCode || '',
+      organizerPayout: (totalDiscountedTicketPrice).toFixed(2),
       type: 'directPurchase',
     },
     success_url: `${config.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,

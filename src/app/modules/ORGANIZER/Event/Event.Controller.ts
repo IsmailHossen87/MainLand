@@ -206,6 +206,8 @@ const updateNotification = catchAsync(
     const eventId = req.params.id;
     const notification = req.body.notification;
 
+
+
     if (req.files && 'image' in req.files && req.files.image[0]) {
       req.body.image = `/image/${req.files.image[0].filename}`;
     }
