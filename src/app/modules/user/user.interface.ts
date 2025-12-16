@@ -50,12 +50,17 @@ export type IUser = {
   withDrawAmount?: number;
   // StripeAccountInfo
   stripeAccountInfo?: {
-    stripeCustomerId?: string;
     stripeAccountId?: string;
+    stripeAccountStatus?: 'pending' | 'active' | 'restricted';
+    pendingBalance: number;
+    availableBalance: number;
+    isCompleted: { type: Boolean, default: false },
+    stripeConnectedAccount: { type: String },
     loginUrl?: string;
   } | null;
   location?: string;
   joinedDate: Date;
+  totalEarnings: number;
   authentication?: {
     isResetPassword: boolean;
     oneTimeCode: number | null;

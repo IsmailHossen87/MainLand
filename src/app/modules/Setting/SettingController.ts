@@ -29,7 +29,28 @@ const updateSetting = async (req: Request, res: Response) => {
     });
   }
 };
+const createTerms = async (req: Request, res: Response) => {
+  try {
+    const { type, title, content } = req.body;
 
+    if (!type) {
+      throw new Error("Setting type is required");
+    }
+
+    const result = await SettingService.createTerms({ type, title, content });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: `${type} updated successfully`,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 const faqCreate = async (req: Request, res: Response) => {
   try {
@@ -261,4 +282,5 @@ export const SettingController = {
   faqDelete,
   faqUpdate,
   deleteContact,
+  createTerms,
 };

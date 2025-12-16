@@ -111,4 +111,15 @@ const CreateAndUpdateMainlandFee = catchAsync(async (req: Request, res: Response
   });
 });
 
-export const UserController = { createUser, getUserProfile, updateProfile, getAllUser, imageDelete, accountDelete, CreateAndUpdateMainlandFee };
+const getMainlandFee = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+  const result = await UserService.getMainlandFee(user as JwtPayload);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Mainland fee retrieved successfully',
+    data: result,
+  });
+});
+
+export const UserController = { createUser, getUserProfile, updateProfile, getAllUser, imageDelete, accountDelete, CreateAndUpdateMainlandFee, getMainlandFee };

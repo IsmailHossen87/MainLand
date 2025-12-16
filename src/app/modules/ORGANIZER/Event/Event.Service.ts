@@ -222,6 +222,8 @@ const updateNotification = async (eventId: string, userId: string, payload: any)
     throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
   }
 
+  console.log("eventId", eventId, "payload", payload)
+
   const updatedEvent = await Event.findByIdAndUpdate(
     eventId,
     { $notification: payload, $set: payload },

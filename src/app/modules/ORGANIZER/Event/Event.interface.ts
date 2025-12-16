@@ -70,6 +70,7 @@ export interface IEvent {
   state?: string;
   country?: string;
   eventCode?: string;
+  payoutEligibleDate?: Date;
 
   // Tickets
   tickets?: {
@@ -86,6 +87,8 @@ export interface IEvent {
   preSaleStart?: Date;
   preSaleEnd?: Date;
   EventStatus?: IEventStatus;
+  payoutStatus: 'pending' | 'processing' | 'completed';
+  payoutDate?: Date;
   notification?: string;
   notificationStatus: "idle" | "pending" | "success" | "rejected";
   // Discount
