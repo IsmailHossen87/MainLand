@@ -11,6 +11,7 @@ import { NotificationRoutes } from '../app/modules/Notification/notification.rou
 import { MessageRouter } from '../app/modules/Message/message-route';
 import { ChatRoutes } from '../app/modules/Chat/chat.router';
 import stripeAccountRoutes from '../app/modules/stripeAccount/stripeAccount.route';
+import { payoutRoutes } from '../app/modules/Payout/Payout.route';
 
 
 
@@ -37,6 +38,10 @@ const apiRoutes = [
   {
     path: '/payment',
     route: PaymentRouter,
+  },
+  {
+    path: '/payout',
+    route: payoutRoutes,
   },
   {
     path: '/action',

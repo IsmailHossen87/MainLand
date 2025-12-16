@@ -40,6 +40,7 @@ const handleEvent = async (session: Stripe.Checkout.Session, paymentIntent: Stri
   const metadata = session.metadata as any;
 
   const userId = metadata.userId;
+  const organizerPayout = parseFloat(metadata.organizerPayout);
   const eventId = metadata.eventId;
   const fullName = metadata.fullName;
   const email = metadata.attenEmail;
@@ -50,12 +51,14 @@ const handleEvent = async (session: Stripe.Checkout.Session, paymentIntent: Stri
   const totalAmount = parseFloat(metadata.totalAmount) || 0;
   const ownerId = new mongoose.Types.ObjectId(userId);
 
+
   // ✅✅ IDEMPOTENCY CHECK - Prevent duplicate transactions
   const paymentIntentId = paymentIntent?.id || session.payment_intent as string;
 
   if (!paymentIntentId) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Payment intent ID missing!");
   }
+
 
   // Check if this payment has already been processed
   const existingTransaction = await TransactionHistory.findOne({
@@ -64,10 +67,10 @@ const handleEvent = async (session: Stripe.Checkout.Session, paymentIntent: Stri
   });
 
   if (existingTransaction) {
-    return; // Already processed, skip
+    console.log("⚠️ Payment already processed, skipping...");
+    return;
   }
 
-  // Safe parsing & expand compressed tickets
   let compressedTickets: any[] = [];
   try {
     compressedTickets = JSON.parse(metadata.tickets);
@@ -133,6 +136,22 @@ const handleEvent = async (session: Stripe.Checkout.Session, paymentIntent: Stri
   await TicketPurchase.insertMany(allNewTickets);
   await Event.bulkWrite(updatedEventTickets);
 
+  // Update organizer payout🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥Banlance get
+  await User.findByIdAndUpdate(organizerId, {
+    $inc: {
+      pendingBalance: organizerPayout,
+      totalEarnings: organizerPayout
+    }
+  });
+
+  let payoutEligibleDate = null;
+  if (event?.eventDate) {
+    const eligibleDate = new Date(event.eventDate);
+    eligibleDate.setDate(eligibleDate.getDate() + 15);
+    payoutEligibleDate = eligibleDate;
+  }
+
+
   // -----------------------------
   // ✅ ALWAYS CREATE NEW TRANSACTION - NO UPDATE
   // -----------------------------
@@ -140,9 +159,11 @@ const handleEvent = async (session: Stripe.Checkout.Session, paymentIntent: Stri
     userId: ownerId,
     eventId,
     organizerId,
-    paymentIntentId: paymentIntentId, // ✅ Store payment intent ID for idempotency
+    paymentIntentId: paymentIntentId,
     type: "directPurchase",
     purchaseAmount: totalAmount,
+    organizerPayout: organizerPayout, // ✅ Organizer কত পাবে
+    payoutStatus: 'pending', //new added
     mainLandFee: mainlandFeeAmount,
     sellAmount: 0,
     purchaseQuantity: totalQuantity,
@@ -154,6 +175,7 @@ const handleEvent = async (session: Stripe.Checkout.Session, paymentIntent: Stri
     })),
     adminPercentageTotal: Number(mainlandFeeAmount),
     revenue: 0,
+    payoutEligibleDate: payoutEligibleDate,
   });
 
 
@@ -221,6 +243,13 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session, paymentIntent:
   const totalBuyerPurchaseAmount = parseFloat(totalAmount);
   const totalBuyerQuantity = allTickets.reduce((sum, t) => sum + t.quantity, 0);
 
+  let payoutEligibleDate = null;
+  if (event?.eventDate) {
+    const eligibleDate = new Date(event.eventDate);
+    eligibleDate.setDate(eligibleDate.getDate() + 15);
+    payoutEligibleDate = eligibleDate;
+  }
+
   for (const ticketGroup of allTickets) {
     const {
       ticketIds,
@@ -237,6 +266,13 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session, paymentIntent:
     if (!sellerId) {
       throw new ApiError(StatusCodes.BAD_REQUEST, "Seller ID is missing in ticket data!");
     }
+    // new Added 🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥
+    const sellerPayout = price - mainlandFeeForTicket;
+    await User.findByIdAndUpdate(sellerId, {
+      $inc: {
+        pendingBalance: sellerPayout
+      }
+    });
 
     // Convert string IDs to ObjectIds
     const ticketObjectIds = ticketIds.map((id: string) => new mongoose.Types.ObjectId(id));
@@ -306,23 +342,28 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session, paymentIntent:
     // ✅✅ CORRECT REVENUE CALCULATION
     // Revenue = What seller received (sell price) - What they originally paid
     const sellerRevenue = price - originalPurchaseAmount;
+    // ✅ UPDATE SELLER'S PENDING BALANCE
+    await User.findByIdAndUpdate(sellerObjectId, {
+      $inc: {
+        pendingBalance: sellerPayout,
+        totalEarnings: sellerPayout
+      }
+    })
 
     // ========================================
     // ✅ UPDATE SELLER'S directPurchase REVENUE
     // (Find the FIRST directPurchase for this seller & event)
     // ========================================
-    console.log("sellerObjectId:", sellerObjectId);
-    console.log("ticketEventId:", ticketEventId);
-    const sellerDirectPurchase = await TransactionHistory.findOne({
+
+    const sellerTransaction = await TransactionHistory.findOne({
       userId: sellerObjectId,
       eventId: ticketEventId,
     }).sort({ createdAt: 1 });
 
-    if (sellerDirectPurchase) {
-      sellerDirectPurchase.revenue = (sellerDirectPurchase.revenue || 0) + Number(sellerRevenue);
-      sellerDirectPurchase.sellAmount = (sellerDirectPurchase.sellAmount || 0) + Number(price);
 
-      await sellerDirectPurchase.save();
+    if (sellerTransaction) {
+      sellerTransaction.organizerPayout = (sellerTransaction.organizerPayout || 0) + sellerPayout;
+      await sellerTransaction.save();
     } else {
       console.warn("⚠️ No directPurchase transaction found for seller. This shouldn't happen!");
     }
@@ -349,6 +390,9 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session, paymentIntent:
       ticketPrice: t.unitPrice,
       commission: mainlandFeePercentage,
     })),
+    organizerPayout: 0,
+    payoutStatus: 'pending',
+    payoutEligibleDate: payoutEligibleDate,
     adminPercentageTotal: parseFloat(mainlandFeeAmount),
     revenue: 0,
   });

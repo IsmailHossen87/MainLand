@@ -9,7 +9,7 @@ import passport from 'passport';
 import expressSession from 'express-session';
 import { Morgan } from './shared/morgen';
 
-const app = express(); 
+const app = express();
 app.use(passport.initialize());
 app.use(
   expressSession({
@@ -24,7 +24,12 @@ app.use(Morgan.successHandler);
 app.use(Morgan.errorHandler);
 
 //body parser
-app.use(cors());
+app.use(cors(
+  {
+    origin: ['https://drebal-admin-dashboard.vercel.app', 'https://ismail4000.binarybards.online', 'http://localhost:3000'],
+    credentials: true,
+  }
+));
 app.post(
   '/api/v1/stripe/webhook',
   express.raw({ type: 'application/json' }),

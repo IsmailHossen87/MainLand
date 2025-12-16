@@ -9,6 +9,8 @@ const router = Router();
 
 router.put("/", SettingController.updateSetting);
 router.post("/faq", auth(USER_ROLES.ADMIN), SettingController.faqCreate);
+
+
 router.post("/contact", auth(USER_ROLES.ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER), SettingController.contactCreate);
 
 router.get("/contact", auth(USER_ROLES.ADMIN), SettingController.getContact);
