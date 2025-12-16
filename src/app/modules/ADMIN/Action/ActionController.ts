@@ -52,6 +52,10 @@ const AllTicketBuyerUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const user = req.user
     const query = req.query
+
+    console.log("user", user)
+    console.log("query", query)
+
     const result = await ActionService.AllTicketBuyerUser(user as JwtPayload, query as Record<string, string>)
     await sendResponse(res, {
       success: true,

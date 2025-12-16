@@ -275,17 +275,22 @@ const popularEvent = async (query: Record<string, string>) => {
 
   // Search setup
   const searchTerm = query.searchTerm || '';
-  const searchCondition = searchTerm ? {
-    eventName: { $regex: searchTerm, $options: 'i' }
-  } : {};
+  const searchCondition = searchTerm
+    ? { eventName: { $regex: searchTerm, $options: 'i' } }
+    : {};
 
   // Sort setup
   const sortField = query.sortBy || 'totalTicketBuyers';
   const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
 
   const pipeline: any[] = [
-    // Search filter (if searchTerm exists)
-    ...(searchTerm ? [{ $match: searchCondition }] : []),
+    // ✅ ONLY LIVE EVENTS
+    {
+      $match: {
+        EventStatus: "Live",
+        ...searchCondition
+      }
+    },
 
     // Calculate total ticket buyers
     {
@@ -368,14 +373,13 @@ const popularEvent = async (query: Record<string, string>) => {
   const totalResult = await Event.aggregate(totalPipeline);
   const total = totalResult[0]?.total || 0;
 
-  // Add pagination to main pipeline
+  // Pagination
   pipeline.push({ $skip: skip });
   pipeline.push({ $limit: limit });
 
-  // Execute main query
+  // Execute query
   const data = await Event.aggregate(pipeline);
 
-  // Calculate meta
   const meta = {
     page,
     limit,
@@ -385,6 +389,7 @@ const popularEvent = async (query: Record<string, string>) => {
 
   return { meta, data };
 };
+
 
 // Single Event ✅✅✅✅
 const singleEvent = async (userID: string, eventId: string) => {
