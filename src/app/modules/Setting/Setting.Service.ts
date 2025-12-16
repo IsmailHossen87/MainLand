@@ -93,7 +93,7 @@ const getSpecificSetting = async (key: string) => {
     const privacyPolicy = await Settings.findOne({ type: SettingType.PrivacyPolicy });
 
     const data = {
-      termsAndConditions: termsAndConditions?.content || "",
+      termsAdnCondition: termsAndConditions?.content || "",
       privacyPolicy: privacyPolicy?.content || ""
     };
 
