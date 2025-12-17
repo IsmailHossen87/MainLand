@@ -126,10 +126,33 @@ const getSoldEvent = async (userId: string) => {
 
   // 2️⃣ Aggregation pipeline
   const result = await TransactionHistory.aggregate([
+    // {
+    //   $match: {
+    //     userId: user._id,
+    //     type: { $in: ["directPurchase", "resellPurchase"] },
+    //   }
+    // },
     {
       $match: {
-        userId: user._id,
-        type: "resellPurchase",
+        type: { $in: ["directPurchase", "resellPurchase"] },
+        $expr: {
+          $or: [
+            // ✅ sellerId থাকলে sellerId দিয়ে match
+            {
+              $and: [
+                { $ne: ["$sellerId", null] },
+                { $eq: ["$sellerId", user._id] }
+              ]
+            },
+            // ✅ sellerId না থাকলে userId দিয়ে match
+            {
+              $and: [
+                { $eq: ["$sellerId", null] },
+                { $eq: ["$userId", user._id] }
+              ]
+            }
+          ]
+        }
       }
     },
     {
@@ -253,7 +276,6 @@ const sellTicketInfoUsersOnsell = async (
 
   // Base query
   const baseQuery = TicketPurchase.find({
-    ownerId: userId,
     eventId: eventId,
   }).populate("ownerId", "name");;
 
@@ -764,6 +786,85 @@ const soldTicketHistory = async (
     })),
   };
 };
+
+// const soldTicketHistory = async (
+//   userId: string,
+//   eventId: string,
+//   expired?: string
+// ) => {
+//   const user = await User.findById(userId);
+//   if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+
+//   // 1️⃣ সব relevant transactions আনো
+//   const transactions = await TransactionHistory.find({
+//     eventId: new mongoose.Types.ObjectId(eventId),
+//     $or: [
+//       { userId: user._id },       // original buyer
+//       { sellerId: user._id }      // resell seller
+//     ],
+//     type: { $in: ["directPurchase", "resellPurchase"] }
+//   });
+
+//   if (!transactions || transactions.length === 0) {
+//     return {
+//       eventName: "",
+//       expired: false,
+//       summary: {},
+//       details: [],
+//     };
+//   }
+
+//   // 2️⃣ event info
+//   const eventInfo = await Event.findById(eventId).select("eventName eventDate");
+//   const eventDate = new Date(eventInfo?.eventDate || "");
+//   const now = new Date();
+//   const isExpiredEvent = eventDate < now;
+
+//   if (expired === "true" && !isExpiredEvent) {
+//     return {
+//       eventName: eventInfo?.eventName || "",
+//       expired: false,
+//       message: "Event not expired yet",
+//       summary: {},
+//       details: [],
+//     };
+//   }
+
+//   // 3️⃣ ticket quantity map
+//   const ticketMap: Record<string, number> = {};
+//   transactions.forEach((t) => {
+//     t.ticketInfo.forEach((ti) => {
+//       if (t.type === "directPurchase") {
+//         // add original purchase
+//         ticketMap[ti.ticketType] = (ticketMap[ti.ticketType] || 0) + ti.quantity;
+//       } else if (t.type === "resellPurchase") {
+//         // subtract resold quantity
+//         ticketMap[ti.ticketType] = (ticketMap[ti.ticketType] || 0) - ti.quantity;
+//       }
+//     });
+//   });
+
+//   // 4️⃣ Build details
+//   const details = Object.entries(ticketMap).map(([ticketType, quantity]) => ({
+//     ticketType,
+//     quantity: Math.max(quantity, 0),
+//   }));
+
+//   // 5️⃣ Summary
+//   const typeSummary = details.map(d => ({ ticketType: d.ticketType, count: d.quantity }));
+//   const totalSellAmount = transactions.reduce((sum, t) => sum + (t.sellAmount || 0), 0);
+
+//   return {
+//     eventName: eventInfo?.eventName || "",
+//     expired: isExpiredEvent,
+//     summary: {
+//       totalSellAmount,
+//       types: typeSummary,
+//     },
+//     details,
+//   };
+// };
+
 const historyTickets = async (userId: string, eventId: string) => {
   const user = await User.findById(userId);
 

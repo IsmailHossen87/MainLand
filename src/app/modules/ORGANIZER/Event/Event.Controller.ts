@@ -101,17 +101,83 @@ const deleteCategory = catchAsync(
 
 
 
-// 1️⃣ Create Event (Draft or Full)
+// // 1️⃣ Create Event (Draft or Full)
+// const createEvent = catchAsync(
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     const userId = (req.user as IJwtUser)?.id;
+
+//     if (req.files && 'image' in req.files && req.files.image[0]) {
+//       req.body.image = `/image/${req.files.image[0].filename}`;
+//     }
+
+//     const isDraft = req.body.isDraft === true || req.body.isDraft === 'true';
+
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       throw new ApiError(
+//         StatusCodes.NOT_FOUND,
+//         'User not found'
+//       );
+//     }
+
+//     if (req.body.isDraft === 'true') {
+//       if (!user.stripeAccountInfo?.stripeAccountId) {
+//         throw new ApiError(
+//           StatusCodes.BAD_REQUEST,
+//           'You must connect your Stripe account before creating paid events. Please connect your account from Settings.'
+//         );
+//       }
+//       // Verify Stripe account is active
+//       try {
+//         const account = await stripe.accounts.retrieve(
+//           user.stripeAccountInfo.stripeAccountId
+//         );
+
+//         if (!account.charges_enabled || !account.payouts_enabled) {
+//           throw new ApiError(
+//             StatusCodes.BAD_REQUEST,
+//             'Your Stripe account is not fully activated. Please complete the onboarding process.'
+//           );
+//         }
+//       } catch (error) {
+//         throw new ApiError(
+//           StatusCodes.BAD_REQUEST,
+//           'Invalid Stripe account. Please reconnect your account.'
+//         );
+//       }
+//     }
+
+
+//     const event = await EventService.createEvent({
+//       ...req.body,
+//       userId,
+//       isDraft,
+//     });
+
+
+
+//     await sendResponse(res, {
+//       success: true,
+//       statusCode: StatusCodes.CREATED,
+//       message: isDraft
+//         ? 'Draft saved successfully'
+//         : 'Event created successfully',
+//       data: event,
+//     });
+//   }
+// );
 const createEvent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = (req.user as IJwtUser)?.id;
 
+    // Image upload handle করা
     if (req.files && 'image' in req.files && req.files.image[0]) {
       req.body.image = `/image/${req.files.image[0].filename}`;
     }
 
     const isDraft = req.body.isDraft === true || req.body.isDraft === 'true';
 
+    // User check করা
     const user = await User.findById(userId);
     if (!user) {
       throw new ApiError(
@@ -120,14 +186,21 @@ const createEvent = catchAsync(
       );
     }
 
-    if (req.body.isDraft === 'true') {
+    // ✅ FIX: isFreeEvent check - string এবং boolean দুটোই handle করা
+    const isFreeEvent = req.body.isFreeEvent === true || req.body.isFreeEvent === 'true';
+
+    // ✅ FIX: Stripe check শুধুমাত্র published paid event এর জন্য
+    // Logic: isDraft === 'false' (published) এবং isFreeEvent === false (paid)
+    if (req.body.isDraft === 'false' && !isFreeEvent) {
+      // Check if Stripe account exists
       if (!user.stripeAccountInfo?.stripeAccountId) {
         throw new ApiError(
           StatusCodes.BAD_REQUEST,
           'You must connect your Stripe account before creating paid events. Please connect your account from Settings.'
         );
       }
-      // Verify Stripe account is active
+
+      // Verify Stripe account is active and ready for payments
       try {
         const account = await stripe.accounts.retrieve(
           user.stripeAccountInfo.stripeAccountId
@@ -147,19 +220,14 @@ const createEvent = catchAsync(
       }
     }
 
-
-
-
-
-
+    // Event create/update করা
     const event = await EventService.createEvent({
       ...req.body,
       userId,
       isDraft,
     });
 
-
-
+    // Success response
     await sendResponse(res, {
       success: true,
       statusCode: StatusCodes.CREATED,
@@ -205,14 +273,7 @@ const updateNotification = catchAsync(
     const userId = (req.user as IJwtUser)?.id;
     const eventId = req.params.id;
     const notification = req.body.notification;
-
-
-
-    if (req.files && 'image' in req.files && req.files.image[0]) {
-      req.body.image = `/image/${req.files.image[0].filename}`;
-    }
-
-    const isDraft = req.body.isDraft === true || req.body.isDraft === 'true';
+    console.log(eventId, userId, notification);
 
     const updatedEvent = await EventService.updateNotification(
       eventId,
@@ -223,9 +284,7 @@ const updateNotification = catchAsync(
     await sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
-      message: isDraft
-        ? 'Draft updated successfully'
-        : 'Event published successfully',
+      message: 'Notification updated successfully',
       data: updatedEvent,
     });
   }

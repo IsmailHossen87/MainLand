@@ -12,6 +12,7 @@ import unlinkFile from '../../../../shared/unlinkFile';
 import { Favourite } from '../../Favoutite/Favourite.model';
 import { AggregationQueryBuilder } from '../../../builder/AggregationBuilder';
 import { TicketPurchase } from '../../Ticket/ticket.model';
+import { Chat } from '../../Chat/chat.model';
 export interface EventTicket {
   type: string;
   price: number;
@@ -96,16 +97,90 @@ const deleteCategory = async (id: string, type: string) => {
 };
 
 
-// CREATE EVENT
+// // CREATE EVENT
+// const createEvent = async (payload: any) => {
+//   const { userId, eventName, isDraft } = payload;
+
+//   // Check user exist
+//   const isExistUser = await User.findById(userId);
+//   if (!isExistUser) {
+//     throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");
+//   }
+
+//   if (
+//     isExistUser.role !== USER_ROLES.ORGANIZER &&
+//     isExistUser.role !== USER_ROLES.USER
+//   ) {
+//     throw new ApiError(
+//       StatusCodes.FORBIDDEN,
+//       "Only organizer and User can create Event"
+//     );
+//   }
+
+//   // Category validation
+//   if (payload.category?.length) {
+//     const categoryIds = payload.category.map((c: any) => c.categoryId);
+//     const categories = await Category.find({ _id: { $in: categoryIds } });
+
+//     if (categories.length !== payload.category.length) {
+//       throw new ApiError(
+//         StatusCodes.NOT_FOUND,
+//         "One or more categories do not exist!"
+//       );
+//     }
+
+//     payload.category = payload.category.map((c: any) => ({
+//       categoryId: c.categoryId,
+//       subCategory: c.subCategory,
+//     }));
+//   }
+
+//   // If Event is a draft and already exists → update instead of creating new
+//   if (isDraft) {
+//     let event = await Event.findOne({ userId, eventName, isDraft: true });
+//     if (event) {
+//       // Auto-set outstandingUnits
+//       if (payload.tickets?.length) {
+//         payload.tickets = payload.tickets.map((t: any) => ({
+//           ...t,
+//           outstandingUnits: t.availableUnits,
+//         }));
+//       }
+
+//       event = await Event.findByIdAndUpdate(
+//         event._id,
+//         { $set: payload },
+//         { new: true, runValidators: true }
+//       );
+
+//       return event;
+//     }
+//   }
+
+//   // New Event → Set EventStatus
+//   payload.EventStatus = isDraft ? "Draft" : "UnderReview";
+
+//   // Auto-set outstandingUnits for new event
+//   if (payload.tickets?.length) {
+//     payload.tickets = payload.tickets.map((t: any) => ({
+//       ...t,
+//       outstandingUnits: t.availableUnits,
+//     }));
+//   }
+
+//   const event = await Event.create(payload);
+//   return event;
+// };
 const createEvent = async (payload: any) => {
   const { userId, eventName, isDraft } = payload;
 
-  // Check user exist
+  // ✅ Check if user exists
   const isExistUser = await User.findById(userId);
   if (!isExistUser) {
     throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");
   }
 
+  // ✅ Check user role - শুধু Organizer এবং User event create করতে পারবে
   if (
     isExistUser.role !== USER_ROLES.ORGANIZER &&
     isExistUser.role !== USER_ROLES.USER
@@ -116,7 +191,7 @@ const createEvent = async (payload: any) => {
     );
   }
 
-  // Category validation
+  // ✅ Category validation - categories exist করে কিনা check
   if (payload.category?.length) {
     const categoryIds = payload.category.map((c: any) => c.categoryId);
     const categories = await Category.find({ _id: { $in: categoryIds } });
@@ -134,18 +209,20 @@ const createEvent = async (payload: any) => {
     }));
   }
 
-  // If Event is a draft and already exists → update instead of creating new
+  // ✅ If Event is a draft and already exists → update instead of creating new
   if (isDraft) {
     let event = await Event.findOne({ userId, eventName, isDraft: true });
+
     if (event) {
-      // Auto-set outstandingUnits
+      // ✅ FIX: শুধুমাত্র tickets থাকলেই outstandingUnits set করবে
       if (payload.tickets?.length) {
         payload.tickets = payload.tickets.map((t: any) => ({
           ...t,
-          outstandingUnits: t.availableUnits,
+          outstandingUnits: t.availableUnits, // Initially all tickets available
         }));
       }
 
+      // Update existing draft
       event = await Event.findByIdAndUpdate(
         event._id,
         { $set: payload },
@@ -156,20 +233,29 @@ const createEvent = async (payload: any) => {
     }
   }
 
-  // New Event → Set EventStatus
+  // ✅ New Event → Set EventStatus based on draft
   payload.EventStatus = isDraft ? "Draft" : "UnderReview";
 
-  // Auto-set outstandingUnits for new event
+  // ✅ FIX: শুধুমাত্র tickets থাকলেই outstandingUnits set করবে
+  // Free event এ tickets না থাকলে skip হবে
   if (payload.tickets?.length) {
     payload.tickets = payload.tickets.map((t: any) => ({
       ...t,
-      outstandingUnits: t.availableUnits,
+      outstandingUnits: t.availableUnits, // সব tickets initially available
     }));
   }
 
+  // ✅ FIX: Free event হলে tickets empty array set করা (optional)
+  // Model এ default empty array আছে, তবে explicitly set করা ভালো
+  if (payload.isFreeEvent && !payload.tickets) {
+    payload.tickets = [];
+  }
+
+  // ✅ Create new event
   const event = await Event.create(payload);
   return event;
 };
+
 
 // UPDATE EVENT
 const updateEvent = async (eventId: string, userId: string, payload: any) => {
@@ -215,18 +301,17 @@ const updateEvent = async (eventId: string, userId: string, payload: any) => {
 };
 
 // UPDATE Notification
-const updateNotification = async (eventId: string, userId: string, payload: any) => {
+const updateNotification = async (eventId: string, userId: string, notification: any) => {
   // Check event exists
   const event = await Event.findOne({ _id: eventId, userId });
   if (!event) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
   }
 
-  console.log("eventId", eventId, "payload", payload)
 
   const updatedEvent = await Event.findByIdAndUpdate(
     eventId,
-    { $notification: payload, $set: payload },
+    { $set: { notification: notification } },
     { new: true, runValidators: true }
   );
 
@@ -398,23 +483,32 @@ const singleEvent = async (userID: string, eventId: string) => {
     throw new ApiError(StatusCodes.NOT_FOUND, "User is not Available");
   }
 
+  // ✅ Chat only if userID exists in participants (2 IDs)
+  const chat = await Chat.findOne({
+    participants: { $in: [userID] },
+  }).select("_id");
+
   const event = await Event.findById(eventId)
     .populate({
       path: "category.categoryId",
-      select: "_id title"
+      select: "_id title",
     })
     .populate({
       path: "category.subCategory",
-      select: "_id title"
-    });
-
+      select: "_id title",
+    })
+    .lean(); // 🔥 important
 
   if (!event) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Event is not Available");
   }
 
-  return event;
+  return {
+    ...event,
+    chatId: chat ? chat._id : "",
+  };
 };
+
 
 // all Closed ✅✅✅✅
 const closedEvent = async (userID: string, query: Record<string, string>) => {

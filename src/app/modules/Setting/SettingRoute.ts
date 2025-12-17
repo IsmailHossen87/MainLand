@@ -6,7 +6,7 @@ import { USER_ROLES } from '../../../enums/user';
 
 const router = Router();
 
-
+router.get("/terms_and_condition", SettingController.getTermsAndCondition)
 router.put("/", SettingController.updateSetting);
 router.post("/faq", auth(USER_ROLES.ADMIN), SettingController.faqCreate);
 
@@ -24,5 +24,6 @@ router.patch("/faq/:id", auth(USER_ROLES.ADMIN, USER_ROLES.ORGANIZER, USER_ROLES
 router.delete("/faq/:id", auth(USER_ROLES.ADMIN), SettingController.faqDelete);
 router.get("/faq/:id", auth(USER_ROLES.ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER), SettingController.getQuestionById);
 router.get("/:key", SettingController.getSpecificSetting);
+
 
 export const SettingRouter = router;

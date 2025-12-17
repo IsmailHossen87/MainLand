@@ -197,11 +197,11 @@ const AllTicketBuyerUser = async (user: JwtPayload, query: Record<string, string
   }
 
   // ✅ Get unique user IDs who bought tickets
-  const uniqueUserIds = await TicketPurchase.distinct("ownerId");
+
 
   // ✅ Create query (don't execute with await yet)
   const userQuery = User.find({
-    _id: { $in: uniqueUserIds },
+    // _id: { $in: uniqueUserIds },
     role: { $in: [USER_ROLES.USER, USER_ROLES.ORGANIZER] }
   }).select('name email role createdAt personalInfo address status');
 
@@ -349,4 +349,34 @@ const ticketHistory = async (
   };
 }
 
-export const ActionService = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, ticketHistory, accountDeleteHistory, allNotification };
+const allEventNotification = async (
+  user: JwtPayload,
+  query: Record<string, string>
+) => {
+  if (user.role !== USER_ROLES.ADMIN) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
+  }
+
+  const baseQuery = Event.find({
+    notification: { $exists: true, $ne: "" }
+  })
+    .sort({ createdAt: -1 })
+    .select("notification eventName eventDate -_id");
+
+  const queryBuilder = new QueryBuilder(baseQuery, query);
+
+  const allNotification = queryBuilder
+    .search(excludeField)
+    .filter()
+    .sort();
+
+  const [meta, data] = await Promise.all([
+    allNotification.getMeta(),
+    allNotification.build(),
+  ]);
+
+  return { meta, data };
+};
+
+
+export const ActionService = { allEventNotification, statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, ticketHistory, accountDeleteHistory, allNotification };

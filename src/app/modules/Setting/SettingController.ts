@@ -268,6 +268,22 @@ const deleteContact = async (req: Request, res: Response) => {
     });
   }
 };
+const getTermsAndCondition = async (req: Request, res: Response) => {
+  try {
+    console.log("Terms and condition fetched successfully");
+    const result = await SettingService.getTermsAndCondition();
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Terms and condition fetched successfully",
+      data: result
+    });
+  } catch (error: any) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
 
 export const SettingController = {
   updateSetting,
@@ -283,4 +299,5 @@ export const SettingController = {
   faqUpdate,
   deleteContact,
   createTerms,
+  getTermsAndCondition,
 };
