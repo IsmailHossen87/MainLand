@@ -109,6 +109,12 @@ const getSpecificSetting = async (key: string) => {
   return setting;
 };
 
+const getTermsAndCondition = async () => {
+  console.log("serviceTERMSSJFLASDF");
+  const result = await Settings.findOne({ type: 'terms_and_conditions' });
+  return result;
+}
+
 const contactSetting = async (userId: string, payload: IContact) => {
   const user = await User.findById(userId);
   if (!user) {
@@ -242,7 +248,8 @@ export const SettingService = {
   faqDelete,
   faqUpdate,
   deleteContact,
-  createTerms
+  createTerms,
+  getTermsAndCondition
 };
 
 

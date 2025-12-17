@@ -53,9 +53,6 @@ const AllTicketBuyerUser = catchAsync(
     const user = req.user
     const query = req.query
 
-    console.log("user", user)
-    console.log("query", query)
-
     const result = await ActionService.AllTicketBuyerUser(user as JwtPayload, query as Record<string, string>)
     await sendResponse(res, {
       success: true,
@@ -128,24 +125,31 @@ const ticketHistory = catchAsync(
     });
   }
 )
-// const allResellTicket = catchAsync(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     const user = req.user
-//     const query = req.query
+const allEventNotification = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user
+    const query = req.query
 
-//     const result = await ActionService.allResellTicket(user as JwtPayload, query as Record<string, string>)
-//     await sendResponse(res, {
-//       success: true,
-//       statusCode: StatusCodes.OK,
-//       message: "All Resell Ticket Retrived Sucessfully",
-//       data: result,
-//     });
-//   }
-// );
+    const result = await ActionService.allEventNotification(user as JwtPayload, query as Record<string, string>)
+    await sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "All Resell Ticket Retrived Sucessfully",
+      data: result,
+    });
+  }
+);
 
 
 
 export const ActionController = {
   statusChange,
-  DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, accountDeleteHistory, allNotification, ticketHistory
+  DashBoard,
+  blockUser,
+  AllTicketBuyerUser,
+  ticketActivity,
+  accountDeleteHistory,
+  allNotification,
+  ticketHistory,
+  allEventNotification
 }

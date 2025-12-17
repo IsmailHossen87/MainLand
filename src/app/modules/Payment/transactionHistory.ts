@@ -14,7 +14,7 @@ export interface ITransactionHistory {
     ticketPrice: number,
     commission: number,
   }[];
-  organizerPayout?: number; // Organizer/Seller কত টাকা পাবে
+  organizerPayout?: number;
   payoutStatus: 'pending' | 'processing' | 'completed' | 'failed';
   payoutDate?: Date;
   payoutEligibleDate?: Date;
