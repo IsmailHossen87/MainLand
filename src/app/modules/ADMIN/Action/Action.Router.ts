@@ -8,6 +8,7 @@ router.get("/dashboard", auth(USER_ROLES.ADMIN), ActionController.DashBoard)
 router.get("/account-delete-history", auth(USER_ROLES.ADMIN), ActionController.accountDeleteHistory)
 router.get("/all-notification", auth(USER_ROLES.ADMIN), ActionController.allNotification)
 router.get("/all-user", auth(USER_ROLES.ADMIN), ActionController.AllTicketBuyerUser)
+router.get("/all-event-notification", auth(USER_ROLES.ADMIN), ActionController.allEventNotification)
 router.patch('/block-user/:id', auth(USER_ROLES.ADMIN), ActionController.blockUser);
 router.get("/ticket-activity/:id", auth(USER_ROLES.ADMIN), ActionController.ticketActivity)
 router.get("/ticket-history/:id", auth(USER_ROLES.ADMIN), ActionController.ticketHistory)
