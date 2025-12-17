@@ -18,8 +18,6 @@ router.post(
   EventController.createSubCategory
 );
 
-
-
 /* -----------------------------------------
    📂 CATEGORY CREATE (With File Upload)
 ------------------------------------------ */
