@@ -218,9 +218,6 @@ const soldTicketHistory = catchAsync(async (req: Request, res: Response) => {
     const userId = (req.user as IJwtUser)?.id;
     const { id } = req.params
     const { expired } = req.query;
-
-    console.log("id", id)
-
     const result = await TicketService.soldTicketHistory(userId, id as string, expired as string);
 
     sendResponse(res, {
