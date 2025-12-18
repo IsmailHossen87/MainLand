@@ -717,6 +717,7 @@ const checkEvent = async (userId: string, eventId: string) => {
   return false
 };
 
+
 const soldTicketHistory = async (
   userId: string,
   eventId: string,
@@ -727,16 +728,17 @@ const soldTicketHistory = async (
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
   }
 
-  const tickets = await TransactionHistory.findOne({
+  const tickets = await TransactionHistory.find({
     eventId: new mongoose.Types.ObjectId(eventId),
-    userId: user._id,
+    sellerId: user._id,
   }).populate("eventId", "eventName eventDate");
 
-  if (!tickets) {
+  if (!tickets || tickets.length === 0) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Ticket not found");
   }
 
-  const eventDate = new Date((tickets.eventId as any).eventDate);
+  // Get event info from first ticket
+  const eventDate = new Date((tickets[0].eventId as any).eventDate);
   const now = new Date();
   const isExpiredEvent = eventDate < now;
 
@@ -745,7 +747,7 @@ const soldTicketHistory = async (
   // ----------------------------------------------------
   if (expired === "true" && !isExpiredEvent) {
     return {
-      eventName: (tickets.eventId as any)?.eventName || "",
+      eventName: (tickets[0].eventId as any)?.eventName || "",
       expired: false,
       message: "Event not expired yet",
       summary: {},
@@ -753,16 +755,41 @@ const soldTicketHistory = async (
     };
   }
 
-  // ----------------------------------------------------
-  // CASE 2: expired=true AND event is expired → return full data
-  // CASE 3: expired not provided → return full data
-  // ----------------------------------------------------
-
-  // COUNT UNIQUE TICKET TYPES
+  // Aggregate all data from multiple transactions
+  let totalSellAmount = 0;
+  let totalMainlandFee = 0;
+  let totalTickets = 0;
   const typeCount: Record<string, number> = {};
 
-  tickets.ticketInfo.forEach((t) => {
-    typeCount[t.ticketType] = (typeCount[t.ticketType] || 0) + 1;
+  // Use Map to group by ticketType + price + commission
+  const detailsMap = new Map<string, any>();
+
+  tickets.forEach((transaction) => {
+    totalSellAmount += transaction.purchaseAmount || 0;
+    totalMainlandFee += transaction.mainLandFee || 0;
+    totalTickets += transaction.ticketInfo.reduce((total, t) => total + t.quantity, 0) || 0;
+
+    transaction.ticketInfo.forEach((t) => {
+      // Count ticket types
+      typeCount[t.ticketType] = (typeCount[t.ticketType] || 0) + t.quantity;
+
+      // Create unique key: ticketType + price + commission
+      const key = `${t.ticketType}-${t.ticketPrice}-${t.commission}`;
+
+      if (detailsMap.has(key)) {
+        // If same type, price, and commission exist, add quantity
+        const existing = detailsMap.get(key);
+        existing.quantity += t.quantity;
+      } else {
+        // Create new entry
+        detailsMap.set(key, {
+          ticketType: t.ticketType,
+          quantity: t.quantity,
+          price: t.ticketPrice,
+          commission: t.commission,
+        });
+      }
+    });
   });
 
   const typeSummary = Object.entries(typeCount).map(([ticketType, count]) => ({
@@ -770,100 +797,21 @@ const soldTicketHistory = async (
     count,
   }));
 
+  // Convert Map to array
+  const allDetails = Array.from(detailsMap.values());
+
   return {
-    eventName: (tickets.eventId as any)?.eventName || "",
+    eventName: (tickets[0].eventId as any)?.eventName || "",
     expired: isExpiredEvent,
     summary: {
-      totalSellAmount: tickets.purchaseAmount,
-      totalMainlandFee: tickets.mainLandFee,
+      totalSellAmount,
+      totalMainlandFee,
+      totalTickets,
       types: typeSummary,
     },
-    details: tickets.ticketInfo.map((t) => ({
-      ticketType: t.ticketType,
-      quantity: t.quantity,
-      price: t.ticketPrice,
-      commission: t.commission,
-    })),
+    details: allDetails,
   };
 };
-
-// const soldTicketHistory = async (
-//   userId: string,
-//   eventId: string,
-//   expired?: string
-// ) => {
-//   const user = await User.findById(userId);
-//   if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-
-//   // 1️⃣ সব relevant transactions আনো
-//   const transactions = await TransactionHistory.find({
-//     eventId: new mongoose.Types.ObjectId(eventId),
-//     $or: [
-//       { userId: user._id },       // original buyer
-//       { sellerId: user._id }      // resell seller
-//     ],
-//     type: { $in: ["directPurchase", "resellPurchase"] }
-//   });
-
-//   if (!transactions || transactions.length === 0) {
-//     return {
-//       eventName: "",
-//       expired: false,
-//       summary: {},
-//       details: [],
-//     };
-//   }
-
-//   // 2️⃣ event info
-//   const eventInfo = await Event.findById(eventId).select("eventName eventDate");
-//   const eventDate = new Date(eventInfo?.eventDate || "");
-//   const now = new Date();
-//   const isExpiredEvent = eventDate < now;
-
-//   if (expired === "true" && !isExpiredEvent) {
-//     return {
-//       eventName: eventInfo?.eventName || "",
-//       expired: false,
-//       message: "Event not expired yet",
-//       summary: {},
-//       details: [],
-//     };
-//   }
-
-//   // 3️⃣ ticket quantity map
-//   const ticketMap: Record<string, number> = {};
-//   transactions.forEach((t) => {
-//     t.ticketInfo.forEach((ti) => {
-//       if (t.type === "directPurchase") {
-//         // add original purchase
-//         ticketMap[ti.ticketType] = (ticketMap[ti.ticketType] || 0) + ti.quantity;
-//       } else if (t.type === "resellPurchase") {
-//         // subtract resold quantity
-//         ticketMap[ti.ticketType] = (ticketMap[ti.ticketType] || 0) - ti.quantity;
-//       }
-//     });
-//   });
-
-//   // 4️⃣ Build details
-//   const details = Object.entries(ticketMap).map(([ticketType, quantity]) => ({
-//     ticketType,
-//     quantity: Math.max(quantity, 0),
-//   }));
-
-//   // 5️⃣ Summary
-//   const typeSummary = details.map(d => ({ ticketType: d.ticketType, count: d.quantity }));
-//   const totalSellAmount = transactions.reduce((sum, t) => sum + (t.sellAmount || 0), 0);
-
-//   return {
-//     eventName: eventInfo?.eventName || "",
-//     expired: isExpiredEvent,
-//     summary: {
-//       totalSellAmount,
-//       types: typeSummary,
-//     },
-//     details,
-//   };
-// };
 
 const historyTickets = async (userId: string, eventId: string) => {
   const user = await User.findById(userId);
