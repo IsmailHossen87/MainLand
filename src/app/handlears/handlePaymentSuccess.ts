@@ -1,12 +1,11 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
-import crypto from 'crypto';
 import ApiError from '../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import { emailHelper } from '../../helpers/emailHelper';
 import { emailTemplate } from '../../shared/emailTemplate';
 import { Event } from '../modules/ORGANIZER/Event/Event.model';
-import mongoose, { mongo, Types } from 'mongoose';
+import mongoose from 'mongoose';
 import { TicketPurchase } from '../modules/Ticket/ticket.model';
 import { TransactionHistory } from '../modules/Payment/transactionHistory';
 import { User } from '../modules/user/user.model';

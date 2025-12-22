@@ -9,6 +9,9 @@ import { ITicketStatus, IResellTicket, IDiscountCode } from "./ticket.interface"
 import { TransactionHistory } from "../Payment/transactionHistory";
 import { Event } from "../ORGANIZER/Event/Event.model";
 import { USER_ROLES } from "../../../enums/user";
+import { sendNotifications } from "../../../helpers/notificatio-helper";
+import { emailHelper } from "../../../helpers/emailHelper";
+import { emailTemplate } from "../../../shared/emailTemplate";
 
 const getAllTicket = async (userId: string, query: Record<string, any>) => {
   const user = await User.findById(userId);
@@ -466,8 +469,11 @@ const allOnsellTicketInfo = async (
   }
 };
 // ResellTicket
-const resellTicket = async (userId: string, eventId: string, tickets: IResellTicket[]) => {
-  // 1️⃣ Check user exists
+const resellTicket = async (
+  userId: string,
+  eventId: string,
+  tickets: IResellTicket[]
+) => {
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
@@ -475,65 +481,84 @@ const resellTicket = async (userId: string, eventId: string, tickets: IResellTic
 
   const results = [];
   let totalSellAmount = 0;
+  let totalTickets = 0;
 
-  // 2️⃣ Loop through each ticket type
   for (const ticket of tickets) {
     const { ticketType, quantity, resellAmount } = ticket;
 
-    // 3️⃣ Find available tickets
     const availableTickets = await TicketPurchase.find({
       ownerId: userId,
-      eventId: eventId,
-      ticketType: ticketType,
-      status: ITicketStatus.available
+      eventId,
+      ticketType,
+      status: ITicketStatus.available,
     }).limit(quantity);
 
-    // 4️⃣ Check if enough tickets available
     if (availableTickets.length < quantity) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
-        `Not enough tickets available. You have ${availableTickets.length} ${ticketType} tickets, but requested ${quantity}`
+        `Not enough ${ticketType} tickets available`
       );
     }
 
-    // 5️⃣ Update tickets status to 'onsell' and set resell amount
     const ticketIds = availableTickets.map(t => t._id);
 
-    const updatedTickets = await TicketPurchase.updateMany(
+    await TicketPurchase.updateMany(
       { _id: { $in: ticketIds } },
       {
         $set: {
           status: ITicketStatus.onsell,
-          sellAmount: resellAmount
-        }
+          sellAmount: resellAmount,
+        },
       }
     );
 
-    // 6️⃣ Add to results
     results.push({
-      message: `Successfully listed ${quantity} ${ticketType} ticket(s) for resale`,
-      ticketsUpdated: updatedTickets.modifiedCount,
-      resellAmount: resellAmount,
-      ticketType: ticketType
+      ticketType,
+      quantity,
+      resellAmount,
     });
 
-    totalSellAmount += resellAmount;
+    totalSellAmount += resellAmount * quantity;
+    totalTickets += quantity;
   }
 
-  // 7️⃣ Update user's total sell amount
-  await user.updateOne({
-    $inc: {
-      sellAmount: totalSellAmount
-    }
-  });
+  await User.updateOne(
+    { _id: userId },
+    { $inc: { sellAmount: totalSellAmount } }
+  );
 
-  // 8️⃣ Return all results
+  // 📧 EMAIL
+  if (user.notification?.isSellTicketNotificationEnabled) {
+    await emailHelper.sendEmail(
+      emailTemplate.sellTicket({
+        name: user.name,
+        email: user.email,
+        totalTickets,
+        totalSellAmount,
+      })
+    );
+  }
+
+await sendNotifications(
+  {
+    userId: user._id,
+    title: "Tickets Listed for Resale",
+    message: `You listed ${totalTickets} ticket(s) for resale.`,
+    eventTitle: "Ticket Resale", 
+    type: "SELL_TICKET",            
+    status: "success",            
+  },
+  "notification"
+);
+
   return {
     totalTicketTypes: tickets.length,
-    totalSellAmount: totalSellAmount,
-    details: results
+    totalTickets,
+    totalSellAmount,
+    details: results,
   };
 };
+
 // withdrawPro
 const withdrawPro = async (
   userId: string,

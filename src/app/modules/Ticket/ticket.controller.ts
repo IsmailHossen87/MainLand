@@ -1,9 +1,8 @@
 import catchAsync from '../../../shared/catchAsync';
 import sendResponse from '../../../shared/sendResponse';
-import { query, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { TicketService } from './ticket.service';
-import { IResellTicket } from './ticket.interface';
 import { IJwtUser } from '../../../types';
 
 
@@ -162,10 +161,6 @@ const ticketExpired = catchAsync(async (req: Request, res: Response) => {
 const eventSummary = catchAsync(async (req: Request, res: Response) => {
     const userId = (req.user as IJwtUser)?.id;
     const { sellerType, ticketType, eventId } = req.query;
-
-    console.log("sellerType", sellerType)
-    console.log("ticketType", ticketType)
-    console.log("eventId", eventId)
 
     const result = await TicketService.eventSummary({ userId, sellerType, ticketType, eventId });
     sendResponse(res, {
