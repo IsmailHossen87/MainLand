@@ -26,7 +26,8 @@ const notificationSchema = new Schema<INotification>(
         },
         type: {
             type: String,
-            enum: ["EVENT", "NOTIFICATION"],
+        title: {
+            enum: ["EVENT", "NOTIFICATION",'SELL_TICKET'],
             default: "NOTIFICATION",
         },
         title: {
@@ -43,6 +44,7 @@ const notificationSchema = new Schema<INotification>(
             default: "",
         },
     },
+},
     { timestamps: true, versionKey: false }
 );
 
