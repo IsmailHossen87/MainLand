@@ -617,7 +617,6 @@ const contactResponseEmail = (data: IContactEmailData) => {
 
 const userReportConfirmation = (payload: ReportEmailPayload) => {
   const {
-    reporterName,
     reportedUserName,
     reportedUserEmail,
     reportDetails,
@@ -653,6 +652,51 @@ const userReportConfirmation = (payload: ReportEmailPayload) => {
   };
 }
 
+// FOR NOTIFICATION
+type SellTicketEmailProps = {
+  name: string;
+  email: string;
+  totalTickets: number;
+  totalSellAmount: number;
+};
+
+
+ const sellTicket= ({
+    name,
+    email,
+    totalTickets,
+    totalSellAmount,
+  }: SellTicketEmailProps) => ({
+    to: email,
+    subject: "Your Tickets Are Listed for Resale 🎟️",
+    html: `
+      <div style="font-family: Arial, sans-serif;">
+        <h2>Hello ${name},</h2>
+
+        <p>Your tickets have been successfully listed for resale.</p>
+
+        <table style="border-collapse: collapse;">
+          <tr>
+            <td><strong>Total Tickets:</strong></td>
+            <td>${totalTickets}</td>
+          </tr>
+          <tr>
+            <td><strong>Total Sell Amount:</strong></td>
+            <td>${totalSellAmount} BDT</td>
+          </tr>
+        </table>
+
+        <p>
+          You will be notified once your tickets are sold.
+        </p>
+
+        <br/>
+        <p>Thanks,<br/>Event Management Team</p>
+      </div>
+    `,
+  })
+
+
 export const emailTemplate = {
   createAccount,
   resetPassword,
@@ -661,4 +705,5 @@ export const emailTemplate = {
   newTicketPurchaseEmail,
   contactResponseEmail,
   userReportConfirmation,
+  sellTicket
 };

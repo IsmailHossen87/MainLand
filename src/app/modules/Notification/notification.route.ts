@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response, Router } from 'express';
+import  {Router } from 'express';
 import { NotificationController } from './notification.controller';
 import auth from '../../middlewares/auth';
 import { USER_ROLES } from '../../../enums/user';
