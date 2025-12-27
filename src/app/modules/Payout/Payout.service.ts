@@ -1,8 +1,10 @@
+import { StatusCodes } from "http-status-codes";
 import { emailHelper } from "../../../helpers/emailHelper";
 import stripe from "../../config/stripe.config";
 import { Event } from "../ORGANIZER/Event/Event.model";
 import { TransactionHistory } from "../Payment/transactionHistory";
 import { User } from "../user/user.model";
+import ApiError from "../../../errors/ApiError";
 
 
 /**
@@ -286,8 +288,105 @@ const getEventPayoutSummary = async (eventId: string) => {
     return summary;
 };
 
+// ✅ Payout money 
+const withdrawBalance = async (userId: string) => {
+    const user = await User.findById(userId);
+
+    if (!user) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+    }
+
+    // Check if user has Stripe account
+    if (!user.stripeAccountInfo?.stripeAccountId) {
+        throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            'Please connect your Stripe account first to withdraw'
+        );
+    }
+
+    // Get all eligible transactions (14 days after event, still pending)
+    const today = new Date();
+
+    const eligibleTransactions = await TransactionHistory.find({
+        $or: [{ organizerId: userId }, { userId: userId }],
+        payoutStatus: 'pending',
+        payoutEligibleDate: { $lte: today } // Event এর 14 দিন পার হয়ে গেছে
+    });
+
+    if (eligibleTransactions.length === 0) {
+        throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            'No eligible balance available for withdrawal. Please wait 14 days after event ends.'
+        );
+    }
+
+    // Calculate total eligible amount
+    const totalAmount = eligibleTransactions.reduce(
+        (sum, txn) => sum + (txn.organizerPayout || 0),
+        0
+    );
+
+    if (totalAmount <= 0) {
+        throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            'Withdrawal amount must be greater than zero'
+        );
+    }
+
+    try {
+        // ✅ Create Stripe Transfer - Direct to user's Stripe account
+        const transfer = await stripe.transfers.create({
+            amount: Math.round(totalAmount * 100), // Convert to cents
+            currency: 'usd',
+            destination: user.stripeAccountInfo.stripeAccountId,
+            description: `Withdrawal - User: ${user.name}`,
+            metadata: {
+                userId: user._id.toString(),
+                transactionIds: eligibleTransactions.map(t => t._id.toString()).join(',')
+            }
+        });
+
+        // ✅ Update user balance
+        await User.findByIdAndUpdate(userId, {
+            $inc: {
+                pendingBalance: -totalAmount,
+                availableBalance: totalAmount
+            }
+        });
+
+        // ✅ Update all eligible transactions to completed
+        await TransactionHistory.updateMany(
+            {
+                _id: { $in: eligibleTransactions.map(t => t._id) }
+            },
+            {
+                $set: {
+                    payoutStatus: 'completed',
+                    payoutDate: new Date(),
+                    stripeTransferId: transfer.id
+                }
+            }
+        );
+
+        return {
+            success: true,
+            amount: totalAmount,
+            transferId: transfer.id,
+            transactionsProcessed: eligibleTransactions.length
+        };
+
+    } catch (error: any) {
+        console.error('❌ Stripe transfer failed:', error);
+        throw new ApiError(
+            StatusCodes.INTERNAL_SERVER_ERROR,
+            `Withdrawal failed: ${error.message}`
+        );
+    }
+};
+
 export const payoutService = {
     processEventPayouts,
     processEventPayoutManually,
-    getEventPayoutSummary
+    getEventPayoutSummary,
+    withdrawBalance
 };
