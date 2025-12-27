@@ -373,7 +373,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session, paymentIntent:
   // ✅ CREATE NEW directPurchase TRANSACTION FOR BUYER
   // ========================================
   await TransactionHistory.create({
-    userId: newOwnerId, // ✅ BUYER
+    userId: newOwnerId,
     eventId,
     organizerId,
     sellerId: allTickets[0].sellerId,

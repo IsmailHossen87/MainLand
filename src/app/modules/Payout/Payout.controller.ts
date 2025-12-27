@@ -26,6 +26,22 @@ const triggerEventPayout = catchAsync(async (req: Request, res: Response) => {
 });
 
 /**
+ * ✅ Payout money
+ */
+const withdrawBalance = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req.user as any)?.id; // From auth middleware
+
+    const result = await payoutService.withdrawBalance(userId);
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Withdrawal successful! Money transferred to your Stripe account.',
+        data: result
+    });
+});
+
+/**
  * ✅ Admin: Get payout summary for an event
  */
 const getEventPayoutSummary = catchAsync(async (req: Request, res: Response) => {
@@ -136,4 +152,5 @@ export const payoutController = {
     getMyBalance,
     getMyPayoutHistory,
     getMyPendingPayouts,
+    withdrawBalance
 };
