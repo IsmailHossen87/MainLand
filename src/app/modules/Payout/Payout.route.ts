@@ -11,7 +11,11 @@ const router = express.Router();
 // ========================================
 // 🔐 USER ROUTES (Protected)
 // ========================================
-
+router.post(
+    '/withdraw',
+    auth('user', 'organizer'),
+    payoutController.withdrawBalance
+);
 /**
  * GET /api/v1/payout/my-balance
  * Get current user's balance (pending + available)
