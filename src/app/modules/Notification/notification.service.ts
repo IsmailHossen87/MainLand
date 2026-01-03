@@ -11,6 +11,7 @@ import { QueryBuilder } from "../../builder/QueryBuilder";
 import { Notification } from "./notification.model";
 import { excludeField } from "../../../shared/constrant";
 import { Message } from "../Message/message-model";
+import { sendFirebaseNotification } from "../../../helpers/firebaseAdmin";
 
 interface GetNotificationsResult {
   meta: {
@@ -82,6 +83,21 @@ const sendAdminNotification = async (
   }
 
   await sendNotifications(notificationData, "notification");
+
+  // 🔥 Firebase Push Notification
+  if (organizer?.fcmToken) {
+    await sendFirebaseNotification(
+      organizer.fcmToken,
+      title,
+      message,
+      {
+        type: "NOTIFICATION",
+        eventId: event._id.toString(),
+        status,
+      }
+    );
+  }
+
 
   return true;
 };

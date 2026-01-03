@@ -1,15 +1,4 @@
 "use strict";
-// import { Request, Response } from 'express';
-// import Stripe from 'stripe';
-// import ApiError from '../../errors/ApiError';
-// import { StatusCodes } from 'http-status-codes';
-// import { emailHelper } from '../../helpers/emailHelper';
-// import { emailTemplate } from '../../shared/emailTemplate';
-// import { Event } from '../modules/ORGANIZER/Event/Event.model';
-// import mongoose, { mongo, Types } from 'mongoose';
-// import { TicketPurchase } from '../modules/Ticket/ticket.model';
-// import { TransactionHistory } from '../modules/Payment/transactionHistory';
-// import { User } from '../modules/user/user.model';
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -52,12 +41,13 @@ const generateTicketName = (ticketType) => {
     return `${ticketType}-${random}`;
 };
 exports.generateTicketName = generateTicketName;
-const handleEvent = (session) => __awaiter(void 0, void 0, void 0, function* () {
+const handleEvent = (session, paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
     if (!session.metadata) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Metadata missing in session!");
     }
     const metadata = session.metadata;
     const userId = metadata.userId;
+    const organizerPayout = parseFloat(metadata.organizerPayout);
     const eventId = metadata.eventId;
     const fullName = metadata.fullName;
     const email = metadata.attenEmail;
@@ -67,7 +57,20 @@ const handleEvent = (session) => __awaiter(void 0, void 0, void 0, function* () 
     const mainlandFeeAmount = parseFloat(metadata.mainlandFeeAmount) || 0;
     const totalAmount = parseFloat(metadata.totalAmount) || 0;
     const ownerId = new mongoose_1.default.Types.ObjectId(userId);
-    // Safe parsing & expand compressed tickets
+    // ✅✅ IDEMPOTENCY CHECK - Prevent duplicate transactions
+    const paymentIntentId = (paymentIntent === null || paymentIntent === void 0 ? void 0 : paymentIntent.id) || session.payment_intent;
+    if (!paymentIntentId) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Payment intent ID missing!");
+    }
+    // Check if this payment has already been processed
+    const existingTransaction = yield transactionHistory_1.TransactionHistory.findOne({
+        paymentIntentId: paymentIntentId,
+        type: "directPurchase",
+    });
+    if (existingTransaction) {
+        console.log("⚠️ Payment already processed, skipping...");
+        return;
+    }
     let compressedTickets = [];
     try {
         compressedTickets = JSON.parse(metadata.tickets);
@@ -99,7 +102,7 @@ const handleEvent = (session) => __awaiter(void 0, void 0, void 0, function* () 
         for (let i = 0; i < ticket.quantity; i++) {
             allNewTickets.push({
                 eventId,
-                organizerId, // ✅ Added organizerId
+                organizerId,
                 ownerId,
                 ticketName: (0, exports.generateTicketName)(ticket.ticketType),
                 attendeeInformation: { fullName, email, phone },
@@ -127,55 +130,44 @@ const handleEvent = (session) => __awaiter(void 0, void 0, void 0, function* () 
     }
     yield ticket_model_1.TicketPurchase.insertMany(allNewTickets);
     yield Event_model_1.Event.bulkWrite(updatedEventTickets);
+    // Update organizer payout🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥Banlance get
+    yield user_model_1.User.findByIdAndUpdate(organizerId, {
+        $inc: {
+            pendingBalance: organizerPayout,
+            totalEarnings: organizerPayout
+        }
+    });
+    let payoutEligibleDate = null;
+    if (event === null || event === void 0 ? void 0 : event.eventDate) {
+        const eligibleDate = new Date(event.eventDate);
+        eligibleDate.setDate(eligibleDate.getDate() + 15);
+        payoutEligibleDate = eligibleDate;
+    }
     // -----------------------------
-    // Save transaction history - FOR USER
+    // ✅ ALWAYS CREATE NEW TRANSACTION - NO UPDATE
     // -----------------------------
-    const existingUserTransaction = yield transactionHistory_1.TransactionHistory.findOne({
+    yield transactionHistory_1.TransactionHistory.create({
         userId: ownerId,
         eventId,
+        organizerId,
+        paymentIntentId: paymentIntentId,
         type: "directPurchase",
+        purchaseAmount: totalAmount,
+        organizerPayout: organizerPayout, // ✅ Organizer কত পাবে
+        payoutStatus: 'pending', //new added
+        mainLandFee: mainlandFeeAmount,
+        sellAmount: 0,
+        purchaseQuantity: totalQuantity,
+        ticketInfo: allTickets.map((t) => ({
+            ticketType: t.ticketType,
+            quantity: t.quantity,
+            ticketPrice: t.ticketPrice,
+            commission: mainlandFeePercentage,
+        })),
+        adminPercentageTotal: Number(mainlandFeeAmount),
+        revenue: 0,
+        payoutEligibleDate: payoutEligibleDate,
     });
-    if (existingUserTransaction) {
-        existingUserTransaction.purchaseAmount += totalAmount;
-        existingUserTransaction.purchaseQuantity += totalQuantity;
-        existingUserTransaction.adminPercentageTotal += mainlandFeeAmount;
-        existingUserTransaction.mainLandFee += mainlandFeeAmount;
-        for (const t of allTickets) {
-            const existingType = existingUserTransaction.ticketInfo.find((info) => info.ticketType === t.ticketType && info.ticketPrice === t.ticketPrice);
-            if (existingType) {
-                existingType.quantity += t.quantity;
-            }
-            else {
-                existingUserTransaction.ticketInfo.push({
-                    ticketType: t.ticketType,
-                    quantity: t.quantity,
-                    ticketPrice: t.ticketPrice,
-                    commission: Number(mainlandFeePercentage),
-                });
-            }
-        }
-        yield existingUserTransaction.save();
-    }
-    else {
-        yield transactionHistory_1.TransactionHistory.create({
-            userId: ownerId,
-            eventId,
-            organizerId, // ✅ Added organizerId
-            type: "directPurchase",
-            purchaseAmount: totalAmount,
-            mainLandFee: mainlandFeeAmount,
-            sellAmount: 0,
-            purchaseQuantity: totalQuantity,
-            ticketInfo: allTickets.map((t) => ({
-                ticketType: t.ticketType,
-                quantity: t.quantity,
-                ticketPrice: t.ticketPrice,
-                commission: mainlandFeePercentage,
-            })),
-            adminPercentageTotal: Number(mainlandFeeAmount),
-            revenue: 0, // Direct purchase has no revenue yet
-        });
-    }
     // -----------------------------
     // Send Email
     // -----------------------------
@@ -194,32 +186,57 @@ const handleEvent = (session) => __awaiter(void 0, void 0, void 0, function* () 
     }
     console.log("🎉 Ticket purchase completed successfully!");
 });
-// Repurchase Ticket
-const repurchaseTicket = (session) => __awaiter(void 0, void 0, void 0, function* () {
+const repurchaseTicket = (session, paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
     if (!session.metadata) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Metadata missing in session!");
     }
     const metadata = session.metadata;
     const { userId, email, fullName, phone, totalAmount, ticketPrice, tickets, eventId, mfa: mainlandFeeAmount, mp: mainlandFeePercentage } = metadata;
+    // ✅✅ IDEMPOTENCY CHECK - Prevent duplicate transactions
+    const paymentIntentId = (paymentIntent === null || paymentIntent === void 0 ? void 0 : paymentIntent.id) || session.payment_intent;
+    if (!paymentIntentId) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Payment intent ID missing!");
+    }
+    // Check if buyer's transaction already exists for this payment
+    const existingBuyerTransaction = yield transactionHistory_1.TransactionHistory.findOne({
+        paymentIntentId: paymentIntentId,
+    });
+    if (existingBuyerTransaction) {
+        return; // Already processed, skip
+    }
     let allTickets;
     // ✅ Get organizer ID from event
     const event = yield Event_model_1.Event.findById(eventId);
     const organizerId = event === null || event === void 0 ? void 0 : event.userId;
     try {
         allTickets = JSON.parse(tickets);
-        console.log("🚀 ~ repurchaseTicket ~ allTickets:", allTickets);
     }
     catch (error) {
         console.error('Error parsing tickets metadata:', error);
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
     }
     const newOwnerId = new mongoose_1.default.Types.ObjectId(userId);
+    const totalBuyerPurchaseAmount = parseFloat(totalAmount);
+    const totalBuyerQuantity = allTickets.reduce((sum, t) => sum + t.quantity, 0);
+    let payoutEligibleDate = null;
+    if (event === null || event === void 0 ? void 0 : event.eventDate) {
+        const eligibleDate = new Date(event.eventDate);
+        eligibleDate.setDate(eligibleDate.getDate() + 15);
+        payoutEligibleDate = eligibleDate;
+    }
     for (const ticketGroup of allTickets) {
         const { ticketIds, sellerId, ticketType, quantity, price, unitPrice, mainlandFeeForTicket, mainlandFeePerTicket } = ticketGroup;
         // Validate sellerId
         if (!sellerId) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Seller ID is missing in ticket data!");
         }
+        // new Added 🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥
+        const sellerPayout = price - mainlandFeeForTicket;
+        yield user_model_1.User.findByIdAndUpdate(sellerId, {
+            $inc: {
+                pendingBalance: sellerPayout
+            }
+        });
         // Convert string IDs to ObjectIds
         const ticketObjectIds = ticketIds.map((id) => new mongoose_1.default.Types.ObjectId(id));
         const sellerObjectId = new mongoose_1.default.Types.ObjectId(sellerId);
@@ -227,7 +244,6 @@ const repurchaseTicket = (session) => __awaiter(void 0, void 0, void 0, function
         const ticketsToUpdate = yield ticket_model_1.TicketPurchase.find({
             _id: { $in: ticketObjectIds },
             ownerId: sellerObjectId,
-            // organizerId filter removed - not all old tickets have this field
             ticketType: ticketType,
             status: "onsell",
         });
@@ -267,78 +283,58 @@ const repurchaseTicket = (session) => __awaiter(void 0, void 0, void 0, function
         if (updatedTickets.modifiedCount !== quantity) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, `Failed to update all ${ticketType} tickets. Expected ${quantity}, updated ${updatedTickets.modifiedCount}`);
         }
-        // ✅ Calculate seller's revenue
-        // Revenue = What they sold for - What they originally paid
+        // ✅✅ CORRECT REVENUE CALCULATION
+        // Revenue = What seller received (sell price) - What they originally paid
         const sellerRevenue = price - originalPurchaseAmount;
-        // ✅ Calculate earned amount for this ticket group (mainland fee earned)
-        const totalPriceWithFee = price + mainlandFeeForTicket;
-        const earnedAmountForThisGroup = totalPriceWithFee - price;
+        // ✅ UPDATE SELLER'S PENDING BALANCE
+        yield user_model_1.User.findByIdAndUpdate(sellerObjectId, {
+            $inc: {
+                pendingBalance: sellerPayout,
+                totalEarnings: sellerPayout
+            }
+        });
         // ========================================
-        // ✅ UPDATE SELLER'S ORIGINAL directPurchase REVENUE ONLY
+        // ✅ UPDATE SELLER'S directPurchase REVENUE
+        // (Find the FIRST directPurchase for this seller & event)
         // ========================================
-        const updateDirectPurchase = yield transactionHistory_1.TransactionHistory.findOne({
+        const sellerTransaction = yield transactionHistory_1.TransactionHistory.findOne({
             userId: sellerObjectId,
             eventId: ticketEventId,
-            type: 'directPurchase',
-        });
-        if (updateDirectPurchase) {
-            // ✅ শুধু revenue update করছি, বাকি সব ঠিক আছে
-            updateDirectPurchase.revenue = (updateDirectPurchase.revenue || 0) + Number(sellerRevenue);
-            yield updateDirectPurchase.save();
-        }
-        // ========================================
-        // Update SELLER's transaction history (resellPurchase)
-        // ========================================
-        const sellerHistory = yield transactionHistory_1.TransactionHistory.findOne({
-            userId: sellerObjectId,
-            eventId: ticketEventId,
-            type: 'resellPurchase',
-        });
-        if (sellerHistory) {
-            sellerHistory.purchaseAmount += Number(totalPriceWithFee);
-            sellerHistory.sellAmount += Number(price);
-            sellerHistory.earnedAmount += Number(earnedAmountForThisGroup);
-            sellerHistory.purchaseQuantity += Number(quantity); // ✅ purchaseQuantity ঠিক আছে
-            sellerHistory.adminPercentageTotal += Number(mainlandFeeForTicket);
-            sellerHistory.mainLandFee += Number(mainlandFeeForTicket);
-            const existingTicket = sellerHistory.ticketInfo.find((t) => t.ticketType === ticketType && t.ticketPrice === price);
-            if (existingTicket) {
-                existingTicket.quantity += Number(quantity);
-            }
-            else {
-                sellerHistory.ticketInfo.push({
-                    ticketType,
-                    quantity: Number(quantity),
-                    ticketPrice: Number(price),
-                    commission: Number(mainlandFeePercentage),
-                });
-            }
-            yield sellerHistory.save();
+        }).sort({ createdAt: 1 });
+        if (sellerTransaction) {
+            sellerTransaction.organizerPayout = (sellerTransaction.organizerPayout || 0) + sellerPayout;
+            yield sellerTransaction.save();
         }
         else {
-            yield transactionHistory_1.TransactionHistory.create({
-                userId: sellerObjectId,
-                resellerId: newOwnerId,
-                eventId: ticketEventId,
-                organizerId, // ✅ Added organizerId
-                mainLandFee: parseFloat(mainlandFeeForTicket),
-                type: "resellPurchase",
-                purchaseAmount: Number(totalPriceWithFee),
-                sellAmount: Number(price),
-                earnedAmount: Number(earnedAmountForThisGroup),
-                purchaseQuantity: Number(quantity), // ✅ purchaseQuantity সঠিক
-                adminPercentageTotal: Number(mainlandFeeForTicket),
-                ticketInfo: [
-                    {
-                        ticketType,
-                        quantity: Number(quantity),
-                        ticketPrice: Number(price),
-                        commission: Number(mainlandFeePercentage),
-                    },
-                ],
-            });
+            console.warn("⚠️ No directPurchase transaction found for seller. This shouldn't happen!");
         }
     }
+    // ========================================
+    // ✅ CREATE NEW directPurchase TRANSACTION FOR BUYER
+    // ========================================
+    yield transactionHistory_1.TransactionHistory.create({
+        userId: newOwnerId,
+        eventId,
+        organizerId,
+        sellerId: allTickets[0].sellerId,
+        paymentIntentId: paymentIntentId,
+        type: "resellPurchase",
+        purchaseAmount: totalBuyerPurchaseAmount,
+        mainLandFee: parseFloat(mainlandFeeAmount),
+        sellAmount: 0, // Buyer hasn't sold yet
+        purchaseQuantity: totalBuyerQuantity,
+        ticketInfo: allTickets.map((t) => ({
+            ticketType: t.ticketType,
+            quantity: t.quantity,
+            ticketPrice: t.unitPrice,
+            commission: mainlandFeePercentage,
+        })),
+        organizerPayout: 0,
+        payoutStatus: 'pending',
+        payoutEligibleDate: payoutEligibleDate,
+        adminPercentageTotal: parseFloat(mainlandFeeAmount),
+        revenue: 0,
+    });
     // Send confirmation email to NEW BUYER
     try {
         const emailPayload = {

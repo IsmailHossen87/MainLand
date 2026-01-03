@@ -93,8 +93,6 @@ const getAllChatList = async (userId: string, search?: string) => {
 };
 
 
-
-
 const createReport = async (payload: IReport) => {
     const { reporterUserId, chatId } = payload;
 

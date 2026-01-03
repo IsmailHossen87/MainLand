@@ -24,7 +24,10 @@ app.use((0, express_session_1.default)({
 app.use(morgen_1.Morgan.successHandler);
 app.use(morgen_1.Morgan.errorHandler);
 //body parser
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: ['https://drebal-admin-dashboard.vercel.app', 'https://ismail4000.binarybards.online', 'http://localhost:3000'],
+    credentials: true,
+}));
 app.post('/api/v1/stripe/webhook', express_1.default.raw({ type: 'application/json' }), webhookHandler_1.default);
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));

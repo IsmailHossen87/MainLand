@@ -25,6 +25,7 @@ const Event_interface_1 = require("./Event.interface");
 const unlinkFile_1 = __importDefault(require("../../../../shared/unlinkFile"));
 const Favourite_model_1 = require("../../Favoutite/Favourite.model");
 const ticket_model_1 = require("../../Ticket/ticket.model");
+const chat_model_1 = require("../../Chat/chat.model");
 const creteSubCategory = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const isExistUser = yield user_model_1.User.findById(payload.userId);
     if (!isExistUser || isExistUser.role != 'ADMIN') {
@@ -85,20 +86,83 @@ const deleteCategory = (id, type) => __awaiter(void 0, void 0, void 0, function*
     }
     return subCategory;
 });
-// CREATE EVENT
+// // CREATE EVENT
+// const createEvent = async (payload: any) => {
+//   const { userId, eventName, isDraft } = payload;
+//   // Check user exist
+//   const isExistUser = await User.findById(userId);
+//   if (!isExistUser) {
+//     throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");
+//   }
+//   if (
+//     isExistUser.role !== USER_ROLES.ORGANIZER &&
+//     isExistUser.role !== USER_ROLES.USER
+//   ) {
+//     throw new ApiError(
+//       StatusCodes.FORBIDDEN,
+//       "Only organizer and User can create Event"
+//     );
+//   }
+//   // Category validation
+//   if (payload.category?.length) {
+//     const categoryIds = payload.category.map((c: any) => c.categoryId);
+//     const categories = await Category.find({ _id: { $in: categoryIds } });
+//     if (categories.length !== payload.category.length) {
+//       throw new ApiError(
+//         StatusCodes.NOT_FOUND,
+//         "One or more categories do not exist!"
+//       );
+//     }
+//     payload.category = payload.category.map((c: any) => ({
+//       categoryId: c.categoryId,
+//       subCategory: c.subCategory,
+//     }));
+//   }
+//   // If Event is a draft and already exists → update instead of creating new
+//   if (isDraft) {
+//     let event = await Event.findOne({ userId, eventName, isDraft: true });
+//     if (event) {
+//       // Auto-set outstandingUnits
+//       if (payload.tickets?.length) {
+//         payload.tickets = payload.tickets.map((t: any) => ({
+//           ...t,
+//           outstandingUnits: t.availableUnits,
+//         }));
+//       }
+//       event = await Event.findByIdAndUpdate(
+//         event._id,
+//         { $set: payload },
+//         { new: true, runValidators: true }
+//       );
+//       return event;
+//     }
+//   }
+//   // New Event → Set EventStatus
+//   payload.EventStatus = isDraft ? "Draft" : "UnderReview";
+//   // Auto-set outstandingUnits for new event
+//   if (payload.tickets?.length) {
+//     payload.tickets = payload.tickets.map((t: any) => ({
+//       ...t,
+//       outstandingUnits: t.availableUnits,
+//     }));
+//   }
+//   const event = await Event.create(payload);
+//   return event;
+// };
 const createEvent = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     const { userId, eventName, isDraft } = payload;
-    // Check user exist
+    // ✅ Check if user exists
     const isExistUser = yield user_model_1.User.findById(userId);
     if (!isExistUser) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "User doesn't exist!");
     }
+    // ✅ Check user role - শুধু Organizer এবং User event create করতে পারবে
     if (isExistUser.role !== user_1.USER_ROLES.ORGANIZER &&
         isExistUser.role !== user_1.USER_ROLES.USER) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only organizer and User can create Event");
     }
-    // Category validation
+    // ✅ Category validation - categories exist করে কিনা check
     if ((_a = payload.category) === null || _a === void 0 ? void 0 : _a.length) {
         const categoryIds = payload.category.map((c) => c.categoryId);
         const categories = yield Event_model_1.Category.find({ _id: { $in: categoryIds } });
@@ -110,24 +174,32 @@ const createEvent = (payload) => __awaiter(void 0, void 0, void 0, function* () 
             subCategory: c.subCategory,
         }));
     }
-    // If Event is a draft and already exists → update instead of creating new
+    // ✅ If Event is a draft and already exists → update instead of creating new
     if (isDraft) {
         let event = yield Event_model_1.Event.findOne({ userId, eventName, isDraft: true });
         if (event) {
-            // Auto-set outstandingUnits
+            // ✅ FIX: শুধুমাত্র tickets থাকলেই outstandingUnits set করবে
             if ((_b = payload.tickets) === null || _b === void 0 ? void 0 : _b.length) {
                 payload.tickets = payload.tickets.map((t) => (Object.assign(Object.assign({}, t), { outstandingUnits: t.availableUnits })));
             }
+            // Update existing draft
             event = yield Event_model_1.Event.findByIdAndUpdate(event._id, { $set: payload }, { new: true, runValidators: true });
             return event;
         }
     }
-    // New Event → Set EventStatus
+    // ✅ New Event → Set EventStatus based on draft
     payload.EventStatus = isDraft ? "Draft" : "UnderReview";
-    // Auto-set outstandingUnits for new event
+    // ✅ FIX: শুধুমাত্র tickets থাকলেই outstandingUnits set করবে
+    // Free event এ tickets না থাকলে skip হবে
     if ((_c = payload.tickets) === null || _c === void 0 ? void 0 : _c.length) {
         payload.tickets = payload.tickets.map((t) => (Object.assign(Object.assign({}, t), { outstandingUnits: t.availableUnits })));
     }
+    // ✅ FIX: Free event হলে tickets empty array set করা (optional)
+    // Model এ default empty array আছে, তবে explicitly set করা ভালো
+    if (payload.isFreeEvent && !payload.tickets) {
+        payload.tickets = [];
+    }
+    // ✅ Create new event
     const event = yield Event_model_1.Event.create(payload);
     return event;
 });
@@ -159,13 +231,13 @@ const updateEvent = (eventId, userId, payload) => __awaiter(void 0, void 0, void
     return updatedEvent;
 });
 // UPDATE Notification
-const updateNotification = (eventId, userId, payload) => __awaiter(void 0, void 0, void 0, function* () {
+const updateNotification = (eventId, userId, notification) => __awaiter(void 0, void 0, void 0, function* () {
     // Check event exists
     const event = yield Event_model_1.Event.findOne({ _id: eventId, userId });
     if (!event) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
     }
-    const updatedEvent = yield Event_model_1.Event.findByIdAndUpdate(eventId, { $notification: payload, $set: payload }, { new: true, runValidators: true });
+    const updatedEvent = yield Event_model_1.Event.findByIdAndUpdate(eventId, { $set: { notification: notification } }, { new: true, runValidators: true });
     return updatedEvent;
 });
 const allLiveEvent = (query) => __awaiter(void 0, void 0, void 0, function* () {
@@ -203,15 +275,17 @@ const popularEvent = (query) => __awaiter(void 0, void 0, void 0, function* () {
     const skip = (page - 1) * limit;
     // Search setup
     const searchTerm = query.searchTerm || '';
-    const searchCondition = searchTerm ? {
-        eventName: { $regex: searchTerm, $options: 'i' }
-    } : {};
+    const searchCondition = searchTerm
+        ? { eventName: { $regex: searchTerm, $options: 'i' } }
+        : {};
     // Sort setup
     const sortField = query.sortBy || 'totalTicketBuyers';
     const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
     const pipeline = [
-        // Search filter (if searchTerm exists)
-        ...(searchTerm ? [{ $match: searchCondition }] : []),
+        // ✅ ONLY LIVE EVENTS
+        {
+            $match: Object.assign({ EventStatus: "Live" }, searchCondition)
+        },
         // Calculate total ticket buyers
         {
             $addFields: {
@@ -285,12 +359,11 @@ const popularEvent = (query) => __awaiter(void 0, void 0, void 0, function* () {
     const totalPipeline = [...pipeline, { $count: 'total' }];
     const totalResult = yield Event_model_1.Event.aggregate(totalPipeline);
     const total = ((_a = totalResult[0]) === null || _a === void 0 ? void 0 : _a.total) || 0;
-    // Add pagination to main pipeline
+    // Pagination
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
-    // Execute main query
+    // Execute query
     const data = yield Event_model_1.Event.aggregate(pipeline);
-    // Calculate meta
     const meta = {
         page,
         limit,
@@ -305,19 +378,24 @@ const singleEvent = (userID, eventId) => __awaiter(void 0, void 0, void 0, funct
     if (!user) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User is not Available");
     }
+    // ✅ Chat only if userID exists in participants (2 IDs)
+    const chat = yield chat_model_1.Chat.findOne({
+        participants: { $in: [userID] },
+    }).select("_id");
     const event = yield Event_model_1.Event.findById(eventId)
         .populate({
         path: "category.categoryId",
-        select: "_id title"
+        select: "_id title",
     })
         .populate({
         path: "category.subCategory",
-        select: "_id title"
-    });
+        select: "_id title",
+    })
+        .lean(); // 🔥 important
     if (!event) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event is not Available");
     }
-    return event;
+    return Object.assign(Object.assign({}, event), { chatId: chat ? chat._id : "" });
 });
 // all Closed ✅✅✅✅
 const closedEvent = (userID, query) => __awaiter(void 0, void 0, void 0, function* () {

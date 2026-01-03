@@ -23,7 +23,7 @@ const stripe_config_1 = __importDefault(require("../../../config/stripe.config")
 // SubCategory
 const createSubCategory = (0, catchAsync_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const userId = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.id;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
     req.body.userId = userId;
     const result = yield Event_Service_1.EventService.creteSubCategory(req.body);
     (0, sendResponse_1.default)(res, {
@@ -35,7 +35,7 @@ const createSubCategory = (0, catchAsync_1.default)((req, res, next) => __awaite
 }));
 const createCategory = (0, catchAsync_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const userId = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.id;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
     req.body.userId = userId;
     if (req.body.data) {
         const data = JSON.parse(req.body.data);
@@ -90,23 +90,84 @@ const deleteCategory = (0, catchAsync_1.default)((req, res, next) => __awaiter(v
         data: deletedCategory,
     });
 }));
-// 1️⃣ Create Event (Draft or Full)
+// // 1️⃣ Create Event (Draft or Full)
+// const createEvent = catchAsync(
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     const userId = (req.user as IJwtUser)?.id;
+//     if (req.files && 'image' in req.files && req.files.image[0]) {
+//       req.body.image = `/image/${req.files.image[0].filename}`;
+//     }
+//     const isDraft = req.body.isDraft === true || req.body.isDraft === 'true';
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       throw new ApiError(
+//         StatusCodes.NOT_FOUND,
+//         'User not found'
+//       );
+//     }
+//     if (req.body.isDraft === 'true') {
+//       if (!user.stripeAccountInfo?.stripeAccountId) {
+//         throw new ApiError(
+//           StatusCodes.BAD_REQUEST,
+//           'You must connect your Stripe account before creating paid events. Please connect your account from Settings.'
+//         );
+//       }
+//       // Verify Stripe account is active
+//       try {
+//         const account = await stripe.accounts.retrieve(
+//           user.stripeAccountInfo.stripeAccountId
+//         );
+//         if (!account.charges_enabled || !account.payouts_enabled) {
+//           throw new ApiError(
+//             StatusCodes.BAD_REQUEST,
+//             'Your Stripe account is not fully activated. Please complete the onboarding process.'
+//           );
+//         }
+//       } catch (error) {
+//         throw new ApiError(
+//           StatusCodes.BAD_REQUEST,
+//           'Invalid Stripe account. Please reconnect your account.'
+//         );
+//       }
+//     }
+//     const event = await EventService.createEvent({
+//       ...req.body,
+//       userId,
+//       isDraft,
+//     });
+//     await sendResponse(res, {
+//       success: true,
+//       statusCode: StatusCodes.CREATED,
+//       message: isDraft
+//         ? 'Draft saved successfully'
+//         : 'Event created successfully',
+//       data: event,
+//     });
+//   }
+// );
 const createEvent = (0, catchAsync_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+    // Image upload handle করা
     if (req.files && 'image' in req.files && req.files.image[0]) {
         req.body.image = `/image/${req.files.image[0].filename}`;
     }
     const isDraft = req.body.isDraft === true || req.body.isDraft === 'true';
+    // User check করা
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
     }
-    if (req.body.isDraft === 'true') {
+    // ✅ FIX: isFreeEvent check - string এবং boolean দুটোই handle করা
+    const isFreeEvent = req.body.isFreeEvent === true || req.body.isFreeEvent === 'true';
+    // ✅ FIX: Stripe check শুধুমাত্র published paid event এর জন্য
+    // Logic: isDraft === 'false' (published) এবং isFreeEvent === false (paid)
+    if (req.body.isDraft === 'false' && !isFreeEvent) {
+        // Check if Stripe account exists
         if (!((_b = user.stripeAccountInfo) === null || _b === void 0 ? void 0 : _b.stripeAccountId)) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You must connect your Stripe account before creating paid events. Please connect your account from Settings.');
         }
-        // Verify Stripe account is active
+        // Verify Stripe account is active and ready for payments
         try {
             const account = yield stripe_config_1.default.accounts.retrieve(user.stripeAccountInfo.stripeAccountId);
             if (!account.charges_enabled || !account.payouts_enabled) {
@@ -117,8 +178,10 @@ const createEvent = (0, catchAsync_1.default)((req, res, next) => __awaiter(void
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Stripe account. Please reconnect your account.');
         }
     }
+    // Event create/update করা
     const event = yield Event_Service_1.EventService.createEvent(Object.assign(Object.assign({}, req.body), { userId,
         isDraft }));
+    // Success response
     yield (0, sendResponse_1.default)(res, {
         success: true,
         statusCode: http_status_codes_1.StatusCodes.CREATED,
@@ -153,17 +216,12 @@ const updateNotification = (0, catchAsync_1.default)((req, res, next) => __await
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
     const eventId = req.params.id;
     const notification = req.body.notification;
-    if (req.files && 'image' in req.files && req.files.image[0]) {
-        req.body.image = `/image/${req.files.image[0].filename}`;
-    }
-    const isDraft = req.body.isDraft === true || req.body.isDraft === 'true';
+    console.log(eventId, userId, notification);
     const updatedEvent = yield Event_Service_1.EventService.updateNotification(eventId, userId, notification);
     yield (0, sendResponse_1.default)(res, {
         success: true,
         statusCode: http_status_codes_1.StatusCodes.OK,
-        message: isDraft
-            ? 'Draft updated successfully'
-            : 'Event published successfully',
+        message: 'Notification updated successfully',
         data: updatedEvent,
     });
 }));

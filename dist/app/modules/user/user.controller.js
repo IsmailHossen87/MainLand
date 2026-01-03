@@ -113,4 +113,14 @@ const CreateAndUpdateMainlandFee = (0, catchAsync_1.default)((req, res) => __awa
         data: result,
     });
 }));
-exports.UserController = { createUser, getUserProfile, updateProfile, getAllUser, imageDelete, accountDelete, CreateAndUpdateMainlandFee };
+const getMainlandFee = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = req.user;
+    const result = yield user_service_1.UserService.getMainlandFee(user);
+    (0, sendResponse_1.default)(res, {
+        success: true,
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        message: 'Mainland fee retrieved successfully',
+        data: result,
+    });
+}));
+exports.UserController = { createUser, getUserProfile, updateProfile, getAllUser, imageDelete, accountDelete, CreateAndUpdateMainlandFee, getMainlandFee };

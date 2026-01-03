@@ -25,21 +25,19 @@ const notificationSchema = new mongoose_1.Schema({
     },
     type: {
         type: String,
-        enum: ["EVENT", "NOTIFICATION"],
-        default: "NOTIFICATION",
-    },
-    title: {
-        type: String,
-        default: "",
-    },
-    isDraft: {
-        type: Boolean,
-        default: false,
-    },
-    status: {
-        type: String,
-        enum: ["success", "rejected"],
-        default: "",
+        title: {
+            enum: ["EVENT", "NOTIFICATION", 'SELL_TICKET'],
+            default: "NOTIFICATION",
+        },
+        isDraft: {
+            type: Boolean,
+            default: false,
+        },
+        status: {
+            type: String,
+            enum: ["success", "rejected"],
+            default: "",
+        },
     },
 }, { timestamps: true, versionKey: false });
 exports.Notification = (0, mongoose_1.model)("Notification", notificationSchema);

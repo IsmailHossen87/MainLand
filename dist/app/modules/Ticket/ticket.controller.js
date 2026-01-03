@@ -162,9 +162,6 @@ const eventSummary = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, v
     var _a;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
     const { sellerType, ticketType, eventId } = req.query;
-    console.log("sellerType", sellerType);
-    console.log("ticketType", ticketType);
-    console.log("eventId", eventId);
     const result = yield ticket_service_1.TicketService.eventSummary({ userId, sellerType, ticketType, eventId });
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
@@ -217,7 +214,6 @@ const soldTicketHistory = (0, catchAsync_1.default)((req, res) => __awaiter(void
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
     const { id } = req.params;
     const { expired } = req.query;
-    console.log("id", id);
     const result = yield ticket_service_1.TicketService.soldTicketHistory(userId, id, expired);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

@@ -20,6 +20,7 @@ const config_1 = __importDefault(require("./config"));
 const socketHelper_1 = require("./helpers/socketHelper");
 const logger_1 = require("./shared/logger");
 const radisConfig_1 = require("./config/radisConfig");
+const ProcessEventPayout_1 = require("./app/modules/Payment/ProcessEventPayout");
 //uncaught exception
 process.on('uncaughtException', error => {
     logger_1.errorLogger.error('UnhandleException Detected', error);
@@ -31,6 +32,7 @@ function main() {
         try {
             yield mongoose_1.default.connect(config_1.default.database_url);
             logger_1.logger.info(colors_1.default.green('🚀 Database connected successfully'));
+            ProcessEventPayout_1.payoutService;
             //Seed Super Admin after database connection is successful
             // await seedSuperAdmin();
             //  config.ip_address as string,

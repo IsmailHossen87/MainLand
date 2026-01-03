@@ -23,6 +23,7 @@ const createEventPayment = (0, catchAsync_1.default)((req, res) => __awaiter(voi
     const eventId = req.params.id;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
     const { fullName, email, phone, tickets, discountCode } = req.body;
+    console.log(userId);
     const paymentSession = yield PaymentService_1.createPaymentService.createPaymentIntentEvent(eventId, { fullName, email, phone, tickets, discountCode, userId });
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

@@ -116,20 +116,25 @@ const ticketHistory = (0, catchAsync_1.default)((req, res, next) => __awaiter(vo
         data: result,
     });
 }));
-// const allResellTicket = catchAsync(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     const user = req.user
-//     const query = req.query
-//     const result = await ActionService.allResellTicket(user as JwtPayload, query as Record<string, string>)
-//     await sendResponse(res, {
-//       success: true,
-//       statusCode: StatusCodes.OK,
-//       message: "All Resell Ticket Retrived Sucessfully",
-//       data: result,
-//     });
-//   }
-// );
+const allEventNotification = (0, catchAsync_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = req.user;
+    const query = req.query;
+    const result = yield ActionService_1.ActionService.allEventNotification(user, query);
+    yield (0, sendResponse_1.default)(res, {
+        success: true,
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        message: "All Resell Ticket Retrived Sucessfully",
+        data: result,
+    });
+}));
 exports.ActionController = {
     statusChange,
-    DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, accountDeleteHistory, allNotification, ticketHistory
+    DashBoard,
+    blockUser,
+    AllTicketBuyerUser,
+    ticketActivity,
+    accountDeleteHistory,
+    allNotification,
+    ticketHistory,
+    allEventNotification
 };

@@ -164,6 +164,18 @@ const mainLandFee = (user, mainLandFee) => __awaiter(void 0, void 0, void 0, fun
     });
     return updateDoc;
 });
+const getMainlandFee = (user) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = user;
+    const isExistUser = yield user_model_1.User.isExistUserById(id);
+    if (!isExistUser) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
+    }
+    const isExistUserMainlandFee = yield user_model_1.MainlandFee.findOne();
+    if (!isExistUserMainlandFee) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
+    }
+    return isExistUserMainlandFee;
+});
 exports.UserService = {
     createUserToDB,
     getUserProfileFromDB,
@@ -171,5 +183,6 @@ exports.UserService = {
     updateProfileToDB,
     imageDelete,
     accountDelete,
-    mainLandFee
+    mainLandFee,
+    getMainlandFee,
 };

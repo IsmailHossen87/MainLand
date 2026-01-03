@@ -144,6 +144,7 @@ const createPaymentIntentEvent = (eventId, userInfo) => __awaiter(void 0, void 0
             mainlandFeePercentage: feePercentage.toString(),
             mainlandFeeAmount: mainlandFeeAmount.toFixed(2),
             discountCode: discountCode || '',
+            organizerPayout: (totalDiscountedTicketPrice).toFixed(2),
             type: 'directPurchase',
         },
         success_url: `${config_1.default.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
@@ -223,6 +224,19 @@ const BuyTicket = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     if (totalAmount <= 0) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Total amount must be greater than zero");
     }
+    const metadata = {
+        userId: user._id.toString(),
+        fullName,
+        email,
+        phone,
+        tickets: JSON.stringify(ticketDetails),
+        totalAmount: totalAmount.toFixed(2),
+        ticketPrice: totalTicketPrice.toFixed(2),
+        mp: feePercentage.toString(),
+        mfa: totalMainlandFee.toFixed(2), // ✅ Total mainland fee
+        type: "resellPurchase",
+        eventId: eventId.toString()
+    };
     // 10. Create Stripe customer
     const stripeCustomer = yield stripe_config_1.default.customers.create({
         name: user.name,
@@ -245,19 +259,20 @@ const BuyTicket = (payload) => __awaiter(void 0, void 0, void 0, function* () {
                 quantity: 1
             }
         ],
-        metadata: {
-            userId: user._id.toString(),
-            fullName,
-            email,
-            phone,
-            tickets: JSON.stringify(ticketDetails),
-            totalAmount: totalAmount.toFixed(2),
-            ticketPrice: totalTicketPrice.toFixed(2),
-            mp: feePercentage.toString(),
-            mfa: totalMainlandFee.toFixed(2), // ✅ Total mainland fee
-            type: "resellPurchase",
-            eventId: eventId.toString()
-        },
+        metadata,
+        // metadata: {
+        //   userId: user._id.toString(),
+        //   fullName,
+        //   email,
+        //   phone,
+        //   tickets: JSON.stringify(ticketDetails),
+        //   totalAmount: totalAmount.toFixed(2),
+        //   ticketPrice: totalTicketPrice.toFixed(2),
+        //   mp: feePercentage.toString(),
+        //   mfa: totalMainlandFee.toFixed(2), // ✅ Total mainland fee
+        //   type: "resellPurchase",
+        //   eventId: eventId.toString()
+        // },
         success_url: `${config_1.default.stripe.success_url}?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${config_1.default.stripe.cancel_url}`
     });
