@@ -45,6 +45,7 @@ const createReport = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, v
     const reporter = req.user;
     const { chatId } = req.params;
     const payload = Object.assign(Object.assign({}, req.body), { reporterUserId: reporter.id, chatId });
+    console.log(payload);
     const result = yield chat_service_1.ChatService.createReport(payload);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

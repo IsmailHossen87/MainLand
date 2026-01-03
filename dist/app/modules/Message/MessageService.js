@@ -43,7 +43,10 @@ const sendMessageToDB = (payload) => __awaiter(void 0, void 0, void 0, function*
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Message must contain text, image, or document");
         }
         // ✅ Populate participants to get other user info
-        const chat = yield chat_model_1.Chat.findById(payload.chatId).populate('participants', 'name image email');
+        const chat = yield chat_model_1.Chat.findById(payload.chatId).populate('participants', 'name image email isReported');
+        if (chat === null || chat === void 0 ? void 0 : chat.isReported) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Chat is reported");
+        }
         if (!chat) {
             // ✅ Clean up both images and files
             if (payload.image)

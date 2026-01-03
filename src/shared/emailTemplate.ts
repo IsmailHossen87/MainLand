@@ -8,15 +8,6 @@ export interface IResaleTicket {
   pricePerTicket: number;
   totalPrice: number;
 }
-
-// Interface for new ticket purchase (with discount support)
-export interface INewTicket {
-  ticketType: string;
-  quantity: number;
-  price: number;
-  discountPerTicket?: number;
-  finalPricePerTicket: number;
-}
 interface ReportEmailPayload {
   reporterName: string;
   reportedUserName: string;
@@ -31,6 +22,16 @@ interface ReportEmailPayload {
   };
   reportDate?: Date;
 }
+
+// Interface for new ticket purchase (with discount support)
+export interface INewTicket {
+  ticketType: string;
+  quantity: number;
+  price: number;
+  discountPerTicket?: number;
+  finalPricePerTicket: number;
+}
+
 // Email payload for resale tickets
 export interface IResalePurchaseEmail {
   name: string;
@@ -55,7 +56,7 @@ const createAccount = (values: { name: string; email: string; otp: number }) => 
     html: `
     <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 50px; padding: 20px; color: #555;">
       <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-          <img src="https://ibb.co.com/gLb5SyJ5" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
+          <img src="https://i.postimg.cc/JhGHCS5c/image.png" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
           <h2 style="color: #277E16; font-size: 24px; margin-bottom: 20px;">Hello ${values.name}, Welcome to MainLand!</h2>
 
           <div style="text-align: center;">
@@ -81,7 +82,7 @@ const resetPassword = (values: IResetPassword) => {
     html: `
     <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #555;">
       <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-          <img src="https://ibb.co.com/gLb5SyJ5" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
+          <img src="https://i.postimg.cc/JhGHCS5c/image.png" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
 
           <div style="text-align:center;">
               <p>Your password reset verification code:</p>
@@ -108,7 +109,7 @@ const resendOtpTemplate = (values: { otp: string | number; email: string }) => {
         <div style="max-width:600px; margin:auto; background:white; padding:25px; border-radius:10px;">
           
           <div style="text-align:center;">
-            <img src="https://ibb.co.com/gLb5SyJ5" alt="MainLand Logo" style="width:140px;" />
+            <img src="https://i.postimg.cc/JhGHCS5c/image.png" alt="MainLand Logo" style="width:140px;" />
           </div>
 
           <h2 style="color:#277E16; text-align:center;">Your Resent OTP Code</h2>
@@ -661,15 +662,15 @@ type SellTicketEmailProps = {
 };
 
 
- const sellTicket= ({
-    name,
-    email,
-    totalTickets,
-    totalSellAmount,
-  }: SellTicketEmailProps) => ({
-    to: email,
-    subject: "Your Tickets Are Listed for Resale 🎟️",
-    html: `
+const sellTicket = ({
+  name,
+  email,
+  totalTickets,
+  totalSellAmount,
+}: SellTicketEmailProps) => ({
+  to: email,
+  subject: "Your Tickets Are Listed for Resale 🎟️",
+  html: `
       <div style="font-family: Arial, sans-serif;">
         <h2>Hello ${name},</h2>
 
@@ -694,7 +695,7 @@ type SellTicketEmailProps = {
         <p>Thanks,<br/>Event Management Team</p>
       </div>
     `,
-  })
+})
 
 
 export const emailTemplate = {

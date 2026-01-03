@@ -181,10 +181,9 @@ const AllTicketBuyerUser = (user, query) => __awaiter(void 0, void 0, void 0, fu
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
     }
     // ✅ Get unique user IDs who bought tickets
-    const uniqueUserIds = yield ticket_model_1.TicketPurchase.distinct("ownerId");
     // ✅ Create query (don't execute with await yet)
     const userQuery = user_model_1.User.find({
-        _id: { $in: uniqueUserIds },
+        // _id: { $in: uniqueUserIds },
         role: { $in: [user_1.USER_ROLES.USER, user_1.USER_ROLES.ORGANIZER] }
     }).select('name email role createdAt personalInfo address status');
     // ✅ Pass the query object to QueryBuilder
@@ -257,62 +256,58 @@ const ticketHistory = (user, query, id) => __awaiter(void 0, void 0, void 0, fun
     }
     let data = {};
     if (usersData.role === user_1.USER_ROLES.ORGANIZER) {
-        // Organizer stats
         const totalEvent = yield Event_model_1.Event.countDocuments({ userId: usersData._id });
         const activeEvents = yield Event_model_1.Event.countDocuments({
             userId: usersData._id,
             EventStatus: "Live"
         });
-        // Total ticket sold & revenue
-        const totalSold = yield user_model_1.User.findById(usersData._id).select("totalTicketPurchase");
-        const revenue = yield transactionHistory_1.TransactionHistory.find({
-            organizerId: usersData._id
-        }).select("totalRevenue");
-        // Get all live events with tickets data
-        const allLiveEvent = yield Event_model_1.Event.find({
-            userId: usersData._id,
-            EventStatus: "Live"
-        }).select("eventName ticketSaleStart eventCode organizerName").populate("userId").select("image");
-        const totalRevenue = revenue.reduce((sum, t) => sum + (t.revenue || 0), 0);
-        // Calculate total outstanding units across all events
-        const totalOutstandingUnits = allLiveEvent.reduce((total, event) => {
-            var _a;
-            const eventOutstanding = ((_a = event.tickets) === null || _a === void 0 ? void 0 : _a.reduce((sum, ticket) => sum + (ticket.outstandingUnits || 0), 0)) || 0;
-            return total + eventOutstanding;
-        }, 0);
-        // Format events with their outstanding units
-        const eventsWithOutstanding = allLiveEvent.map(event => {
-            var _a;
-            const eventOutstanding = ((_a = event.tickets) === null || _a === void 0 ? void 0 : _a.reduce((sum, ticket) => sum + (ticket.outstandingUnits || 0), 0)) || 0;
-            return {
-                eventName: event.eventName,
-                eventCode: event.eventCode,
-                organizerName: event.organizerName,
-                ticketSaleStart: event.ticketSaleStart,
-                outstandingUnits: eventOutstanding,
-            };
-        });
-        data = {
+        const events = yield Event_model_1.Event.find({ userId: usersData._id }).select("tickets -_id");
+        const allTickets = events.flatMap(event => event.tickets || []);
+        const totalHaveEvent = allTickets.reduce((sum, t) => sum + (t.availableUnits || 0), 0);
+        const totalOutstandingEvent = allTickets.reduce((sum, t) => sum + (t.outstandingUnits || 0), 0);
+        const totalRevenue = yield transactionHistory_1.TransactionHistory.find({ organizerId: usersData._id, type: "directPurchase" }).select("revenue -_id");
+        const revenue = totalRevenue.reduce((sum, t) => sum + (t.revenue || 0), 0);
+        const totalSold = totalOutstandingEvent - totalHaveEvent;
+        return data = {
             totalEvent,
             activeEvents,
-            totalSold: totalSold === null || totalSold === void 0 ? void 0 : totalSold.totalTicketPurchase,
-            totalRevenue,
-            totalOutstandingUnits,
-            allLiveEvent: eventsWithOutstanding
+            totalSold,
+            revenue
         };
     }
     if (usersData.role === user_1.USER_ROLES.USER) {
-        // User stats
-        const purchaseQuantity = 10;
-        const totalTicketSold = 7;
-        const user = yield user_model_1.User.findById(usersData._id).select("name email role image createdAt personalInfo.dateOfBirth createdAt personalInfo.phone address.city address.country address.streetAddress");
+        const ticketPurchase = yield transactionHistory_1.TransactionHistory.find({ userId: usersData._id });
+        const ticketSell = yield transactionHistory_1.TransactionHistory.find({ sellerId: usersData._id });
+        const purchaseQuantity = ticketPurchase.reduce((sum, t) => sum + (t.purchaseQuantity || 0), 0);
+        const totalTicketSold = ticketSell.reduce((sum, t) => sum + (t.purchaseQuantity || 0), 0);
         data = {
             totalTicketSold,
             purchaseQuantity,
             user
         };
+        console.log("Debug data:", data);
+        return data;
     }
-    console.log("Debug data:", data);
-    return data;
+    ;
 });
-exports.ActionService = { statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, ticketHistory, accountDeleteHistory, allNotification };
+const allEventNotification = (user, query) => __awaiter(void 0, void 0, void 0, function* () {
+    if (user.role !== user_1.USER_ROLES.ADMIN) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
+    }
+    const baseQuery = Event_model_1.Event.find({
+        notification: { $exists: true, $ne: "" }
+    })
+        .sort({ createdAt: -1 })
+        .select("notification eventName eventDate -_id");
+    const queryBuilder = new QueryBuilder_1.QueryBuilder(baseQuery, query);
+    const allNotification = queryBuilder
+        .search(constrant_1.excludeField)
+        .filter()
+        .sort();
+    const [meta, data] = yield Promise.all([
+        allNotification.getMeta(),
+        allNotification.build(),
+    ]);
+    return { meta, data };
+});
+exports.ActionService = { allEventNotification, statusChange, DashBoard, blockUser, AllTicketBuyerUser, ticketActivity, ticketHistory, accountDeleteHistory, allNotification };

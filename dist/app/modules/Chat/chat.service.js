@@ -99,8 +99,8 @@ const createReport = (payload) => __awaiter(void 0, void 0, void 0, function* ()
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "You cannot report yourself");
     }
     // 4️⃣ Ensure both users exist
-    const users = yield user_model_1.User.find({ _id: { $in: [reporterUserId, reportedUserId] } });
-    if (users.length !== 2) {
+    const users = yield user_model_1.User.find({ _id: { $in: [reporterUserId] } });
+    if (users.length !== 1) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     const reportedUser = users.find(u => u._id.toString() === reportedUserId.toString());

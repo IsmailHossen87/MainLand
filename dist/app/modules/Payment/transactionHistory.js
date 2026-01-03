@@ -8,10 +8,25 @@ const transactionHistorySchema = new mongoose_1.Schema({
         ref: "User",
         index: true,
     },
-    resellerId: {
+    sellerId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "User",
         index: true,
+    },
+    organizerPayout: {
+        type: Number,
+        default: 0,
+    },
+    payoutStatus: {
+        type: String,
+        enum: ['pending', 'processing', 'completed', 'failed'],
+        default: 'pending',
+    },
+    payoutDate: {
+        type: Date,
+    },
+    stripeTransferId: {
+        type: String,
     },
     eventId: {
         type: mongoose_1.Schema.Types.ObjectId,
@@ -50,11 +65,19 @@ const transactionHistorySchema = new mongoose_1.Schema({
     purchaseAmount: {
         type: Number,
     },
+    paymentIntentId: {
+        type: String,
+        sparse: true,
+        unique: true,
+    },
     sellAmount: {
         type: Number,
     },
     earnedAmount: {
         type: Number,
+    },
+    payoutEligibleDate: {
+        type: Date
     },
     purchaseQuantity: {
         type: Number,

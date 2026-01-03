@@ -26,25 +26,21 @@ const notificationSchema = new Schema<INotification>(
         },
         type: {
             type: String,
-        title: {
-            enum: ["EVENT", "NOTIFICATION",'SELL_TICKET'],
-            default: "NOTIFICATION",
-        },
-        title: {
-            type: String,
-            default: "",
-        },
-        isDraft: {
-            type: Boolean,
-            default: false,
-        },
-        status: {
-            type: String,
-            enum: ["success", "rejected"],
-            default: "",
+            title: {
+                enum: ["EVENT", "NOTIFICATION", 'SELL_TICKET'],
+                default: "NOTIFICATION",
+            },
+            isDraft: {
+                type: Boolean,
+                default: false,
+            },
+            status: {
+                type: String,
+                enum: ["success", "rejected"],
+                default: "",
+            },
         },
     },
-},
     { timestamps: true, versionKey: false }
 );
 

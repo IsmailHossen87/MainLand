@@ -19,22 +19,30 @@ const jwtHelper_1 = require("../../helpers/jwtHelper");
 const auth = (...roles) => (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const tokenWithBearer = req.headers.authorization;
+        // Check if token exists
         if (!tokenWithBearer) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'You are not authorized');
         }
-        if (tokenWithBearer && tokenWithBearer.startsWith('Bearer')) {
-            const token = tokenWithBearer.split(' ')[1];
-            //verify token
-            const verifyUser = jwtHelper_1.jwtHelper.verifyToken(token, config_1.default.jwt.jwt_secret);
-            //set user to header
-            const user = req.user;
-            user.id = verifyUser.id;
-            //guard user
-            if (roles.length && !roles.includes(verifyUser.role)) {
-                throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You don't have permission to access this api");
-            }
-            next();
+        // Check if token starts with Bearer
+        if (!tokenWithBearer.startsWith('Bearer ')) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'Invalid token format');
         }
+        // Extract token
+        const token = tokenWithBearer.split(' ')[1];
+        // Verify token
+        const verifyUser = jwtHelper_1.jwtHelper.verifyToken(token, config_1.default.jwt.jwt_secret);
+        // ✅ FIX: Set user to request object
+        req.user = {
+            id: verifyUser.id,
+            role: verifyUser.role,
+            email: verifyUser.email,
+        };
+        console.log('Authenticated user:', req.user);
+        // Guard user - check role authorization
+        if (roles.length && !roles.includes(verifyUser.role)) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You don't have permission to access this api");
+        }
+        next();
     }
     catch (error) {
         next(error);

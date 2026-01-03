@@ -16,6 +16,7 @@ const notification_route_1 = require("../app/modules/Notification/notification.r
 const message_route_1 = require("../app/modules/Message/message-route");
 const chat_router_1 = require("../app/modules/Chat/chat.router");
 const stripeAccount_route_1 = __importDefault(require("../app/modules/stripeAccount/stripeAccount.route"));
+const Payout_route_1 = require("../app/modules/Payout/Payout.route");
 const router = express_1.default.Router();
 const apiRoutes = [
     {
@@ -37,6 +38,10 @@ const apiRoutes = [
     {
         path: '/payment',
         route: Payment_route_1.PaymentRouter,
+    },
+    {
+        path: '/payout',
+        route: Payout_route_1.payoutRoutes,
     },
     {
         path: '/action',
