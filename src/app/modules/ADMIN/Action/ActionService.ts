@@ -1,6 +1,6 @@
 import { JwtPayload } from 'jsonwebtoken';
 import { StatusCodes } from 'http-status-codes';
-import ApiError from '../../../../errors/ApiError';
+import AppError from '../../../../errors/AppError';
 import { isDeleted, User } from '../../user/user.model';
 import { Category, Event } from '../../ORGANIZER/Event/Event.model';
 import { USER_ROLES } from '../../../../enums/user';
@@ -18,16 +18,16 @@ const statusChange = async (userId: string, eventId: string) => {
   // ✅ Check user
   const isExistUser = await User.findById(userId);
   if (!isExistUser) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");
+    throw new AppError(StatusCodes.FORBIDDEN, "User doesn't exist!");
   }
   if (isExistUser.role !== USER_ROLES.ADMIN) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can update it");
+    throw new AppError(StatusCodes.FORBIDDEN, "Only admin can update it");
   }
 
   // ✅ Check event
   const event = await Event.findById(eventId);
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Event doesn't exist!");
+    throw new AppError(StatusCodes.NOT_FOUND, "Event doesn't exist!");
   }
   const generateEvent = generateEventCode(event._id.toString());
 
@@ -60,12 +60,12 @@ const statusChange = async (userId: string, eventId: string) => {
 
 const blockUser = async (userId: string, adminInfo: JwtPayload) => {
   if (adminInfo.role !== USER_ROLES.ADMIN) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can update it");
+    throw new AppError(StatusCodes.FORBIDDEN, "Only admin can update it");
   }
 
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User doesn't exist!");
+    throw new AppError(StatusCodes.NOT_FOUND, "User doesn't exist!");
   }
   let newStatus;
   switch (user.status) {
@@ -88,7 +88,7 @@ const DashBoard = async (user: JwtPayload, query: Record<string, string>) => {
   const userId = user.id;
 
   if (user.role !== USER_ROLES.ADMIN) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
+    throw new AppError(StatusCodes.FORBIDDEN, "Only admin can access it");
   }
 
   // 📊 Overview Stats
@@ -193,7 +193,7 @@ const DashBoard = async (user: JwtPayload, query: Record<string, string>) => {
 
 const AllTicketBuyerUser = async (user: JwtPayload, query: Record<string, string>) => {
   if (user.role !== USER_ROLES.ADMIN) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
+    throw new AppError(StatusCodes.FORBIDDEN, "Only admin can access it");
   }
 
   // ✅ Get unique user IDs who bought tickets
@@ -225,7 +225,7 @@ const AllTicketBuyerUser = async (user: JwtPayload, query: Record<string, string
 // // ticket Activity
 const ticketActivity = async (user: JwtPayload, userId: string, query: Record<string, string>) => {
   if (user.role !== USER_ROLES.ADMIN) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
+    throw new AppError(StatusCodes.FORBIDDEN, "Only admin can access it");
   }
 
   // ❌ Don't spread ...query here
@@ -253,7 +253,7 @@ const ticketActivity = async (user: JwtPayload, userId: string, query: Record<st
 
 const accountDeleteHistory = async (user: JwtPayload) => {
   if (user.role !== USER_ROLES.ADMIN) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
+    throw new AppError(StatusCodes.FORBIDDEN, "Only admin can access it");
   }
 
   const accountDeleteHistory = await isDeleted.find().sort({ createdAt: -1 });
@@ -263,7 +263,7 @@ const accountDeleteHistory = async (user: JwtPayload) => {
 
 const allNotification = async (user: JwtPayload, query: Record<string, string>) => {
   if (user.role !== USER_ROLES.ADMIN) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
+    throw new AppError(StatusCodes.FORBIDDEN, "Only admin can access it");
   }
 
   const baseQuery = Notification.find().sort({ createdAt: -1 });
@@ -289,12 +289,12 @@ const ticketHistory = async (
 ) => {
   // 🔒 Only Admin can access
   if (user.role !== USER_ROLES.ADMIN) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
+    throw new AppError(StatusCodes.FORBIDDEN, "Only admin can access it");
   }
 
   const usersData = await User.findById(id);
   if (!usersData) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   let data = {};
@@ -354,7 +354,7 @@ const allEventNotification = async (
   query: Record<string, string>
 ) => {
   if (user.role !== USER_ROLES.ADMIN) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Only admin can access it");
+    throw new AppError(StatusCodes.FORBIDDEN, "Only admin can access it");
   }
 
   const baseQuery = Event.find({

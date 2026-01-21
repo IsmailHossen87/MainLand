@@ -2,10 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailTemplate = void 0;
 const createAccount = (values) => {
-  return {
-    to: values.email,
-    subject: 'Verify Your MainLand Account',
-    html: `
+    return {
+        to: values.email,
+        subject: 'Verify Your MainLand Account',
+        html: `
     <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 50px; padding: 20px; color: #555;">
       <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
           <img src="https://i.postimg.cc/JhGHCS5c/image.png" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
@@ -24,13 +24,13 @@ const createAccount = (values) => {
       </div>
     </body>
     `
-  };
+    };
 };
 const resetPassword = (values) => {
-  return {
-    to: values.email,
-    subject: 'Reset Your MainLand Account Password',
-    html: `
+    return {
+        to: values.email,
+        subject: 'Reset Your MainLand Account Password',
+        html: `
     <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #555;">
       <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
           <img src="https://i.postimg.cc/JhGHCS5c/image.png" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
@@ -48,13 +48,13 @@ const resetPassword = (values) => {
       </div>
     </body>
     `
-  };
+    };
 };
 const resendOtpTemplate = (values) => {
-  return {
-    to: values.email,
-    subject: "Your OTP Code - MainLand Verification",
-    html: `
+    return {
+        to: values.email,
+        subject: "Your OTP Code - MainLand Verification",
+        html: `
       <body style="font-family: Arial; background:#f6f6f6; padding:20px;">
         <div style="max-width:600px; margin:auto; background:white; padding:25px; border-radius:10px;">
           
@@ -76,13 +76,13 @@ const resendOtpTemplate = (values) => {
         </div>
       </body>
     `,
-  };
+    };
 };
 // Email template for RESALE ticket purchase (simple)
 const resaleTicketPurchaseEmail = (data) => {
-  const { name, email, totalTicket, totalAmount } = data;
-  const ticketRows = totalTicket
-    .map((ticket) => `
+    const { name, email, totalTicket, totalAmount } = data;
+    const ticketRows = totalTicket
+        .map((ticket) => `
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: left;">
         ${ticket.ticketType}
@@ -98,8 +98,8 @@ const resaleTicketPurchaseEmail = (data) => {
       </td>
     </tr>
   `)
-    .join('');
-  const htmlContent = `
+        .join('');
+    const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -177,10 +177,10 @@ const resaleTicketPurchaseEmail = (data) => {
                     <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.6;">
                       <strong>📧 Email:</strong> ${email}<br>
                       <strong>📅 Purchase Date:</strong> ${new Date().toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })}
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    })}
                     </p>
                   </div>
                 </td>
@@ -204,20 +204,20 @@ const resaleTicketPurchaseEmail = (data) => {
     </body>
     </html>
   `;
-  return {
-    to: email,
-    subject: '🎉 Ticket Purchase Confirmation - Your Tickets Are Ready!',
-    html: htmlContent,
-  };
+    return {
+        to: email,
+        subject: '🎉 Ticket Purchase Confirmation - Your Tickets Are Ready!',
+        html: htmlContent,
+    };
 };
 // Email template for NEW ticket purchase (with discount support)
 const newTicketPurchaseEmail = (data) => {
-  const { name, email, totalTicket, totalAmount, mainLandFee } = data;
-  const hasDiscount = totalTicket.some(t => t.discountPerTicket && t.discountPerTicket > 0);
-  const ticketRows = totalTicket
-    .map((ticket) => {
-      const ticketHasDiscount = ticket.discountPerTicket && ticket.discountPerTicket > 0;
-      return `
+    const { name, email, totalTicket, totalAmount, mainLandFee } = data;
+    const hasDiscount = totalTicket.some(t => t.discountPerTicket && t.discountPerTicket > 0);
+    const ticketRows = totalTicket
+        .map((ticket) => {
+        const ticketHasDiscount = ticket.discountPerTicket && ticket.discountPerTicket > 0;
+        return `
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: left;">
         ${ticket.ticketType}
@@ -227,15 +227,15 @@ const newTicketPurchaseEmail = (data) => {
       </td>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">
         ${ticketHasDiscount
-          ? `<span style="text-decoration: line-through; color: #9ca3af;">$${ticket.price.toFixed(2)}</span>
+            ? `<span style="text-decoration: line-through; color: #9ca3af;">$${ticket.price.toFixed(2)}</span>
              <br><span style="color: #277E16; font-weight: bold;">$${ticket.finalPricePerTicket.toFixed(2)}</span>`
-          : `$${ticket.finalPricePerTicket.toFixed(2)}`}
+            : `$${ticket.finalPricePerTicket.toFixed(2)}`}
       </td>
       ${hasDiscount
-          ? `<td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626;">
+            ? `<td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626;">
             ${ticketHasDiscount ? `-$${ticket.discountPerTicket.toFixed(2)}` : '-'}
            </td>`
-          : ''}
+            : ''}
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">
         $${(ticket.finalPricePerTicket * ticket.quantity).toFixed(2)}
       </td>
@@ -245,12 +245,12 @@ const newTicketPurchaseEmail = (data) => {
     </tr>
   `;
     })
-    .join('');
-  const totalSavings = totalTicket.reduce((acc, ticket) => {
-    const discount = ticket.discountPerTicket || 0;
-    return acc + (discount * ticket.quantity);
-  }, 0);
-  const htmlContent = `
+        .join('');
+    const totalSavings = totalTicket.reduce((acc, ticket) => {
+        const discount = ticket.discountPerTicket || 0;
+        return acc + (discount * ticket.quantity);
+    }, 0);
+    const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -301,8 +301,8 @@ const newTicketPurchaseEmail = (data) => {
                           Price
                         </th>
                         ${hasDiscount
-      ? '<th style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Discount</th>'
-      : ''}
+        ? '<th style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Discount</th>'
+        : ''}
                         <th style="padding: 12px; text-align: right; font-size: 14px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">
                           Subtotal
                         </th>
@@ -326,7 +326,7 @@ const newTicketPurchaseEmail = (data) => {
               </tr>
 
               ${totalSavings > 0
-      ? `<tr>
+        ? `<tr>
                     <td style="padding: 0 30px 20px;">
                       <div style="background-color: #dcfce7; border-left: 4px solid #16a34a; padding: 16px; border-radius: 4px;">
                         <p style="margin: 0; color: #166534; font-size: 16px; font-weight: 600;">
@@ -335,7 +335,7 @@ const newTicketPurchaseEmail = (data) => {
                       </div>
                     </td>
                   </tr>`
-      : ''}
+        : ''}
 
               <tr>
                 <td style="padding: 0 30px 30px;">
@@ -346,7 +346,7 @@ const newTicketPurchaseEmail = (data) => {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
-      })}
+    })}
                     </p>
                   </div>
                 </td>
@@ -378,15 +378,15 @@ const newTicketPurchaseEmail = (data) => {
     </body>
     </html>
   `;
-  return {
-    to: email,
-    subject: '🎉 Ticket Purchase Confirmation - Your Tickets Are Ready!',
-    html: htmlContent,
-  };
+    return {
+        to: email,
+        subject: '🎉 Ticket Purchase Confirmation - Your Tickets Are Ready!',
+        html: htmlContent,
+    };
 };
 const contactResponseEmail = (data) => {
-  const { name, email, usersMessage, adminMessage, status } = data;
-  const htmlContent = `
+    const { name, email, usersMessage, adminMessage, status } = data;
+    const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -486,11 +486,11 @@ const contactResponseEmail = (data) => {
                         </p>
                         <p style="margin: 0; color: #6b7280; font-size: 14px;">
                           <strong style="color: #374151;">📅 Response Date:</strong> ${new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })}
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    })}
                         </p>
                       </td>
                     </tr>
@@ -533,19 +533,19 @@ const contactResponseEmail = (data) => {
     </body>
     </html>
   `;
-  return {
-    to: email,
-    subject: '✅ Response to Your MainLand Contact Request',
-    html: htmlContent,
-  };
+    return {
+        to: email,
+        subject: '✅ Response to Your MainLand Contact Request',
+        html: htmlContent,
+    };
 };
 const userReportConfirmation = (payload) => {
-  const { reportedUserName, reportedUserEmail, reportDetails, reportDate, } = payload;
-  const formatDate = (date) => date ? new Date(date).toLocaleString("en-US", { timeZone: "Asia/Dhaka" }) : "N/A";
-  return {
-    to: reportedUserEmail, // The reporter's email will be set in sendEmail function
-    subject: `Report Confirmation for ${reportedUserName}`,
-    html: `
+    const { reportedUserName, reportedUserEmail, reportDetails, reportDate, } = payload;
+    const formatDate = (date) => date ? new Date(date).toLocaleString("en-US", { timeZone: "Asia/Dhaka" }) : "N/A";
+    return {
+        to: reportedUserEmail, // The reporter's email will be set in sendEmail function
+        subject: `Report Confirmation for ${reportedUserName}`,
+        html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
         <h2 style="color: #2c3e50;">Hello ${reportedUserName},</h2>
       
@@ -565,12 +565,12 @@ const userReportConfirmation = (payload) => {
         <p style="color: #888;">— The MainLand Team</p>
       </div>
     `,
-  };
+    };
 };
 const sellTicket = ({ name, email, totalTickets, totalSellAmount, }) => ({
-  to: email,
-  subject: "Your Tickets Are Listed for Resale 🎟️",
-  html: `
+    to: email,
+    subject: "Your Tickets Are Listed for Resale 🎟️",
+    html: `
       <div style="font-family: Arial, sans-serif;">
         <h2>Hello ${name},</h2>
 
@@ -597,12 +597,12 @@ const sellTicket = ({ name, email, totalTickets, totalSellAmount, }) => ({
     `,
 });
 exports.emailTemplate = {
-  createAccount,
-  resetPassword,
-  resendOtpTemplate,
-  resaleTicketPurchaseEmail,
-  newTicketPurchaseEmail,
-  contactResponseEmail,
-  userReportConfirmation,
-  sellTicket
+    createAccount,
+    resetPassword,
+    resendOtpTemplate,
+    resaleTicketPurchaseEmail,
+    newTicketPurchaseEmail,
+    contactResponseEmail,
+    userReportConfirmation,
+    sellTicket
 };

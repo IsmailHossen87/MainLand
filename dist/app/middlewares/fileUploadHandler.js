@@ -7,7 +7,7 @@ const fs_1 = __importDefault(require("fs"));
 const http_status_codes_1 = require("http-status-codes");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
-const ApiError_1 = __importDefault(require("../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../errors/AppError"));
 const fileUploadHandler = () => {
     //create upload folder
     const baseUploadDir = path_1.default.join(process.cwd(), 'uploads');
@@ -35,7 +35,7 @@ const fileUploadHandler = () => {
                     uploadDir = path_1.default.join(baseUploadDir, 'document');
                     break;
                 default:
-                    throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'File is not supported');
+                    throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'File is not supported');
             }
             createDir(uploadDir);
             cb(null, uploadDir);
@@ -61,7 +61,7 @@ const fileUploadHandler = () => {
                 cb(null, true);
             }
             else {
-                cb(new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Only .jpeg, .png, .jpg file supported'));
+                cb(new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Only .jpeg, .png, .jpg file supported'));
             }
         }
         else if (file.fieldname === 'media') {
@@ -69,7 +69,7 @@ const fileUploadHandler = () => {
                 cb(null, true);
             }
             else {
-                cb(new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Only .mp4, .mp3, file supported'));
+                cb(new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Only .mp4, .mp3, file supported'));
             }
         }
         else if (file.fieldname === 'document') { // ✅ 'doc' থেকে 'document' change করুন
@@ -77,11 +77,11 @@ const fileUploadHandler = () => {
                 cb(null, true);
             }
             else {
-                cb(new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Only pdf supported'));
+                cb(new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Only pdf supported'));
             }
         }
         else {
-            cb(new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This file is not supported'));
+            cb(new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This file is not supported'));
         }
     };
     const upload = (0, multer_1.default)({

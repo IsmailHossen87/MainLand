@@ -4,10 +4,10 @@ import { StatusCodes } from 'http-status-codes';
 import catchAsync from '../../../../shared/catchAsync';
 import sendResponse from '../../../../shared/sendResponse';
 import { EventService } from './Event.Service';
-import ApiError from '../../../../errors/ApiError';
 import { User } from '../../user/user.model';
 import stripe from '../../../config/stripe.config';
 import { IJwtUser } from '../../../../types';
+import AppError from '../../../../errors/AppError';
 
 // SubCategory
 const createSubCategory = catchAsync(
@@ -114,7 +114,7 @@ const deleteCategory = catchAsync(
 
 //     const user = await User.findById(userId);
 //     if (!user) {
-//       throw new ApiError(
+//       throw new AppError(
 //         StatusCodes.NOT_FOUND,
 //         'User not found'
 //       );
@@ -122,7 +122,7 @@ const deleteCategory = catchAsync(
 
 //     if (req.body.isDraft === 'true') {
 //       if (!user.stripeAccountInfo?.stripeAccountId) {
-//         throw new ApiError(
+//         throw new AppError(
 //           StatusCodes.BAD_REQUEST,
 //           'You must connect your Stripe account before creating paid events. Please connect your account from Settings.'
 //         );
@@ -134,13 +134,13 @@ const deleteCategory = catchAsync(
 //         );
 
 //         if (!account.charges_enabled || !account.payouts_enabled) {
-//           throw new ApiError(
+//           throw new AppError(
 //             StatusCodes.BAD_REQUEST,
 //             'Your Stripe account is not fully activated. Please complete the onboarding process.'
 //           );
 //         }
 //       } catch (error) {
-//         throw new ApiError(
+//         throw new AppError(
 //           StatusCodes.BAD_REQUEST,
 //           'Invalid Stripe account. Please reconnect your account.'
 //         );
@@ -180,7 +180,7 @@ const createEvent = catchAsync(
     // User check করা
     const user = await User.findById(userId);
     if (!user) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.NOT_FOUND,
         'User not found'
       );
@@ -194,7 +194,7 @@ const createEvent = catchAsync(
     if (req.body.isDraft === 'false' && !isFreeEvent) {
       // Check if Stripe account exists
       if (!user.stripeAccountInfo?.stripeAccountId) {
-        throw new ApiError(
+        throw new AppError(
           StatusCodes.BAD_REQUEST,
           'You must connect your Stripe account before creating paid events. Please connect your account from Settings.'
         );
@@ -207,13 +207,13 @@ const createEvent = catchAsync(
         );
 
         if (!account.charges_enabled || !account.payouts_enabled) {
-          throw new ApiError(
+          throw new AppError(
             StatusCodes.BAD_REQUEST,
             'Your Stripe account is not fully activated. Please complete the onboarding process.'
           );
         }
       } catch (error) {
-        throw new ApiError(
+        throw new AppError(
           StatusCodes.BAD_REQUEST,
           'Invalid Stripe account. Please reconnect your account.'
         );

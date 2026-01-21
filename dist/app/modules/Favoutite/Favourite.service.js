@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FavouriteService = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const Favourite_model_1 = require("./Favourite.model");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const Event_model_1 = require("../ORGANIZER/Event/Event.model");
 const http_status_codes_1 = require("http-status-codes");
 const createFavourite = (userId, payload) => __awaiter(void 0, void 0, void 0, function* () {
@@ -32,7 +32,7 @@ const createFavourite = (userId, payload) => __awaiter(void 0, void 0, void 0, f
 const getUserFavouriteEvents = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     const favourites = yield Favourite_model_1.Favourite.find({ favouriterUserId: userId });
     if (!favourites) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No favourite events found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No favourite events found");
     }
     const matchConditions = [];
     favourites.forEach(fav => {

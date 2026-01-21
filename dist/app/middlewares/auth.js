@@ -14,18 +14,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const http_status_codes_1 = require("http-status-codes");
 const config_1 = __importDefault(require("../../config"));
-const ApiError_1 = __importDefault(require("../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../errors/AppError"));
 const jwtHelper_1 = require("../../helpers/jwtHelper");
 const auth = (...roles) => (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const tokenWithBearer = req.headers.authorization;
         // Check if token exists
         if (!tokenWithBearer) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'You are not authorized');
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'You are not authorized');
         }
         // Check if token starts with Bearer
         if (!tokenWithBearer.startsWith('Bearer ')) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'Invalid token format');
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'Invalid token format');
         }
         // Extract token
         const token = tokenWithBearer.split(' ')[1];
@@ -40,7 +40,7 @@ const auth = (...roles) => (req, res, next) => __awaiter(void 0, void 0, void 0,
         console.log('Authenticated user:', req.user);
         // Guard user - check role authorization
         if (roles.length && !roles.includes(verifyUser.role)) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You don't have permission to access this api");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You don't have permission to access this api");
         }
         next();
     }

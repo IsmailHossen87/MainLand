@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import ApiError from '../../../errors/ApiError';
+import AppError from '../../../errors/AppError';
 import stripe from '../../config/stripe.config';
 import { JwtPayload } from 'jsonwebtoken';
 import { User } from '../user/user.model';
@@ -79,7 +79,7 @@ const refreshAccountConnect = async (id: string, host: string, protocol: string)
 const onConnectedStripeAccountSuccess = async (accountId: string) => {
      console.log({ accountId });
      if (!accountId) {
-          throw new ApiError(StatusCodes.NOT_FOUND, 'account Id not found');
+          throw new AppError(StatusCodes.NOT_FOUND, 'account Id not found');
      }
 
      type TPopulatedUser = {
@@ -91,7 +91,7 @@ const onConnectedStripeAccountSuccess = async (accountId: string) => {
      const stripeAccounts = await User.findOne({ stripeAccountInfo: { stripeAccountId: accountId } });
 
      if (!stripeAccounts) {
-          throw new ApiError(StatusCodes.NOT_FOUND, 'account not found');
+          throw new AppError(StatusCodes.NOT_FOUND, 'account not found');
      }
 
      await User.updateOne({ stripeAccountInfo: { stripeAccountId: accountId } }, { isCompleted: true });
@@ -99,7 +99,7 @@ const onConnectedStripeAccountSuccess = async (accountId: string) => {
      const userUpdate = await User.findByIdAndUpdate(stripeAccounts._id, { $set: { stripeConnectedAccount: accountId } }, { new: true });
 
      if (!userUpdate) {
-          throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+          throw new AppError(StatusCodes.NOT_FOUND, 'User not found');
      }
 
      // const user = stripeAccounts.userId as unknown as TPopulatedUser;
@@ -121,13 +121,13 @@ const stripeLoginLink = async (userPayload: JwtPayload) => {
      const userId = userPayload.id;
      const user = await User.findById(userId);
      if (!user) {
-          throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+          throw new AppError(StatusCodes.NOT_FOUND, 'User not found');
      }
      // check if shop owner has stripe connected account
      const hasStripeAccount = await User.findOne({ "stripeAccountInfo.stripeAccountId": user.stripeAccountInfo?.stripeAccountId });
 
      if (!hasStripeAccount) {
-          throw new ApiError(StatusCodes.NOT_FOUND, 'Stripe account not found');
+          throw new AppError(StatusCodes.NOT_FOUND, 'Stripe account not found');
      }
 
      const stripeAccountId = hasStripeAccount?.stripeAccountInfo?.stripeAccountId || '';

@@ -1,6 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
 import { JwtPayload } from 'jsonwebtoken';
-import ApiError from '../../../errors/ApiError';
 import unlinkFile from '../../../shared/unlinkFile';
 import { IUser } from './user.interface';
 import { isDeleted, MainlandFee, User } from './user.model';
@@ -9,6 +8,7 @@ import bcrypt from 'bcrypt';
 import { USER_ROLES } from '../../../enums/user';
 import { QueryBuilder } from '../../builder/QueryBuilder';
 import { excludeField } from '../../../shared/constrant';
+import AppError from '../../../errors/AppError';
 
 const OTP_EXPIRATION = 2 * 60;
 
@@ -26,7 +26,7 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
 
   const createUser = await User.create(payload);
   if (!createUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create user');
+    throw new AppError(StatusCodes.BAD_REQUEST, 'Failed to create user');
   }
 
   let stripeCustomer;
@@ -36,7 +36,7 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
       name: createUser.name,
     });
   } catch (error) {
-    throw new ApiError(
+    throw new AppError(
       StatusCodes.INTERNAL_SERVER_ERROR,
       'Failed to create Stripe customer'
     );
@@ -68,7 +68,7 @@ const getUserProfileFromDB = async (
   if (userId) {
     const isExistUser = await User.isExistUserById(userId);
     if (!isExistUser) {
-      throw new ApiError(StatusCodes.UNAUTHORIZED, "User doesn't exist!");
+      throw new AppError(StatusCodes.UNAUTHORIZED, "User doesn't exist!");
     }
     return {
       ...isExistUser.toObject ? isExistUser.toObject() : isExistUser,
@@ -78,7 +78,7 @@ const getUserProfileFromDB = async (
 
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, "User doesn't exist!");
+    throw new AppError(StatusCodes.UNAUTHORIZED, "User doesn't exist!");
   }
 
   const userObject = isExistUser.toObject ? isExistUser.toObject() : isExistUser;
@@ -113,7 +113,7 @@ const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Pro
   const { id } = user;
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, "User doesn't exist!");
+    throw new AppError(StatusCodes.UNAUTHORIZED, "User doesn't exist!");
   }
 
   //unlink file here
@@ -132,7 +132,7 @@ const imageDelete = async (user: JwtPayload): Promise<IUser | null> => {
 
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
   }
 
   //unlink file here
@@ -156,19 +156,19 @@ const accountDelete = async (
   // 1️⃣ Check user exists
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
   }
   console.log("oldPassword", isExistUser.password);
 
   if (!isExistUser.password) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Password not found in DB!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Password not found in DB!");
   }
 
 
   // 2️⃣ Verify password
   const isMatchPassword = await User.isMatchPassword(password, isExistUser.password);
   if (!isMatchPassword) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Password doesn't match!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Password doesn't match!");
   }
 
   // 3️⃣ Delete profile image (if exists)
@@ -201,7 +201,7 @@ const mainLandFee = async (user: JwtPayload, mainLandFee: number) => {
   const { id } = user;
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
   }
 
   const updateDoc = await MainlandFee.findOneAndUpdate({ _id: id }, { mainlandFee: mainLandFee }, {
@@ -215,11 +215,11 @@ const getMainlandFee = async (user: JwtPayload) => {
   const { id } = user;
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
   }
   const isExistUserMainlandFee = await MainlandFee.findOne();
   if (!isExistUserMainlandFee) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
   }
 
   return isExistUserMainlandFee;

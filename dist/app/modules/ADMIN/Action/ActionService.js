@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ActionService = void 0;
 const http_status_codes_1 = require("http-status-codes");
-const ApiError_1 = __importDefault(require("../../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../../errors/AppError"));
 const user_model_1 = require("../../user/user.model");
 const Event_model_1 = require("../../ORGANIZER/Event/Event.model");
 const user_1 = require("../../../../enums/user");
@@ -29,15 +29,15 @@ const statusChange = (userId, eventId) => __awaiter(void 0, void 0, void 0, func
     // ✅ Check user
     const isExistUser = yield user_model_1.User.findById(userId);
     if (!isExistUser) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "User doesn't exist!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "User doesn't exist!");
     }
     if (isExistUser.role !== user_1.USER_ROLES.ADMIN) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can update it");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can update it");
     }
     // ✅ Check event
     const event = yield Event_model_1.Event.findById(eventId);
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event doesn't exist!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event doesn't exist!");
     }
     const generateEvent = (0, generateOTP_1.generateEventCode)(event._id.toString());
     // ✅ Determine new status
@@ -62,11 +62,11 @@ const statusChange = (userId, eventId) => __awaiter(void 0, void 0, void 0, func
 });
 const blockUser = (userId, adminInfo) => __awaiter(void 0, void 0, void 0, function* () {
     if (adminInfo.role !== user_1.USER_ROLES.ADMIN) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can update it");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can update it");
     }
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User doesn't exist!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User doesn't exist!");
     }
     let newStatus;
     switch (user.status) {
@@ -88,7 +88,7 @@ const DashBoard = (user, query) => __awaiter(void 0, void 0, void 0, function* (
     var _a;
     const userId = user.id;
     if (user.role !== user_1.USER_ROLES.ADMIN) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
     }
     // 📊 Overview Stats
     const totalUsers = yield user_model_1.User.countDocuments({
@@ -178,7 +178,7 @@ const DashBoard = (user, query) => __awaiter(void 0, void 0, void 0, function* (
 // All User
 const AllTicketBuyerUser = (user, query) => __awaiter(void 0, void 0, void 0, function* () {
     if (user.role !== user_1.USER_ROLES.ADMIN) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
     }
     // ✅ Get unique user IDs who bought tickets
     // ✅ Create query (don't execute with await yet)
@@ -203,7 +203,7 @@ const AllTicketBuyerUser = (user, query) => __awaiter(void 0, void 0, void 0, fu
 // // ticket Activity
 const ticketActivity = (user, userId, query) => __awaiter(void 0, void 0, void 0, function* () {
     if (user.role !== user_1.USER_ROLES.ADMIN) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
     }
     // ❌ Don't spread ...query here
     const baseQuery = transactionHistory_1.TransactionHistory.find({ userId: userId })
@@ -224,14 +224,14 @@ const ticketActivity = (user, userId, query) => __awaiter(void 0, void 0, void 0
 });
 const accountDeleteHistory = (user) => __awaiter(void 0, void 0, void 0, function* () {
     if (user.role !== user_1.USER_ROLES.ADMIN) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
     }
     const accountDeleteHistory = yield user_model_1.isDeleted.find().sort({ createdAt: -1 });
     return accountDeleteHistory;
 });
 const allNotification = (user, query) => __awaiter(void 0, void 0, void 0, function* () {
     if (user.role !== user_1.USER_ROLES.ADMIN) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
     }
     const baseQuery = notification_model_1.Notification.find().sort({ createdAt: -1 });
     const queryBuilder = new QueryBuilder_1.QueryBuilder(baseQuery, query);
@@ -248,11 +248,11 @@ const allNotification = (user, query) => __awaiter(void 0, void 0, void 0, funct
 const ticketHistory = (user, query, id) => __awaiter(void 0, void 0, void 0, function* () {
     // 🔒 Only Admin can access
     if (user.role !== user_1.USER_ROLES.ADMIN) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
     }
     const usersData = yield user_model_1.User.findById(id);
     if (!usersData) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     let data = {};
     if (usersData.role === user_1.USER_ROLES.ORGANIZER) {
@@ -292,7 +292,7 @@ const ticketHistory = (user, query, id) => __awaiter(void 0, void 0, void 0, fun
 });
 const allEventNotification = (user, query) => __awaiter(void 0, void 0, void 0, function* () {
     if (user.role !== user_1.USER_ROLES.ADMIN) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only admin can access it");
     }
     const baseQuery = Event_model_1.Event.find({
         notification: { $exists: true, $ne: "" }

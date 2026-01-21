@@ -57,6 +57,8 @@ app.get('/', (req: Request, res: Response) => {
 //global error handle
 app.use(globalErrorHandler);
 
+
+
 //handle not found route;
 app.use((req, res) => {
   res.status(StatusCodes.NOT_FOUND).json({

@@ -29,6 +29,7 @@ router.post(
   '/refresh-token',
   AuthController.refrestToken
 )
+
 router.post(
   '/verify-email',
   validateRequest(AuthValidation.createVerifyEmailZodSchema),

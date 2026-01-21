@@ -30,8 +30,8 @@ const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const auth_service_1 = require("./auth.service");
 const config_1 = __importDefault(require("../../../config"));
 const jwtHelper_1 = require("../../../helpers/jwtHelper");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const http_status_codes_2 = __importDefault(require("http-status-codes"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const verifyEmail = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const verifyData = __rest(req.body, []);
     const result = yield auth_service_1.AuthService.verifyEmailToDB(verifyData);
@@ -47,7 +47,7 @@ const verifyEmail = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, vo
 // const getNewAccessToken = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 //     const refrestToken = req.cookies.refreshToken;
 //     if (!refrestToken) {
-//         throw new ApiError(httpStatus.BAD_REQUEST, "No refresh token received from cookies");
+//         throw new AppError(httpStatus.BAD_REQUEST, "No refresh token received from cookies");
 //     }
 //     const tokenInfo = await AuthService.getNewAccessToken(refrestToken);
 //     setAuthCookie(res, tokenInfo);
@@ -118,7 +118,7 @@ const googleCallbackController = (0, catchAsync_1.default)((req, res, next) => _
     }
     const user = req.user;
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_2.default.NOT_FOUND, 'User not found');
+        throw new AppError_1.default(http_status_codes_2.default.NOT_FOUND, 'User not found');
     }
     // 🔐 Create JWT token for the logged-in user
     const token = jwtHelper_1.jwtHelper.createToken({
@@ -142,7 +142,7 @@ const refrestToken = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, v
     const refreshToken = req.headers["refreshtoken"];
     console.log(refreshToken);
     if (!refreshToken) {
-        throw new ApiError_1.default(http_status_codes_2.default.BAD_REQUEST, "No refresh token received from header");
+        throw new AppError_1.default(http_status_codes_2.default.BAD_REQUEST, "No refresh token received from header");
     }
     const tokenInfo = yield auth_service_1.AuthService.getNewAccessToken(refreshToken);
     (0, sendResponse_1.default)(res, {

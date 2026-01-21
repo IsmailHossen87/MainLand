@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPaymentService = void 0;
 const stripe_config_1 = __importDefault(require("../../config/stripe.config"));
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const http_status_codes_1 = require("http-status-codes");
 const config_1 = __importDefault(require("../../../config"));
 const Event_model_1 = require("../ORGANIZER/Event/Event.model");
@@ -27,47 +27,47 @@ const createPaymentIntentEvent = (eventId, userInfo) => __awaiter(void 0, void 0
     // 1️⃣ Event check
     const event = yield Event_model_1.Event.findById(eventId);
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Event not found!');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Event not found!');
     }
     // 2️⃣ Event Status check
     if (event.EventStatus === 'UnderReview' || event.EventStatus === 'Rejected') {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This event is not available for ticket purchase at the moment!');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This event is not available for ticket purchase at the moment!');
     }
     // 3️⃣ Event Date check
     if (event.eventDate && new Date(event.eventDate) < new Date()) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Cannot purchase tickets for past events!');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Cannot purchase tickets for past events!');
     }
     // 4️⃣ Ticket Sale Period check
     const now = new Date();
     if (event.ticketSaleStart && new Date(event.ticketSaleStart) > now) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Ticket sales have not started yet!');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Ticket sales have not started yet!');
     }
     if (event.preSaleStart && event.preSaleEnd) {
         const preSaleStartDate = new Date(event.preSaleStart);
         if (now < preSaleStartDate) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Presale has not started yet!');
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Presale has not started yet!');
         }
     }
     // 5️⃣ Free Event check
     if (event.isFreeEvent) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This is a free event. Payment is not required!');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This is a free event. Payment is not required!');
     }
     // 6️⃣ Tickets validation
     if (!tickets || tickets.length === 0) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Please select at least one ticket!');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Please select at least one ticket!');
     }
     let totalDiscountedTicketPrice = 0;
     const updatedTickets = [];
     for (const selected of tickets) {
         if (selected.quantity <= 0) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Ticket quantity must be greater than zero!');
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Ticket quantity must be greater than zero!');
         }
         const eventTicket = (_a = event.tickets) === null || _a === void 0 ? void 0 : _a.find(t => t.type === selected.ticketType);
         if (!eventTicket) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `${selected.ticketType} ticket not found for this event!`);
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `${selected.ticketType} ticket not found for this event!`);
         }
         if (eventTicket.availableUnits < selected.quantity) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Not enough ${selected.ticketType} tickets available! Only ${eventTicket.availableUnits} left.`);
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Not enough ${selected.ticketType} tickets available! Only ${eventTicket.availableUnits} left.`);
         }
         const price = eventTicket.price;
         let discountPerTicket = 0;
@@ -75,10 +75,10 @@ const createPaymentIntentEvent = (eventId, userInfo) => __awaiter(void 0, void 0
         if (discountCode) {
             const validCode = (_b = event.discountCodes) === null || _b === void 0 ? void 0 : _b.find(d => d.code === discountCode);
             if (!validCode) {
-                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Coupon code!');
+                throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Coupon code!');
             }
             if (validCode.expireDate && new Date(validCode.expireDate).getTime() < Date.now()) {
-                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This Coupon code has expired!');
+                throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This Coupon code has expired!');
             }
             discountPerTicket = (price * validCode.percentage) / 100;
         }
@@ -105,12 +105,12 @@ const createPaymentIntentEvent = (eventId, userInfo) => __awaiter(void 0, void 0
     // Total Amount = discounted tickets + mainland fee
     const totalAmount = totalDiscountedTicketPrice + mainlandFeeAmount;
     if (totalAmount <= 0) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Total amount must be greater than zero.');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Total amount must be greater than zero.');
     }
     // Validate user
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not available');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not available');
     }
     // Create Stripe customer
     const stripeCustomer = yield stripe_config_1.default.customers.create({
@@ -157,16 +157,16 @@ const BuyTicket = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     // 1. Validate user
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not available");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not available");
     }
     // 2. Validate event exists
     const event = yield Event_model_1.Event.findById(eventId);
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
     }
     // 3. Validate tickets array
     if (!tickets || tickets.length === 0) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "No tickets selected");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "No tickets selected");
     }
     const mainLandFee = yield user_model_1.MainlandFee.findOne();
     const mainlandFeePercentage = (mainLandFee === null || mainLandFee === void 0 ? void 0 : mainLandFee.mainlandFee) || 0;
@@ -179,10 +179,10 @@ const BuyTicket = (payload) => __awaiter(void 0, void 0, void 0, function* () {
         const { ticketType, quantity, amount, sellerId } = ticket;
         // Validate required fields
         if (!ticketType || !quantity || !amount || !sellerId) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Missing required ticket information (ticketType, quantity, amount, or sellerId)");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Missing required ticket information (ticketType, quantity, amount, or sellerId)");
         }
         if (quantity <= 0) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Ticket quantity must be greater than zero");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Ticket quantity must be greater than zero");
         }
         // Convert sellerId to ObjectId
         const sellerObjectId = new mongoose_1.default.Types.ObjectId(sellerId);
@@ -196,10 +196,10 @@ const BuyTicket = (payload) => __awaiter(void 0, void 0, void 0, function* () {
         }).sort({ createdAt: 1 }); // First come, first served
         // 6. Validate quantity
         if (availableTickets.length === 0) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `No ${ticketType} tickets available at $${amount} from this seller`);
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `No ${ticketType} tickets available at $${amount} from this seller`);
         }
         if (availableTickets.length < quantity) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Only ${availableTickets.length} ${ticketType} ticket(s) available at $${amount}, but ${quantity} requested`);
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Only ${availableTickets.length} ${ticketType} ticket(s) available at $${amount}, but ${quantity} requested`);
         }
         // 7. Select the required number of tickets
         const selectedTickets = availableTickets.slice(0, quantity);
@@ -222,7 +222,7 @@ const BuyTicket = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const totalAmount = totalTicketPrice + totalMainlandFee;
     // 9. Validate total amount
     if (totalAmount <= 0) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Total amount must be greater than zero");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Total amount must be greater than zero");
     }
     const metadata = {
         userId: user._id.toString(),
