@@ -14,20 +14,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatService = void 0;
 const http_status_codes_1 = require("http-status-codes");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const user_model_1 = require("../user/user.model");
 const chat_model_1 = require("./chat.model");
 const message_model_1 = require("../Message/message-model");
 const emailTemplate_1 = require("../../../shared/emailTemplate");
 const emailHelper_1 = require("../../../helpers/emailHelper");
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const createOneToOneChatToDB = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     // Validate we have exactly 2 participants
     if (payload.length !== 2) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'One-to-one chat requires exactly 2 participants');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'One-to-one chat requires exactly 2 participants');
     }
     // Check if users are trying to chat with themselves
     if (payload[0] === payload[1]) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Cannot create chat with yourself');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Cannot create chat with yourself');
     }
     const isExistChat = yield chat_model_1.Chat.findOne({
         participants: { $all: payload, $size: 2 },
@@ -39,7 +39,7 @@ const createOneToOneChatToDB = (payload) => __awaiter(void 0, void 0, void 0, fu
     const uniqueParticipants = [...new Set(payload)];
     const existingUsers = yield user_model_1.User.find({ _id: { $in: uniqueParticipants } });
     if (existingUsers.length !== uniqueParticipants.length) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'One or more participants do not exist');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'One or more participants do not exist');
     }
     const chat = yield chat_model_1.Chat.create({ participants: payload });
     return chat;
@@ -87,21 +87,21 @@ const createReport = (payload) => __awaiter(void 0, void 0, void 0, function* ()
     // 1️⃣ Find the chat and populate participants
     const chat = yield chat_model_1.Chat.findById(chatId).populate('participants');
     if (!chat) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Chat not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Chat not found");
     }
     // 2️⃣ Find the OTHER user (reported user) from participants
     const reportedUserId = chat.participants.find((participantId) => participantId.toString() !== reporterUserId.toString());
     if (!reportedUserId) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Unable to identify reported user");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Unable to identify reported user");
     }
     // 3️⃣ Self-report check
     if (reporterUserId.toString() === reportedUserId.toString()) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "You cannot report yourself");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "You cannot report yourself");
     }
     // 4️⃣ Ensure both users exist
     const users = yield user_model_1.User.find({ _id: { $in: [reporterUserId] } });
     if (users.length !== 1) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     const reportedUser = users.find(u => u._id.toString() === reportedUserId.toString());
     const reporter = users.find(u => u._id.toString() === reporterUserId.toString());
@@ -118,7 +118,7 @@ const createReport = (payload) => __awaiter(void 0, void 0, void 0, function* ()
         });
         // Optional: Delete all messages or mark them as inaccessible
         // await Message.deleteMany({ chatId });
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You have already reported this user. Further communication is now disabled.");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You have already reported this user. Further communication is now disabled.");
     }
     // 6️⃣ Create new report (1st time)
     const result = yield chat_model_1.Report.create(Object.assign(Object.assign({}, payload), { reportedUserId }));

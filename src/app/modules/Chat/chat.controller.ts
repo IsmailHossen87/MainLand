@@ -42,9 +42,6 @@ const getAllChatList = catchAsync(async (req, res) => {
 const createReport = catchAsync(async (req: Request, res: Response) => {
     const reporter = req.user as JwtPayload;
     const { chatId } = req.params;
-
-
-
     const payload = {
         ...req.body,
         reporterUserId: reporter.id,

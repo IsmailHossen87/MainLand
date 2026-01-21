@@ -4,7 +4,7 @@ import stripe from "../../config/stripe.config";
 import { Event } from "../ORGANIZER/Event/Event.model";
 import { TransactionHistory } from "../Payment/transactionHistory";
 import { User } from "../user/user.model";
-import ApiError from "../../../errors/ApiError";
+import AppError from "../../../errors/AppError";
 
 
 /**
@@ -293,12 +293,12 @@ const withdrawBalance = async (userId: string) => {
     const user = await User.findById(userId);
 
     if (!user) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+        throw new AppError(StatusCodes.NOT_FOUND, 'User not found');
     }
 
     // Check if user has Stripe account
     if (!user.stripeAccountInfo?.stripeAccountId) {
-        throw new ApiError(
+        throw new AppError(
             StatusCodes.BAD_REQUEST,
             'Please connect your Stripe account first to withdraw'
         );
@@ -314,7 +314,7 @@ const withdrawBalance = async (userId: string) => {
     });
 
     if (eligibleTransactions.length === 0) {
-        throw new ApiError(
+        throw new AppError(
             StatusCodes.BAD_REQUEST,
             'No eligible balance available for withdrawal. Please wait 14 days after event ends.'
         );
@@ -327,7 +327,7 @@ const withdrawBalance = async (userId: string) => {
     );
 
     if (totalAmount <= 0) {
-        throw new ApiError(
+        throw new AppError(
             StatusCodes.BAD_REQUEST,
             'Withdrawal amount must be greater than zero'
         );
@@ -377,7 +377,7 @@ const withdrawBalance = async (userId: string) => {
 
     } catch (error: any) {
         console.error('❌ Stripe transfer failed:', error);
-        throw new ApiError(
+        throw new AppError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Withdrawal failed: ${error.message}`
         );

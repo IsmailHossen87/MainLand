@@ -126,6 +126,10 @@ const userSchema = new mongoose_1.Schema({
         type: Boolean,
         default: false,
     },
+    fcmToken: {
+        type: String,
+        default: null,
+    },
     personalInfo: {
         firstName: { type: String, default: '' },
         lastName: { type: String, default: '' },

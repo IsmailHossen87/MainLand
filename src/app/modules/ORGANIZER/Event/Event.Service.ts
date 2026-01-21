@@ -1,18 +1,17 @@
 import { JwtPayload } from 'jsonwebtoken';
 import { StatusCodes } from 'http-status-codes';
-import ApiError from '../../../../errors/ApiError';
 import { User } from '../../user/user.model';
 import { Category, Event, SubCategory } from './Event.model';
 import { USER_ROLES } from '../../../../enums/user';
-import { QueryBuilder } from '../../../builder/QueryBuilder';
 import { excludeField } from '../../../../shared/constrant';
-import mongoose, { Types } from 'mongoose';
-import { CreateEventPayload, IEventStatus, UpdateEventPayload } from './Event.interface';
+import { Types } from 'mongoose';
+import { IEventStatus } from './Event.interface';
 import unlinkFile from '../../../../shared/unlinkFile';
 import { Favourite } from '../../Favoutite/Favourite.model';
-import { AggregationQueryBuilder } from '../../../builder/AggregationBuilder';
 import { TicketPurchase } from '../../Ticket/ticket.model';
 import { Chat } from '../../Chat/chat.model';
+import AppError from '../../../../errors/AppError';
+import { QueryBuilder } from '../../../builder/QueryBuilder';
 export interface EventTicket {
   type: string;
   price: number;
@@ -22,7 +21,7 @@ export interface EventTicket {
 const creteSubCategory = async (payload: JwtPayload) => {
   const isExistUser = await User.findById(payload.userId);
   if (!isExistUser || isExistUser.role != 'ADMIN') {
-    throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");
+    throw new AppError(StatusCodes.FORBIDDEN, "User doesn't exist!");
   }
   const createCategory = await SubCategory.create(payload);
   return createCategory;
@@ -31,7 +30,7 @@ const creteSubCategory = async (payload: JwtPayload) => {
 const creteCategory = async (payload: JwtPayload) => {
   const isExistUser = await User.findById(payload.userId);
   if (!isExistUser || isExistUser.role != 'ADMIN') {
-    throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");
+    throw new AppError(StatusCodes.FORBIDDEN, "User doesn't exist!");
   }
   const createCategory = await Category.create(payload);
   return createCategory;
@@ -40,7 +39,7 @@ const creteCategory = async (payload: JwtPayload) => {
 const updateCategory = async (categoryId: string, updateData: any) => {
   const category = await Category.findById(categoryId);
   if (!category) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Category not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "Category not found");
   }
 
   const updatedCategory = await Category.findByIdAndUpdate(
@@ -49,7 +48,7 @@ const updateCategory = async (categoryId: string, updateData: any) => {
     { new: true, runValidators: true }
   );
   if (!updateCategory) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Updated Category failed");
+    throw new AppError(StatusCodes.NOT_FOUND, "Updated Category failed");
   }
 
 
@@ -68,7 +67,7 @@ const updateSubCategory = async (categoryId: string, updateData: any) => {
   );
 
   if (!category) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "SubCategory not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "SubCategory not found");
   }
 
   return category;
@@ -76,19 +75,19 @@ const updateSubCategory = async (categoryId: string, updateData: any) => {
 // UPDATEcategory
 const deleteCategory = async (id: string, type: string) => {
   if (type !== 'category' && type !== 'subCategory') {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid type");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Invalid type");
   }
   if (type === 'category') {
     const category = await Category.findByIdAndDelete(id);
     if (!category) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Category not found");
+      throw new AppError(StatusCodes.NOT_FOUND, "Category not found");
     }
     return category;
   }
   if (type === 'subCategory') {
     const subCategory = await SubCategory.findByIdAndDelete(id);
     if (!subCategory) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "SubCategory not found");
+      throw new AppError(StatusCodes.NOT_FOUND, "SubCategory not found");
     }
     return subCategory;
   }
@@ -104,14 +103,14 @@ const deleteCategory = async (id: string, type: string) => {
 //   // Check user exist
 //   const isExistUser = await User.findById(userId);
 //   if (!isExistUser) {
-//     throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");
+//     throw new AppError(StatusCodes.FORBIDDEN, "User doesn't exist!");
 //   }
 
 //   if (
 //     isExistUser.role !== USER_ROLES.ORGANIZER &&
 //     isExistUser.role !== USER_ROLES.USER
 //   ) {
-//     throw new ApiError(
+//     throw new AppError(
 //       StatusCodes.FORBIDDEN,
 //       "Only organizer and User can create Event"
 //     );
@@ -123,7 +122,7 @@ const deleteCategory = async (id: string, type: string) => {
 //     const categories = await Category.find({ _id: { $in: categoryIds } });
 
 //     if (categories.length !== payload.category.length) {
-//       throw new ApiError(
+//       throw new AppError(
 //         StatusCodes.NOT_FOUND,
 //         "One or more categories do not exist!"
 //       );
@@ -177,7 +176,7 @@ const createEvent = async (payload: any) => {
   // ✅ Check if user exists
   const isExistUser = await User.findById(userId);
   if (!isExistUser) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "User doesn't exist!");
+    throw new AppError(StatusCodes.FORBIDDEN, "User doesn't exist!");
   }
 
   // ✅ Check user role - শুধু Organizer এবং User event create করতে পারবে
@@ -185,7 +184,7 @@ const createEvent = async (payload: any) => {
     isExistUser.role !== USER_ROLES.ORGANIZER &&
     isExistUser.role !== USER_ROLES.USER
   ) {
-    throw new ApiError(
+    throw new AppError(
       StatusCodes.FORBIDDEN,
       "Only organizer and User can create Event"
     );
@@ -197,7 +196,7 @@ const createEvent = async (payload: any) => {
     const categories = await Category.find({ _id: { $in: categoryIds } });
 
     if (categories.length !== payload.category.length) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.NOT_FOUND,
         "One or more categories do not exist!"
       );
@@ -262,7 +261,7 @@ const updateEvent = async (eventId: string, userId: string, payload: any) => {
   // Check event exists
   const event = await Event.findOne({ _id: eventId, userId });
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "Event not found");
   }
 
   // Category validation
@@ -271,7 +270,7 @@ const updateEvent = async (eventId: string, userId: string, payload: any) => {
     const categories = await Category.find({ _id: { $in: categoryIds } });
 
     if (categories.length !== payload.category.length) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.NOT_FOUND,
         "One or more categories do not exist!"
       );
@@ -305,7 +304,7 @@ const updateNotification = async (eventId: string, userId: string, notification:
   // Check event exists
   const event = await Event.findOne({ _id: eventId, userId });
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "Event not found");
   }
 
 
@@ -323,7 +322,7 @@ const allLiveEvent = async (query: Record<string, string>) => {
 
   for (const event of eventsToUpdate) {
     if (!event) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not available');
+      throw new AppError(StatusCodes.NOT_FOUND, 'Event is not available');
     }
     if (event.eventDate && event.eventDate < new Date()) {
       event.EventStatus = IEventStatus.Expired;
@@ -480,7 +479,7 @@ const popularEvent = async (query: Record<string, string>) => {
 const singleEvent = async (userID: string, eventId: string) => {
   const user = await User.findById(userID);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User is not Available");
+    throw new AppError(StatusCodes.NOT_FOUND, "User is not Available");
   }
 
   // ✅ Chat only if userID exists in participants (2 IDs)
@@ -500,7 +499,7 @@ const singleEvent = async (userID: string, eventId: string) => {
     .lean(); // 🔥 important
 
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Event is not Available");
+    throw new AppError(StatusCodes.NOT_FOUND, "Event is not Available");
   }
 
   return {
@@ -514,7 +513,7 @@ const singleEvent = async (userID: string, eventId: string) => {
 const closedEvent = async (userID: string, query: Record<string, string>) => {
   const user = await User.findById(userID);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+    throw new AppError(StatusCodes.NOT_FOUND, 'User is not Available');
   }
 
   const todaysDate = new Date();
@@ -547,7 +546,7 @@ const closedEvent = async (userID: string, query: Record<string, string>) => {
   ]);
 
   if (!data || data.length === 0) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "No closed events found");
+    throw new AppError(StatusCodes.NOT_FOUND, "No closed events found");
   }
 
   return { meta, data };
@@ -557,7 +556,7 @@ const closedEvent = async (userID: string, query: Record<string, string>) => {
 const allDataUseQuery = async (userID: string, query: Record<string, string>) => {
   const user = await User.findById(userID);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not Available');
+    throw new AppError(StatusCodes.NOT_FOUND, 'User is not Available');
   }
   const { EventStatus: status, isDraft } = query;
   console.log(status);
@@ -607,7 +606,7 @@ const allDataUseQuery = async (userID: string, query: Record<string, string>) =>
 const allUndewReview = async (userID: string, query: Record<string, string>) => {
   const user = await User.findById(userID);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User is not Available");
+    throw new AppError(StatusCodes.NOT_FOUND, "User is not Available");
   }
 
   const { EventStatus: status, searchTerm } = query;
@@ -768,7 +767,7 @@ const allCategory = async (userId: string, query: Record<string, string>) => {
 const eventTicketHistory = async (eventId: string) => {
   const event = await Event.findById(eventId);
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
+    throw new AppError(StatusCodes.NOT_FOUND, 'Event is not Available');
   }
   const ticketHistory = event.tickets;
 
@@ -778,12 +777,12 @@ const eventTicketHistory = async (eventId: string) => {
 const barCodeCheck = async (ownerId: string, userId: string, eventId: string, isUpdate: string) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User is not Available");
+    throw new AppError(StatusCodes.NOT_FOUND, "User is not Available");
   }
   const event = await Event.findOne({ _id: new Types.ObjectId(eventId), userId: new Types.ObjectId(userId), }).select("eventName");
 
   if (!event) {
-    throw new ApiError(
+    throw new AppError(
       StatusCodes.NOT_FOUND,
       "Event is not Available for this user"
     );
@@ -797,7 +796,7 @@ const barCodeCheck = async (ownerId: string, userId: string, eventId: string, is
   }).select("ticketType");
 
   if (!tickets || tickets.length === 0) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Ticket is not Available");
+    throw new AppError(StatusCodes.NOT_FOUND, "Ticket is not Available");
   }
   console.log("ISUPDATE", isUpdate)
 
@@ -831,7 +830,7 @@ const perticipentCount = async (eventCode: string) => {
   // 1️⃣ Find the event by code
   const event = await Event.findOne({ eventCode });
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Event is not Available');
+    throw new AppError(StatusCodes.NOT_FOUND, 'Event is not Available');
   }
 
   // 2️⃣ Get all used tickets for this event

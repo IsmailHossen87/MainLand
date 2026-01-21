@@ -1,11 +1,11 @@
 import { StatusCodes } from 'http-status-codes';
 import { Types } from 'mongoose'; // ADDED: Missing import
-import ApiError from '../../../errors/ApiError';
 import { User } from '../user/user.model';
 import { Chat, IChat, IReport, Report } from './chat.model';
 import { Message } from '../Message/message-model';
 import { emailTemplate } from '../../../shared/emailTemplate';
 import { emailHelper } from '../../../helpers/emailHelper';
+import AppError from '../../../errors/AppError';
 type ChatListItem = {
     id: string;
     name: string;
@@ -17,12 +17,12 @@ type ChatListItem = {
 const createOneToOneChatToDB = async (payload: string[]): Promise<IChat> => {
     // Validate we have exactly 2 participants
     if (payload.length !== 2) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'One-to-one chat requires exactly 2 participants');
+        throw new AppError(StatusCodes.BAD_REQUEST, 'One-to-one chat requires exactly 2 participants');
     }
 
     // Check if users are trying to chat with themselves
     if (payload[0] === payload[1]) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'Cannot create chat with yourself');
+        throw new AppError(StatusCodes.BAD_REQUEST, 'Cannot create chat with yourself');
     }
 
     const isExistChat: IChat | null = await Chat.findOne({
@@ -38,7 +38,7 @@ const createOneToOneChatToDB = async (payload: string[]): Promise<IChat> => {
     const existingUsers = await User.find({ _id: { $in: uniqueParticipants } });
 
     if (existingUsers.length !== uniqueParticipants.length) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'One or more participants do not exist');
+        throw new AppError(StatusCodes.BAD_REQUEST, 'One or more participants do not exist');
     }
 
     const chat: IChat = await Chat.create({ participants: payload });
@@ -99,7 +99,7 @@ const createReport = async (payload: IReport) => {
     // 1️⃣ Find the chat and populate participants
     const chat = await Chat.findById(chatId).populate('participants');
     if (!chat) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "Chat not found");
+        throw new AppError(StatusCodes.NOT_FOUND, "Chat not found");
     }
 
     // 2️⃣ Find the OTHER user (reported user) from participants
@@ -108,18 +108,18 @@ const createReport = async (payload: IReport) => {
     );
 
     if (!reportedUserId) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "Unable to identify reported user");
+        throw new AppError(StatusCodes.BAD_REQUEST, "Unable to identify reported user");
     }
 
     // 3️⃣ Self-report check
     if (reporterUserId.toString() === reportedUserId.toString()) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "You cannot report yourself");
+        throw new AppError(StatusCodes.BAD_REQUEST, "You cannot report yourself");
     }
 
     // 4️⃣ Ensure both users exist
     const users = await User.find({ _id: { $in: [reporterUserId] } });
     if (users.length !== 1) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError(StatusCodes.NOT_FOUND, "User not found");
     }
 
     const reportedUser = users.find(u => u._id.toString() === reportedUserId.toString());
@@ -144,7 +144,7 @@ const createReport = async (payload: IReport) => {
         // Optional: Delete all messages or mark them as inaccessible
         // await Message.deleteMany({ chatId });
 
-        throw new ApiError(
+        throw new AppError(
             StatusCodes.FORBIDDEN,
             "You have already reported this user. Further communication is now disabled."
         );

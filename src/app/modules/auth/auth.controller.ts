@@ -5,9 +5,9 @@ import sendResponse from '../../../shared/sendResponse';
 import { AuthService } from './auth.service';
 import config from '../../../config';
 import { jwtHelper } from '../../../helpers/jwtHelper';
-import ApiError from '../../../errors/ApiError';
 import httpStatus from 'http-status-codes';
 import { JwtPayload } from 'jsonwebtoken';
+import AppError from '../../../errors/AppError';
 
 const verifyEmail = catchAsync(async (req: Request, res: Response) => {
   const { ...verifyData } = req.body;
@@ -25,7 +25,7 @@ const verifyEmail = catchAsync(async (req: Request, res: Response) => {
 // const getNewAccessToken = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 //     const refrestToken = req.cookies.refreshToken;
 //     if (!refrestToken) {
-//         throw new ApiError(httpStatus.BAD_REQUEST, "No refresh token received from cookies");
+//         throw new AppError(httpStatus.BAD_REQUEST, "No refresh token received from cookies");
 //     }
 
 //     const tokenInfo = await AuthService.getNewAccessToken(refrestToken);
@@ -112,7 +112,7 @@ const googleCallbackController = catchAsync(
 
     const user = req.user as any;
     if (!user) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+      throw new AppError(httpStatus.NOT_FOUND, 'User not found');
     }
 
     // 🔐 Create JWT token for the logged-in user
@@ -146,7 +146,7 @@ const refrestToken = catchAsync(async (req: Request, res: Response) => {
   console.log(refreshToken);
 
   if (!refreshToken) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "No refresh token received from header");
+    throw new AppError(httpStatus.BAD_REQUEST, "No refresh token received from header");
   }
   const tokenInfo = await AuthService.getNewAccessToken(refreshToken);
 

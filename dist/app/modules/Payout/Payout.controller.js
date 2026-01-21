@@ -19,7 +19,7 @@ const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const Payout_service_1 = require("./Payout.service");
 const http_status_codes_1 = require("http-status-codes");
 const user_model_1 = require("../user/user.model");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const transactionHistory_1 = require("../Payment/transactionHistory");
 /**
  * ✅ Admin: Manually trigger payout for an event
@@ -68,7 +68,7 @@ const getMyBalance = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, v
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
     const user = yield user_model_1.User.findById(userId).select('pendingBalance availableBalance totalEarnings');
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
     }
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

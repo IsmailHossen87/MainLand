@@ -6,7 +6,7 @@ import sendResponse from '../../../shared/sendResponse';
 import { payoutService } from './Payout.service';
 import { StatusCodes } from 'http-status-codes';
 import { User } from '../user/user.model';
-import ApiError from '../../../errors/ApiError';
+import AppError from '../../../errors/AppError';
 import { TransactionHistory } from '../Payment/transactionHistory';
 
 
@@ -66,7 +66,7 @@ const getMyBalance = catchAsync(async (req: Request, res: Response) => {
     const user = await User.findById(userId).select('pendingBalance availableBalance totalEarnings');
 
     if (!user) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+        throw new AppError(StatusCodes.NOT_FOUND, 'User not found');
     }
 
     sendResponse(res, {

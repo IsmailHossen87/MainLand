@@ -17,8 +17,8 @@ const http_status_codes_1 = require("http-status-codes");
 const MessageService_1 = require("./MessageService");
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const getFilePath_1 = require("../../../shared/getFilePath");
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const sendMessage = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const imageFiles = (0, getFilePath_1.getMultipleFilesPath)(req.files, 'image');
     const documentFiles = (0, getFilePath_1.getMultipleFilesPath)(req.files, 'document');
@@ -57,7 +57,7 @@ const replyMessage = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, v
             bodyData = JSON.parse(req.body.data);
         }
         catch (err) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Invalid JSON in data field");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Invalid JSON in data field");
         }
     }
     const payload = Object.assign(Object.assign({}, bodyData), { replyTo: req.params.messageId, image: images, sender: user.id });

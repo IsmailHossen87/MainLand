@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const config_1 = __importDefault(require("../../../config"));
 const stripe_config_1 = __importDefault(require("../../config/stripe.config"));
 const logger_1 = require("../../../shared/logger");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const http_status_codes_1 = require("http-status-codes");
 const handlePaymentSuccess_1 = require("../../handlears/handlePaymentSuccess");
 const user_model_1 = require("../user/user.model");
@@ -46,7 +46,7 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 // 🔑 Get PaymentIntent
                 const paymentIntentId = session.payment_intent;
                 if (!paymentIntentId) {
-                    throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'PaymentIntent not found in checkout session');
+                    throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'PaymentIntent not found in checkout session');
                 }
                 const paymentIntent = yield stripe_config_1.default.paymentIntents.retrieve(paymentIntentId);
                 // ✅ Ensure payment success

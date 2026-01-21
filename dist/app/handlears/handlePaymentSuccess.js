@@ -13,7 +13,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handlePayment = exports.generateTicketName = exports.paymentCancel = void 0;
-const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const http_status_codes_1 = require("http-status-codes");
 const emailHelper_1 = require("../../helpers/emailHelper");
 const emailTemplate_1 = require("../../shared/emailTemplate");
@@ -22,6 +21,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const ticket_model_1 = require("../modules/Ticket/ticket.model");
 const transactionHistory_1 = require("../modules/Payment/transactionHistory");
 const user_model_1 = require("../modules/user/user.model");
+const AppError_1 = __importDefault(require("../../errors/AppError"));
 const paymentSuccess = (req, res) => {
     res.status(200).json({
         success: true,
@@ -43,7 +43,7 @@ const generateTicketName = (ticketType) => {
 exports.generateTicketName = generateTicketName;
 const handleEvent = (session, paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
     if (!session.metadata) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Metadata missing in session!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Metadata missing in session!");
     }
     const metadata = session.metadata;
     const userId = metadata.userId;
@@ -60,7 +60,7 @@ const handleEvent = (session, paymentIntent) => __awaiter(void 0, void 0, void 0
     // ✅✅ IDEMPOTENCY CHECK - Prevent duplicate transactions
     const paymentIntentId = (paymentIntent === null || paymentIntent === void 0 ? void 0 : paymentIntent.id) || session.payment_intent;
     if (!paymentIntentId) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Payment intent ID missing!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Payment intent ID missing!");
     }
     // Check if this payment has already been processed
     const existingTransaction = yield transactionHistory_1.TransactionHistory.findOne({
@@ -76,7 +76,7 @@ const handleEvent = (session, paymentIntent) => __awaiter(void 0, void 0, void 0
         compressedTickets = JSON.parse(metadata.tickets);
     }
     catch (_a) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
     }
     // ✅ Get organizer ID from event
     const event = yield Event_model_1.Event.findById(eventId);
@@ -188,14 +188,14 @@ const handleEvent = (session, paymentIntent) => __awaiter(void 0, void 0, void 0
 });
 const repurchaseTicket = (session, paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
     if (!session.metadata) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Metadata missing in session!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Metadata missing in session!");
     }
     const metadata = session.metadata;
     const { userId, email, fullName, phone, totalAmount, ticketPrice, tickets, eventId, mfa: mainlandFeeAmount, mp: mainlandFeePercentage } = metadata;
     // ✅✅ IDEMPOTENCY CHECK - Prevent duplicate transactions
     const paymentIntentId = (paymentIntent === null || paymentIntent === void 0 ? void 0 : paymentIntent.id) || session.payment_intent;
     if (!paymentIntentId) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Payment intent ID missing!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Payment intent ID missing!");
     }
     // Check if buyer's transaction already exists for this payment
     const existingBuyerTransaction = yield transactionHistory_1.TransactionHistory.findOne({
@@ -213,7 +213,7 @@ const repurchaseTicket = (session, paymentIntent) => __awaiter(void 0, void 0, v
     }
     catch (error) {
         console.error('Error parsing tickets metadata:', error);
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
     }
     const newOwnerId = new mongoose_1.default.Types.ObjectId(userId);
     const totalBuyerPurchaseAmount = parseFloat(totalAmount);
@@ -228,7 +228,7 @@ const repurchaseTicket = (session, paymentIntent) => __awaiter(void 0, void 0, v
         const { ticketIds, sellerId, ticketType, quantity, price, unitPrice, mainlandFeeForTicket, mainlandFeePerTicket } = ticketGroup;
         // Validate sellerId
         if (!sellerId) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Seller ID is missing in ticket data!");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Seller ID is missing in ticket data!");
         }
         // new Added 🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥
         const sellerPayout = price - mainlandFeeForTicket;
@@ -248,7 +248,7 @@ const repurchaseTicket = (session, paymentIntent) => __awaiter(void 0, void 0, v
             status: "onsell",
         });
         if (ticketsToUpdate.length !== quantity) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, `Expected ${quantity} tickets but found ${ticketsToUpdate.length}`);
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.CONFLICT, `Expected ${quantity} tickets but found ${ticketsToUpdate.length}`);
         }
         // Get eventId from metadata or first ticket
         const ticketEventId = eventId || ticketsToUpdate[0].eventId;
@@ -281,7 +281,7 @@ const repurchaseTicket = (session, paymentIntent) => __awaiter(void 0, void 0, v
         });
         // Validate update
         if (updatedTickets.modifiedCount !== quantity) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, `Failed to update all ${ticketType} tickets. Expected ${quantity}, updated ${updatedTickets.modifiedCount}`);
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.CONFLICT, `Failed to update all ${ticketType} tickets. Expected ${quantity}, updated ${updatedTickets.modifiedCount}`);
         }
         // ✅✅ CORRECT REVENUE CALCULATION
         // Revenue = What seller received (sell price) - What they originally paid

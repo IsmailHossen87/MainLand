@@ -1,5 +1,5 @@
 import stripe from '../../config/stripe.config';
-import ApiError from '../../../errors/ApiError';
+import AppError from '../../../errors/AppError';
 import { StatusCodes } from 'http-status-codes';
 import config from '../../../config';
 import { Event } from '../ORGANIZER/Event/Event.model';
@@ -28,12 +28,12 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
   // 1️⃣ Event check
   const event = await Event.findById(eventId);
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Event not found!');
+    throw new AppError(StatusCodes.NOT_FOUND, 'Event not found!');
   }
 
   // 2️⃣ Event Status check
   if (event.EventStatus === 'UnderReview' || event.EventStatus === 'Rejected') {
-    throw new ApiError(
+    throw new AppError(
       StatusCodes.BAD_REQUEST,
       'This event is not available for ticket purchase at the moment!'
     );
@@ -41,7 +41,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
 
   // 3️⃣ Event Date check
   if (event.eventDate && new Date(event.eventDate) < new Date()) {
-    throw new ApiError(
+    throw new AppError(
       StatusCodes.BAD_REQUEST,
       'Cannot purchase tickets for past events!'
     );
@@ -51,7 +51,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
   const now = new Date();
 
   if (event.ticketSaleStart && new Date(event.ticketSaleStart) > now) {
-    throw new ApiError(
+    throw new AppError(
       StatusCodes.BAD_REQUEST,
       'Ticket sales have not started yet!'
     );
@@ -60,7 +60,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
   if (event.preSaleStart && event.preSaleEnd) {
     const preSaleStartDate = new Date(event.preSaleStart);
     if (now < preSaleStartDate) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.BAD_REQUEST,
         'Presale has not started yet!'
       );
@@ -69,7 +69,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
 
   // 5️⃣ Free Event check
   if (event.isFreeEvent) {
-    throw new ApiError(
+    throw new AppError(
       StatusCodes.BAD_REQUEST,
       'This is a free event. Payment is not required!'
     );
@@ -77,7 +77,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
 
   // 6️⃣ Tickets validation
   if (!tickets || tickets.length === 0) {
-    throw new ApiError(
+    throw new AppError(
       StatusCodes.BAD_REQUEST,
       'Please select at least one ticket!'
     );
@@ -88,7 +88,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
 
   for (const selected of tickets) {
     if (selected.quantity <= 0) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.BAD_REQUEST,
         'Ticket quantity must be greater than zero!'
       );
@@ -96,14 +96,14 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
 
     const eventTicket = event.tickets?.find(t => t.type === selected.ticketType);
     if (!eventTicket) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.BAD_REQUEST,
         `${selected.ticketType} ticket not found for this event!`
       );
     }
 
     if (eventTicket.availableUnits < selected.quantity) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.BAD_REQUEST,
         `Not enough ${selected.ticketType} tickets available! Only ${eventTicket.availableUnits} left.`
       );
@@ -116,11 +116,11 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
     if (discountCode) {
       const validCode = event.discountCodes?.find(d => d.code === discountCode);
       if (!validCode) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Coupon code!');
+        throw new AppError(StatusCodes.BAD_REQUEST, 'Invalid Coupon code!');
       }
 
       if (validCode.expireDate && new Date(validCode.expireDate).getTime() < Date.now()) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'This Coupon code has expired!');
+        throw new AppError(StatusCodes.BAD_REQUEST, 'This Coupon code has expired!');
       }
 
       discountPerTicket = (price * validCode.percentage) / 100;
@@ -155,7 +155,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
   const totalAmount = totalDiscountedTicketPrice + mainlandFeeAmount;
 
   if (totalAmount <= 0) {
-    throw new ApiError(
+    throw new AppError(
       StatusCodes.BAD_REQUEST,
       'Total amount must be greater than zero.'
     );
@@ -165,7 +165,7 @@ const createPaymentIntentEvent = async (eventId: string, userInfo: IUser) => {
   const user = await User.findById(userId);
 
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User not available');
+    throw new AppError(StatusCodes.NOT_FOUND, 'User not available');
   }
 
   // Create Stripe customer
@@ -217,18 +217,18 @@ const BuyTicket = async (payload: any) => {
   // 1. Validate user
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not available");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not available");
   }
 
   // 2. Validate event exists
   const event = await Event.findById(eventId);
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "Event not found");
   }
 
   // 3. Validate tickets array
   if (!tickets || tickets.length === 0) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "No tickets selected");
+    throw new AppError(StatusCodes.BAD_REQUEST, "No tickets selected");
   }
 
 
@@ -246,14 +246,14 @@ const BuyTicket = async (payload: any) => {
 
     // Validate required fields
     if (!ticketType || !quantity || !amount || !sellerId) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.BAD_REQUEST,
         "Missing required ticket information (ticketType, quantity, amount, or sellerId)"
       );
     }
 
     if (quantity <= 0) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.BAD_REQUEST,
         "Ticket quantity must be greater than zero"
       );
@@ -273,14 +273,14 @@ const BuyTicket = async (payload: any) => {
 
     // 6. Validate quantity
     if (availableTickets.length === 0) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.BAD_REQUEST,
         `No ${ticketType} tickets available at $${amount} from this seller`
       );
     }
 
     if (availableTickets.length < quantity) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.BAD_REQUEST,
         `Only ${availableTickets.length} ${ticketType} ticket(s) available at $${amount}, but ${quantity} requested`
       );
@@ -314,7 +314,7 @@ const BuyTicket = async (payload: any) => {
 
   // 9. Validate total amount
   if (totalAmount <= 0) {
-    throw new ApiError(
+    throw new AppError(
       StatusCodes.BAD_REQUEST,
       "Total amount must be greater than zero"
     );

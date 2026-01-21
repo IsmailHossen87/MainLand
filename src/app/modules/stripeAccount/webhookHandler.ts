@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import config from '../../../config';
 import stripe from '../../config/stripe.config';
 import { logger } from '../../../shared/logger';
-import ApiError from '../../../errors/ApiError';
+import AppError from '../../../errors/AppError';
 import { StatusCodes } from 'http-status-codes';
 import { handlePayment } from '../../handlears/handlePaymentSuccess';
 import { User } from '../user/user.model';
@@ -45,7 +45,7 @@ const webhookHandler = async (req: Request, res: Response): Promise<void> => {
         const paymentIntentId = session.payment_intent;
 
         if (!paymentIntentId) {
-          throw new ApiError(
+          throw new AppError(
             StatusCodes.BAD_REQUEST,
             'PaymentIntent not found in checkout session'
           );

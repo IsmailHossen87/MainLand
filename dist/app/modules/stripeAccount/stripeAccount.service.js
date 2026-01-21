@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.stripeAccountService = void 0;
 const http_status_codes_1 = require("http-status-codes");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const stripe_config_1 = __importDefault(require("../../config/stripe.config"));
 const user_model_1 = require("../user/user.model");
 const stripeAccount_utils_1 = require("./stripeAccount.utils");
@@ -78,16 +78,16 @@ const refreshAccountConnect = (id, host, protocol) => __awaiter(void 0, void 0, 
 const onConnectedStripeAccountSuccess = (accountId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log({ accountId });
     if (!accountId) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'account Id not found');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'account Id not found');
     }
     const stripeAccounts = yield user_model_1.User.findOne({ stripeAccountInfo: { stripeAccountId: accountId } });
     if (!stripeAccounts) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'account not found');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'account not found');
     }
     yield user_model_1.User.updateOne({ stripeAccountInfo: { stripeAccountId: accountId } }, { isCompleted: true });
     const userUpdate = yield user_model_1.User.findByIdAndUpdate(stripeAccounts._id, { $set: { stripeConnectedAccount: accountId } }, { new: true });
     if (!userUpdate) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
     }
     // const user = stripeAccounts.userId as unknown as TPopulatedUser;
     const html = (0, stripeAccount_utils_1.successHTMLstripeConnection)({
@@ -105,12 +105,12 @@ const stripeLoginLink = (userPayload) => __awaiter(void 0, void 0, void 0, funct
     const userId = userPayload.id;
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
     }
     // check if shop owner has stripe connected account
     const hasStripeAccount = yield user_model_1.User.findOne({ "stripeAccountInfo.stripeAccountId": (_a = user.stripeAccountInfo) === null || _a === void 0 ? void 0 : _a.stripeAccountId });
     if (!hasStripeAccount) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Stripe account not found');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Stripe account not found');
     }
     const stripeAccountId = ((_b = hasStripeAccount === null || hasStripeAccount === void 0 ? void 0 : hasStripeAccount.stripeAccountInfo) === null || _b === void 0 ? void 0 : _b.stripeAccountId) || '';
     const loginLink = yield stripe_config_1.default.accounts.createLoginLink(stripeAccountId);

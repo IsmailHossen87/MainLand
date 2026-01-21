@@ -19,7 +19,7 @@ const stripe_config_1 = __importDefault(require("../../config/stripe.config"));
 const Event_model_1 = require("../ORGANIZER/Event/Event.model");
 const transactionHistory_1 = require("../Payment/transactionHistory");
 const user_model_1 = require("../user/user.model");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 /**
  * ✅ Main Payout Function
  * Event শেষ হওয়ার 14 দিন পর organizer/seller দের টাকা transfer করবে
@@ -252,11 +252,11 @@ const withdrawBalance = (userId) => __awaiter(void 0, void 0, void 0, function* 
     var _a;
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
     }
     // Check if user has Stripe account
     if (!((_a = user.stripeAccountInfo) === null || _a === void 0 ? void 0 : _a.stripeAccountId)) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Please connect your Stripe account first to withdraw');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Please connect your Stripe account first to withdraw');
     }
     // Get all eligible transactions (14 days after event, still pending)
     const today = new Date();
@@ -266,12 +266,12 @@ const withdrawBalance = (userId) => __awaiter(void 0, void 0, void 0, function* 
         payoutEligibleDate: { $lte: today }
     });
     if (eligibleTransactions.length === 0) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No eligible balance available for withdrawal. Please wait 14 days after event ends.');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No eligible balance available for withdrawal. Please wait 14 days after event ends.');
     }
     // Calculate total eligible amount
     const totalAmount = eligibleTransactions.reduce((sum, txn) => sum + (txn.organizerPayout || 0), 0);
     if (totalAmount <= 0) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Withdrawal amount must be greater than zero');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Withdrawal amount must be greater than zero');
     }
     try {
         // ✅ Create Stripe Transfer - Direct to user's Stripe account
@@ -311,7 +311,7 @@ const withdrawBalance = (userId) => __awaiter(void 0, void 0, void 0, function* 
     }
     catch (error) {
         console.error('❌ Stripe transfer failed:', error);
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Withdrawal failed: ${error.message}`);
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Withdrawal failed: ${error.message}`);
     }
 });
 exports.payoutService = {

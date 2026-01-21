@@ -5,9 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const http_status_codes_1 = require("http-status-codes");
 const config_1 = __importDefault(require("../../config"));
-const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const handleValidationError_1 = __importDefault(require("../../errors/handleValidationError"));
 const handleZodError_1 = __importDefault(require("../../errors/handleZodError"));
+const AppError_1 = __importDefault(require("../../errors/AppError"));
 const globalErrorHandler = (error, req, res, next) => {
     // config.node_env === 'development'
     //   ? console.log('🚨 globalErrorHandler ~~ ', error)
@@ -39,7 +39,7 @@ const globalErrorHandler = (error, req, res, next) => {
             ]
             : [];
     }
-    else if (error instanceof ApiError_1.default) {
+    else if (error instanceof AppError_1.default) {
         statusCode = error.statusCode;
         message = error.message;
         errorMessages = error.message

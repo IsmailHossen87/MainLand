@@ -1,5 +1,5 @@
 import { StatusCodes } from "http-status-codes";
-import ApiError from "../../../errors/ApiError";
+import AppError from "../../../errors/AppError";
 import { User } from "../user/user.model";
 import { TicketPurchase } from "./ticket.model";
 import { QueryBuilder } from "../../builder/QueryBuilder";
@@ -16,7 +16,7 @@ import { emailTemplate } from "../../../shared/emailTemplate";
 const getAllTicket = async (userId: string, query: Record<string, any>) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+    throw new AppError(StatusCodes.NOT_FOUND, 'User not found');
   }
 
   // 2️⃣ Initialize base query
@@ -44,14 +44,14 @@ const getAllTicket = async (userId: string, query: Record<string, any>) => {
 const getOneTicket = async (userId: string, ticeketId: string) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+    throw new AppError(StatusCodes.NOT_FOUND, 'User not found');
   }
 
   // 2️⃣ Initialize base query
   const baseQuery = TicketPurchase.find({ ownerId: userId, });
   const ticket = await baseQuery.findOne({ _id: ticeketId }).populate('eventId', 'image eventName');
   if (!ticket) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Ticket not found');
+    throw new AppError(StatusCodes.NOT_FOUND, 'Ticket not found');
   }
 
   // 5️⃣ Return result
@@ -64,7 +64,7 @@ const getUniqueEvents = async (userId: string, query: Record<string, any>) => {
   // 1️⃣ Check user exists
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   // 2️⃣ Aggregation pipeline
@@ -124,7 +124,7 @@ const getSoldEvent = async (userId: string) => {
   const user = await User.findById(userId);
 
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   // 2️⃣ Aggregation pipeline
@@ -210,7 +210,7 @@ const sellTicketInfoUsers = async (
   // 1️⃣ Check user exists
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   // 2️⃣ Base query (no status filtering here!)
@@ -239,7 +239,7 @@ const sellTicketInfoUsers = async (
   console.log("Tickets after QueryBuilder:", tickets.length);
 
   if (!tickets || tickets.length === 0) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "No tickets found for this event");
+    throw new AppError(StatusCodes.NOT_FOUND, "No tickets found for this event");
   }
 
   // 5️⃣ Group tickets by type & price
@@ -274,7 +274,7 @@ const sellTicketInfoUsersOnsell = async (
 ) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   // Base query
@@ -294,7 +294,7 @@ const sellTicketInfoUsersOnsell = async (
   const tickets = await qb.build();
 
   if (!tickets || tickets.length === 0) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "No tickets found for this event");
+    throw new AppError(StatusCodes.NOT_FOUND, "No tickets found for this event");
   }
 
   // Group by ticketType + purchaseAmount
@@ -329,7 +329,7 @@ const availableTypeHistory = async (
   // 1️⃣ Check user exists
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   // 2️⃣ Get all 'onsell' tickets for the event
@@ -374,7 +374,7 @@ const allOnsellTicketInfo = async (
 ) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   // 1️⃣ Base query - sob tickets
@@ -395,7 +395,7 @@ const allOnsellTicketInfo = async (
   const tickets = await qb.build();
 
   if (!tickets || tickets.length === 0) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "No tickets found");
+    throw new AppError(StatusCodes.NOT_FOUND, "No tickets found");
   }
 
   // 4️⃣ Check if ticketType query exists
@@ -476,7 +476,7 @@ const resellTicket = async (
 ) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   const results = [];
@@ -494,7 +494,7 @@ const resellTicket = async (
     }).limit(quantity);
 
     if (availableTickets.length < quantity) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.BAD_REQUEST,
         `Not enough ${ticketType} tickets available`
       );
@@ -539,17 +539,17 @@ const resellTicket = async (
     );
   }
 
-await sendNotifications(
-  {
-    userId: user._id,
-    title: "Tickets Listed for Resale",
-    message: `You listed ${totalTickets} ticket(s) for resale.`,
-    eventTitle: "Ticket Resale", 
-    type: "SELL_TICKET",            
-    status: "success",            
-  },
-  "notification"
-);
+  await sendNotifications(
+    {
+      userId: user._id,
+      title: "Tickets Listed for Resale",
+      message: `You listed ${totalTickets} ticket(s) for resale.`,
+      eventTitle: "Ticket Resale",
+      type: "SELL_TICKET",
+      status: "success",
+    },
+    "notification"
+  );
 
   return {
     totalTicketTypes: tickets.length,
@@ -568,7 +568,7 @@ const withdrawPro = async (
   // 1️⃣ Check user exists
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   // 2️⃣ Find resold (live) tickets to withdraw
@@ -605,14 +605,14 @@ const soldTicket = async (userId: string) => {
   // 1️⃣ Check user exists
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
   const transactions = await TransactionHistory.find({ resellerId: ownerId }).populate('eventId', 'name image').populate('ticketId', ' ticketType')
     .sort({ createdAt: -1 })
     .limit(10);
 
   if (!transactions) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "No transactions found");
+    throw new AppError(StatusCodes.NOT_FOUND, "No transactions found");
   }
   return transactions;
 };
@@ -622,7 +622,7 @@ const ticketExpired = async (userId: string) => {
 
   const user = await User.findById(ownerId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   const today = new Date();
@@ -673,21 +673,21 @@ const eventSummary = async ({ userId, sellerType, ticketType, eventId }: any) =>
 
   const user = await User.findById(ownerId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
   let allEventsTicketHistory;
 
   if (sellerType === 'organizer') {
     allEventsTicketHistory = await Event.findById(eventId).select('tickets.availableUnits tickets.type tickets.price -_id');
     if (!allEventsTicketHistory) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+      throw new AppError(StatusCodes.NOT_FOUND, "Event not found");
     }
     return allEventsTicketHistory;
   }
   if (sellerType === 'user') {
     allEventsTicketHistory = await TicketPurchase.find({ ownerId: ownerId }).select('tickets.availableUnits tickets.type tickets.price -_id');
     if (!allEventsTicketHistory) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+      throw new AppError(StatusCodes.NOT_FOUND, "Event not found");
     }
     return allEventsTicketHistory;
   }
@@ -698,7 +698,7 @@ const promocode = async (userId: string, id: string, code: string) => {
   // User check
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   // Event find
@@ -708,7 +708,7 @@ const promocode = async (userId: string, id: string, code: string) => {
   });
 
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Promo code not found or invalid");
+    throw new AppError(StatusCodes.NOT_FOUND, "Promo code not found or invalid");
   }
 
   // 🚀 Safely handle undefined discountCodes
@@ -717,7 +717,7 @@ const promocode = async (userId: string, id: string, code: string) => {
   );
 
   if (!discountCode) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Discount code not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "Discount code not found");
   }
 
   return discountCode;
@@ -728,12 +728,12 @@ const checkEvent = async (userId: string, eventId: string) => {
   const user = await User.findById(userId);
 
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
   const tickets = await Event.findOne({ eventCode: eventId, userId: user._id });
 
   if (!tickets) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "Event not found");
   }
 
   if (tickets) {
@@ -750,7 +750,7 @@ const soldTicketHistory = async (
 ) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   const tickets = await TransactionHistory.find({
@@ -759,7 +759,7 @@ const soldTicketHistory = async (
   }).populate("eventId", "eventName eventDate");
 
   if (!tickets || tickets.length === 0) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Ticket not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "Ticket not found");
   }
 
   // Get event info from first ticket
@@ -842,12 +842,12 @@ const historyTickets = async (userId: string, eventId: string) => {
   const user = await User.findById(userId);
 
   if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
   if (user.role === USER_ROLES.USER) {
     const tickets = await TicketPurchase.find({ resellerId: user._id, eventId });
     if (!tickets) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Ticket not found");
+      throw new AppError(StatusCodes.NOT_FOUND, "Ticket not found");
     }
     return tickets;
   }

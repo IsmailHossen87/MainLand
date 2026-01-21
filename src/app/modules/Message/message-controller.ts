@@ -4,8 +4,8 @@ import { JwtPayload } from "jsonwebtoken";
 import { MessageService } from "./MessageService";
 import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
-import ApiError from "../../../errors/ApiError";
 import { getMultipleFilesPath } from "../../../shared/getFilePath";
+import AppError from "../../../errors/AppError";
 
 const sendMessage = catchAsync(async (req: Request, res: Response) => {
     const imageFiles = getMultipleFilesPath(req.files, 'image')
@@ -60,7 +60,7 @@ const replyMessage = catchAsync(async (req: Request, res: Response) => {
         try {
             bodyData = JSON.parse(req.body.data);
         } catch (err) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid JSON in data field");
+            throw new AppError(StatusCodes.BAD_REQUEST, "Invalid JSON in data field");
         }
     }
 

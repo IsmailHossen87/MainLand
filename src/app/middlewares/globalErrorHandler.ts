@@ -1,11 +1,11 @@
 import { ErrorRequestHandler } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import config from '../../config';
-import ApiError from '../../errors/ApiError';
 import handleValidationError from '../../errors/handleValidationError';
 import handleZodError from '../../errors/handleZodError';
 import { errorLogger } from '../../shared/logger';
 import { IErrorMessage } from '../../types/errors.types';
+import AppError from '../../errors/AppError';
 
 const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
   // config.node_env === 'development'
@@ -30,33 +30,33 @@ const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
     message = 'Session Expired';
     errorMessages = error?.message
       ? [
-          {
-            path: '',
-            message:
-              'Your session has expired. Please log in again to continue.',
-          },
-        ]
+        {
+          path: '',
+          message:
+            'Your session has expired. Please log in again to continue.',
+        },
+      ]
       : [];
-  } else if (error instanceof ApiError) {
+  } else if (error instanceof AppError) {
     statusCode = error.statusCode;
     message = error.message;
     errorMessages = error.message
       ? [
-          {
-            path: '',
-            message: error.message,
-          },
-        ]
+        {
+          path: '',
+          message: error.message,
+        },
+      ]
       : [];
   } else if (error instanceof Error) {
     message = error.message;
     errorMessages = error.message
       ? [
-          {
-            path: '',
-            message: error?.message,
-          },
-        ]
+        {
+          path: '',
+          message: error?.message,
+        },
+      ]
       : [];
   }
 
@@ -69,3 +69,6 @@ const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
 };
 
 export default globalErrorHandler;
+
+
+
