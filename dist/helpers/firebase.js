@@ -12,6 +12,7 @@ const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
 if (!serviceAccountPath) {
     throw new Error("FIREBASE_SERVICE_ACCOUNT_PATH is not defined in .env");
 }
+// shakalaka
 // JSON file read & parse
 const serviceAccount = JSON.parse(fs_1.default.readFileSync(serviceAccountPath, "utf-8"));
 if (!firebase_admin_1.default.apps.length) {

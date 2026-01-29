@@ -57,10 +57,9 @@ const sendAdminNotification = async (
     throw new AppError(StatusCodes.BAD_REQUEST, "No notification message found on event");
   }
 
-  const title =
-    status === "rejected"
-      ? "Your notification broadcast has been rejected"
-      : "Your notification has been successfully broadcast";
+  const title = status === "rejected"
+    ? "Your notification broadcast has been rejected"
+    : "Your notification has been successfully broadcast";
 
   const message = event.notification;
 
