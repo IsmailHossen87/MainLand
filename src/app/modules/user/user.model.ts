@@ -118,6 +118,10 @@ const userSchema = new Schema<IUser, UserModal>(
       type: Boolean,
       default: false,
     },
+    fcmToken: {
+      type: String,
+      default: null,
+    },
     personalInfo: {
       firstName: { type: String, default: '' },
       lastName: { type: String, default: '' },

@@ -43,6 +43,8 @@ const EventSchema = new mongoose_1.Schema({
     EventStatus: { type: String, enum: Object.values(Event_interface_1.IEventStatus), default: Event_interface_1.IEventStatus.Draft },
     notification: { type: String, default: "" },
     notificationStatus: { type: String, enum: ["idle", "pending", "success", "rejected"], default: "idle" },
+    payoutStatus: { type: String, enum: ['pending', 'processing', 'completed'], default: 'pending' },
+    payoutDate: { type: Date, default: null },
     eventCode: { type: String, default: "" },
     tickets: [
         {
@@ -77,9 +79,21 @@ const EventSchema = new mongoose_1.Schema({
     totalEarned: { type: Number, default: 0 },
     totalReview: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Review" }],
     isDraft: { type: Boolean, default: true },
+    payoutEligibleDate: {
+        type: Date
+    },
 }, {
     timestamps: true,
     versionKey: false,
+});
+EventSchema.pre('save', function (next) {
+    if (this.eventDate && !this.payoutEligibleDate) {
+        // Event শেষ হওয়ার 14 দিন পর payout eligible
+        const eligibleDate = new Date(this.eventDate);
+        eligibleDate.setDate(eligibleDate.getDate() + 15);
+        this.payoutEligibleDate = eligibleDate;
+    }
+    next();
 });
 // 🧩 Export Models
 exports.SubCategory = (0, mongoose_1.model)('SubCategory', SubCategorySchema);

@@ -28,7 +28,7 @@ const http_status_codes_1 = require("http-status-codes");
 const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const user_service_1 = require("./user.service");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const createUser = (0, catchAsync_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const userData = __rest(req.body, []);
     const result = yield user_service_1.UserService.createUserToDB(userData);
@@ -92,7 +92,7 @@ const accountDelete = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, 
     const user = req.user;
     const { deleteReason, password } = req.body;
     if (!deleteReason || !password) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Delete reason and password are required!');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Delete reason and password are required!');
     }
     const result = yield user_service_1.UserService.accountDelete(user, { deleteReason, password });
     (0, sendResponse_1.default)(res, {
@@ -113,4 +113,14 @@ const CreateAndUpdateMainlandFee = (0, catchAsync_1.default)((req, res) => __awa
         data: result,
     });
 }));
-exports.UserController = { createUser, getUserProfile, updateProfile, getAllUser, imageDelete, accountDelete, CreateAndUpdateMainlandFee };
+const getMainlandFee = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = req.user;
+    const result = yield user_service_1.UserService.getMainlandFee(user);
+    (0, sendResponse_1.default)(res, {
+        success: true,
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        message: 'Mainland fee retrieved successfully',
+        data: result,
+    });
+}));
+exports.UserController = { createUser, getUserProfile, updateProfile, getAllUser, imageDelete, accountDelete, CreateAndUpdateMainlandFee, getMainlandFee };

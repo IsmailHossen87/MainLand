@@ -1,6 +1,6 @@
 import mongoose, { Types } from "mongoose";
 import { Favourite, IFavourite } from "./Favourite.model";
-import ApiError from "../../../errors/ApiError";
+import AppError from "../../../errors/AppError";
 import { Event } from "../ORGANIZER/Event/Event.model";
 import { StatusCodes } from "http-status-codes";
 
@@ -20,7 +20,7 @@ const getUserFavouriteEvents = async (userId: string) => {
     const favourites = await Favourite.find({ favouriterUserId: userId });
 
     if (!favourites) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "No favourite events found");
+        throw new AppError(StatusCodes.NOT_FOUND, "No favourite events found");
     }
 
     const matchConditions: { categoryId: Types.ObjectId; subCategoryId: Types.ObjectId }[] = [];

@@ -8,7 +8,7 @@ const createAccount = (values) => {
         html: `
     <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 50px; padding: 20px; color: #555;">
       <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-          <img src="https://ibb.co.com/gLb5SyJ5" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
+          <img src="https://i.postimg.cc/JhGHCS5c/image.png" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
           <h2 style="color: #277E16; font-size: 24px; margin-bottom: 20px;">Hello ${values.name}, Welcome to MainLand!</h2>
 
           <div style="text-align: center;">
@@ -33,7 +33,7 @@ const resetPassword = (values) => {
         html: `
     <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #555;">
       <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-          <img src="https://ibb.co.com/gLb5SyJ5" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
+          <img src="https://i.postimg.cc/JhGHCS5c/image.png" alt="MainLand Logo" style="display: block; margin: 0 auto 20px; width:150px" />
 
           <div style="text-align:center;">
               <p>Your password reset verification code:</p>
@@ -59,7 +59,7 @@ const resendOtpTemplate = (values) => {
         <div style="max-width:600px; margin:auto; background:white; padding:25px; border-radius:10px;">
           
           <div style="text-align:center;">
-            <img src="https://ibb.co.com/gLb5SyJ5" alt="MainLand Logo" style="width:140px;" />
+            <img src="https://i.postimg.cc/JhGHCS5c/image.png" alt="MainLand Logo" style="width:140px;" />
           </div>
 
           <h2 style="color:#277E16; text-align:center;">Your Resent OTP Code</h2>
@@ -540,7 +540,7 @@ const contactResponseEmail = (data) => {
     };
 };
 const userReportConfirmation = (payload) => {
-    const { reporterName, reportedUserName, reportedUserEmail, reportDetails, reportDate, } = payload;
+    const { reportedUserName, reportedUserEmail, reportDetails, reportDate, } = payload;
     const formatDate = (date) => date ? new Date(date).toLocaleString("en-US", { timeZone: "Asia/Dhaka" }) : "N/A";
     return {
         to: reportedUserEmail, // The reporter's email will be set in sendEmail function
@@ -567,6 +567,35 @@ const userReportConfirmation = (payload) => {
     `,
     };
 };
+const sellTicket = ({ name, email, totalTickets, totalSellAmount, }) => ({
+    to: email,
+    subject: "Your Tickets Are Listed for Resale 🎟️",
+    html: `
+      <div style="font-family: Arial, sans-serif;">
+        <h2>Hello ${name},</h2>
+
+        <p>Your tickets have been successfully listed for resale.</p>
+
+        <table style="border-collapse: collapse;">
+          <tr>
+            <td><strong>Total Tickets:</strong></td>
+            <td>${totalTickets}</td>
+          </tr>
+          <tr>
+            <td><strong>Total Sell Amount:</strong></td>
+            <td>${totalSellAmount} BDT</td>
+          </tr>
+        </table>
+
+        <p>
+          You will be notified once your tickets are sold.
+        </p>
+
+        <br/>
+        <p>Thanks,<br/>Event Management Team</p>
+      </div>
+    `,
+});
 exports.emailTemplate = {
     createAccount,
     resetPassword,
@@ -575,4 +604,5 @@ exports.emailTemplate = {
     newTicketPurchaseEmail,
     contactResponseEmail,
     userReportConfirmation,
+    sellTicket
 };

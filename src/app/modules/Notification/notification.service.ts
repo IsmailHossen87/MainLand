@@ -3,7 +3,7 @@ import { INotification } from "./notification.interface";
 import mongoose from "mongoose";
 import { JwtPayload } from "jsonwebtoken";
 import { Event } from "../ORGANIZER/Event/Event.model";
-import ApiError from "../../../errors/ApiError";
+import AppError from "../../../errors/AppError";
 import { User } from "../user/user.model";
 import { sendNotifications } from "../../../helpers/notificatio-helper";
 import { USER_ROLES } from "../../../enums/user";
@@ -11,6 +11,7 @@ import { QueryBuilder } from "../../builder/QueryBuilder";
 import { Notification } from "./notification.model";
 import { excludeField } from "../../../shared/constrant";
 import { Message } from "../Message/message-model";
+import { sendFirebaseNotification } from "../../../helpers/firebaseAdmin";
 
 interface GetNotificationsResult {
   meta: {
@@ -30,36 +31,35 @@ const sendAdminNotification = async (
   status: "success" | "rejected"
 ) => {
   if (USER_ROLES.ADMIN !== user.role) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "You are not permitted for this API");
+    throw new AppError(StatusCodes.BAD_REQUEST, "You are not permitted for this API");
   }
 
   if (!eventId) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Event ID is required");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Event ID is required");
   }
 
   const event = await Event.findById(eventId);
   if (!event) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Event not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "Event not found");
   }
 
   const organizerId = event.userId?.toString();
   if (!organizerId) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Organizer not found in event");
+    throw new AppError(StatusCodes.NOT_FOUND, "Organizer not found in event");
   }
 
   const organizer = await User.findById(organizerId);
   if (!organizer) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Organizer user not found");
+    throw new AppError(StatusCodes.NOT_FOUND, "Organizer user not found");
   }
 
   if (!event.notification) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "No notification message found on event");
+    throw new AppError(StatusCodes.BAD_REQUEST, "No notification message found on event");
   }
 
-  const title =
-    status === "rejected"
-      ? "Your notification broadcast has been rejected"
-      : "Your notification has been successfully broadcast";
+  const title = status === "rejected"
+    ? "Your notification broadcast has been rejected"
+    : "Your notification has been successfully broadcast";
 
   const message = event.notification;
 
@@ -82,6 +82,21 @@ const sendAdminNotification = async (
   }
 
   await sendNotifications(notificationData, "notification");
+
+  // 🔥 Firebase Push Notification
+  if (organizer?.fcmToken) {
+    await sendFirebaseNotification(
+      organizer.fcmToken,
+      title,
+      message,
+      {
+        type: "NOTIFICATION",
+        eventId: event._id.toString(),
+        status,
+      }
+    );
+  }
+
 
   return true;
 };

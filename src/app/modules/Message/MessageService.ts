@@ -1,106 +1,156 @@
 import { StatusCodes } from "http-status-codes";
-import ApiError from "../../../errors/ApiError";
 import unlinkFile from "../../../shared/unlinkFile";
 import { Chat } from "../Chat/chat.model";
 import { IMessage } from "./message-interface";
 import { Message } from "./message-model";
 import mongoose from "mongoose";
+import { sendFirebaseNotification } from "../../../helpers/firebaseAdmin";
+import AppError from "../../../errors/AppError";
+
 
 const sendMessageToDB = async (payload: any): Promise<IMessage> => {
     try {
-
         if (!payload.chatId) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, "Chat ID is required");
+            throw new AppError(StatusCodes.BAD_REQUEST, "Chat ID is required");
         }
 
-        // ✅ Updated validation
-        if (!payload.text &&
+        if (
+            !payload.text &&
             (!payload.image || payload.image.length === 0) &&
-            (!payload.files || payload.files.length === 0)) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, "Message must contain text, image, or document");
+            (!payload.files || payload.files.length === 0)
+        ) {
+            throw new AppError(
+                StatusCodes.BAD_REQUEST,
+                "Message must contain text, image, or document"
+            );
         }
 
-        // ✅ Populate participants to get other user info
-        const chat = await Chat.findById(payload.chatId).populate('participants', 'name image email isReported');
-
-        if (chat?.isReported) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, "Chat is reported");
-        }
-
+        /* -------------------- CHAT FETCH -------------------- */
+        const chat = await Chat.findById(payload.chatId).populate(
+            "participants",
+            "_id name email image isReported fcmToken"
+        );
 
         if (!chat) {
-            // ✅ Clean up both images and files
-            if (payload.image) payload.image.forEach((img: string) => unlinkFile(img));
-            if (payload.files) payload.files.forEach((file: string) => unlinkFile(file));
-            throw new ApiError(StatusCodes.NOT_FOUND, "Chat not found");
+            if (payload.image) payload.image.forEach((i: string) => unlinkFile(i));
+            if (payload.files) payload.files.forEach((f: string) => unlinkFile(f));
+            throw new AppError(StatusCodes.NOT_FOUND, "Chat not found");
         }
 
-        // ✅ Find the OTHER participant
-        const otherParticipant = chat.participants.find(
+        if (chat.isReported) {
+            throw new AppError(StatusCodes.BAD_REQUEST, "Chat is reported");
+        }
+
+        /* -------------------- OTHER PARTICIPANT -------------------- */
+        const otherParticipant: any = chat.participants.find(
             (p: any) => p._id.toString() !== payload.sender?.toString()
         );
 
+        /* -------------------- MESSAGE CREATE -------------------- */
         const message = await Message.create(payload);
 
         if (!message) {
-            if (payload.image) payload.image.forEach((img: string) => unlinkFile(img));
-            if (payload.files) payload.files.forEach((file: string) => unlinkFile(file));
-            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to send message");
+            if (payload.image) payload.image.forEach((i: string) => unlinkFile(i));
+            if (payload.files) payload.files.forEach((f: string) => unlinkFile(f));
+            throw new AppError(
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                "Failed to send message"
+            );
         }
 
+        /* -------------------- POPULATE MESSAGE -------------------- */
         const populatedMessage = await Message.findById(message._id)
-            .populate({
-                path: 'sender',
-                select: '_id name email image'
-            })
-            .populate({
-                path: 'replyTo',
-                select: '_id sender text image files',
-            })
+            .populate("sender", "_id name email image")
+            .populate("replyTo", "_id sender text image files")
             .lean();
 
         if (!populatedMessage) {
-            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to populate message");
+            throw new AppError(
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                "Failed to populate message"
+            );
         }
 
-        // ✅ Transform message for each participant
+        /* -------------------- TRANSFORM MESSAGE -------------------- */
         const createMessageForParticipant = (participantId: string) => {
             const isSender = participantId === payload.sender?.toString();
+
             return {
                 ...populatedMessage,
                 sender: isSender ? otherParticipant : populatedMessage.sender,
                 isOwnMessage: isSender,
-                ownerId: populatedMessage.sender._id
+                ownerId: populatedMessage.sender._id,
             };
         };
 
-        const chatUpdate = chat.set({
-            lastText: payload.text || '',
-            lastImage: payload.image || [],
-        });
-        await chatUpdate.save();
+        /* -------------------- CHAT UPDATE -------------------- */
+        chat.lastText = payload.text || "";
+        chat.lastImage = [...(payload.image || []), ...(payload.files || [])];
+        await chat.save();
 
+        /* -------------------- SOCKET.IO -------------------- */
         const io = (global as any).io;
         if (io) {
             chat.participants.forEach((participant: any) => {
                 const participantId = participant._id.toString();
-                const messageForParticipant = createMessageForParticipant(participantId);
+                const messageForParticipant =
+                    createMessageForParticipant(participantId);
+
+                console.log("🚀 messageForParticipant:", messageForParticipant.sender.name);
+
                 io.emit(`message::${participantId}`, {
                     ...messageForParticipant,
-                    image: [...payload.image, ...payload.files]
+                    image: [...(payload.image || []), ...(payload.files || [])],
                 });
             });
         }
+        /* -------------------- FIREBASE NOTIFICATION -------------------- */
+        if (otherParticipant?.fcmToken) {
+            try {
+                // Receiver perspective message
+                const firebaseMessageData = createMessageForParticipant(
+                    otherParticipant._id.toString()
+                );
 
-        // ✅ Return transformed message for the sender
-        return createMessageForParticipant(payload.sender?.toString() || '') as IMessage;
+                const senderName =
+                    firebaseMessageData?.sender?.name || "New message";
 
+                const response = await sendFirebaseNotification(
+                    otherParticipant.fcmToken,
+                    senderName.slice(0, 50),
+                    payload.text || "You received a new message",
+                    {
+                        type: "CHAT_MESSAGE",
+                        chatId: payload.chatId.toString(),
+                        message: JSON.stringify({
+                            ...firebaseMessageData,
+                            image: [...(payload.image || []), ...(payload.files || [])],
+                        }),
+                    }
+                );
+
+
+                console.log("✅ Firebase Success:", response);
+            } catch (err) {
+                console.error("❌ Firebase Failed:", err);
+            }
+        } else {
+            console.warn("⚠️ No FCM Token found. Firebase skipped.");
+        }
+
+
+        /* -------------------- RETURN FOR SENDER -------------------- */
+        return createMessageForParticipant(
+            payload.sender?.toString() || ""
+        ) as IMessage;
     } catch (error) {
-        if (payload.image) payload.image.forEach((img: string) => unlinkFile(img));
-        if (payload.files) payload.files.forEach((file: string) => unlinkFile(file));
+        if (payload.image) payload.image.forEach((i: string) => unlinkFile(i));
+        if (payload.files) payload.files.forEach((f: string) => unlinkFile(f));
         throw error;
     }
 };
+
+
 
 const getMessageFromDB = async (
     chatId: string,
@@ -110,7 +160,7 @@ const getMessageFromDB = async (
 
     const chat = await Chat.findById(chatId).populate('participants', 'name image email');
     if (!chat) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "Chat not found");
+        throw new AppError(StatusCodes.NOT_FOUND, "Chat not found");
     }
 
     // Check if user is a participant (FIXED)
@@ -119,7 +169,7 @@ const getMessageFromDB = async (
     );
 
     if (!isParticipant) {
-        throw new ApiError(StatusCodes.FORBIDDEN, "You are not a participant of this chat");
+        throw new AppError(StatusCodes.FORBIDDEN, "You are not a participant of this chat");
     }
 
     // Find the OTHER participant
@@ -174,17 +224,17 @@ const getMessageFromDB = async (
 const replyMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> => {
     try {
         if (!payload.replyTo) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, "Reply To message ID is required");
+            throw new AppError(StatusCodes.BAD_REQUEST, "Reply To message ID is required");
         }
 
         if (!payload.text && (!payload.image || payload.image.length === 0)) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, "Reply must contain text or image");
+            throw new AppError(StatusCodes.BAD_REQUEST, "Reply must contain text or image");
         }
 
         const parentMessage = await Message.findById(payload.replyTo);
         if (!parentMessage) {
             if (payload.image) payload.image.forEach((img) => unlinkFile(img));
-            throw new ApiError(StatusCodes.NOT_FOUND, "Parent message not found");
+            throw new AppError(StatusCodes.NOT_FOUND, "Parent message not found");
         }
 
         // Fetch chat with populated participants
@@ -193,7 +243,7 @@ const replyMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> =
 
         if (!chat) {
             if (payload.image) payload.image.forEach((img) => unlinkFile(img));
-            throw new ApiError(StatusCodes.NOT_FOUND, "Chat not found");
+            throw new AppError(StatusCodes.NOT_FOUND, "Chat not found");
         }
 
         const isParticipant = chat.participants.some(
@@ -202,7 +252,7 @@ const replyMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> =
 
         if (!isParticipant) {
             if (payload.image) payload.image.forEach((img) => unlinkFile(img));
-            throw new ApiError(StatusCodes.FORBIDDEN, "You are not a participant of this chat");
+            throw new AppError(StatusCodes.FORBIDDEN, "You are not a participant of this chat");
         }
 
         // Create reply message
@@ -241,7 +291,7 @@ const replyMessageToDB = async (payload: Partial<IMessage>): Promise<IMessage> =
         ]);
 
         if (!populatedReplyMessage) {
-            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to populate reply message");
+            throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to populate reply message");
         }
 
         // SOCKET - Emit to all participants with populated data
@@ -276,16 +326,16 @@ const updateMessageToDB = async (messageId: string, payload: any, user: any): Pr
     try {
         const message = await Message.findById(messageId);
         if (!message) {
-            throw new ApiError(StatusCodes.NOT_FOUND, "Message not found");
+            throw new AppError(StatusCodes.NOT_FOUND, "Message not found");
         }
 
         if (message.sender.toString() !== user.id) {
-            throw new ApiError(StatusCodes.FORBIDDEN, "You are not authorized to update this message");
+            throw new AppError(StatusCodes.FORBIDDEN, "You are not authorized to update this message");
         }
 
         const updatedMessage = await Message.findByIdAndUpdate(messageId, payload, { new: true });
         if (!updatedMessage) {
-            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to update message");
+            throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to update message");
         }
 
         return updatedMessage;
@@ -298,16 +348,16 @@ const deleteMessageToDB = async (messageId: string, user: any): Promise<IMessage
     try {
         const message = await Message.findById(messageId);
         if (!message) {
-            throw new ApiError(StatusCodes.NOT_FOUND, "Message not found");
+            throw new AppError(StatusCodes.NOT_FOUND, "Message not found");
         }
 
         if (message.sender.toString() !== user.id) {
-            throw new ApiError(StatusCodes.FORBIDDEN, "You are not authorized to delete this message");
+            throw new AppError(StatusCodes.FORBIDDEN, "You are not authorized to delete this message");
         }
 
         const deletedMessage = await Message.findByIdAndUpdate(message._id, { isDeleted: true, text: "", image: [], files: [], replyTo: null }, { new: true });
         if (!deletedMessage) {
-            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to delete message");
+            throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to delete message");
         }
 
         return deletedMessage;

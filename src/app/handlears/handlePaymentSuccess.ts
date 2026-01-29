@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
-import ApiError from '../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import { emailHelper } from '../../helpers/emailHelper';
 import { emailTemplate } from '../../shared/emailTemplate';
@@ -9,6 +8,7 @@ import mongoose from 'mongoose';
 import { TicketPurchase } from '../modules/Ticket/ticket.model';
 import { TransactionHistory } from '../modules/Payment/transactionHistory';
 import { User } from '../modules/user/user.model';
+import AppError from '../../errors/AppError';
 
 
 const paymentSuccess = (req: Request, res: Response) => {
@@ -33,7 +33,7 @@ export const generateTicketName = (ticketType: string) => {
 
 const handleEvent = async (session: Stripe.Checkout.Session, paymentIntent: Stripe.PaymentIntent) => {
   if (!session.metadata) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Metadata missing in session!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Metadata missing in session!");
   }
 
   const metadata = session.metadata as any;
@@ -55,7 +55,7 @@ const handleEvent = async (session: Stripe.Checkout.Session, paymentIntent: Stri
   const paymentIntentId = paymentIntent?.id || session.payment_intent as string;
 
   if (!paymentIntentId) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Payment intent ID missing!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Payment intent ID missing!");
   }
 
 
@@ -74,7 +74,7 @@ const handleEvent = async (session: Stripe.Checkout.Session, paymentIntent: Stri
   try {
     compressedTickets = JSON.parse(metadata.tickets);
   } catch {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
   }
 
   // ✅ Get organizer ID from event
@@ -203,7 +203,7 @@ const handleEvent = async (session: Stripe.Checkout.Session, paymentIntent: Stri
 
 const repurchaseTicket = async (session: Stripe.Checkout.Session, paymentIntent: Stripe.PaymentIntent) => {
   if (!session.metadata) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Metadata missing in session!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Metadata missing in session!");
   }
 
   const metadata = session.metadata as any;
@@ -213,7 +213,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session, paymentIntent:
   const paymentIntentId = paymentIntent?.id || session.payment_intent as string;
 
   if (!paymentIntentId) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Payment intent ID missing!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Payment intent ID missing!");
   }
 
   // Check if buyer's transaction already exists for this payment
@@ -235,7 +235,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session, paymentIntent:
     allTickets = JSON.parse(tickets);
   } catch (error) {
     console.error('Error parsing tickets metadata:', error);
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Invalid tickets data in metadata!");
   }
 
   const newOwnerId = new mongoose.Types.ObjectId(userId);
@@ -263,7 +263,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session, paymentIntent:
 
     // Validate sellerId
     if (!sellerId) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, "Seller ID is missing in ticket data!");
+      throw new AppError(StatusCodes.BAD_REQUEST, "Seller ID is missing in ticket data!");
     }
     // new Added 🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥🐦‍🔥
     const sellerPayout = price - mainlandFeeForTicket;
@@ -286,7 +286,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session, paymentIntent:
     });
 
     if (ticketsToUpdate.length !== quantity) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.CONFLICT,
         `Expected ${quantity} tickets but found ${ticketsToUpdate.length}`
       );
@@ -332,7 +332,7 @@ const repurchaseTicket = async (session: Stripe.Checkout.Session, paymentIntent:
 
     // Validate update
     if (updatedTickets.modifiedCount !== quantity) {
-      throw new ApiError(
+      throw new AppError(
         StatusCodes.CONFLICT,
         `Failed to update all ${ticketType} tickets. Expected ${quantity}, updated ${updatedTickets.modifiedCount}`
       );

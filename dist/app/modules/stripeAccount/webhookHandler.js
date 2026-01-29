@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const config_1 = __importDefault(require("../../../config"));
 const stripe_config_1 = __importDefault(require("../../config/stripe.config"));
 const logger_1 = require("../../../shared/logger");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const http_status_codes_1 = require("http-status-codes");
 const handlePaymentSuccess_1 = require("../../handlears/handlePaymentSuccess");
 const user_model_1 = require("../user/user.model");
@@ -23,8 +23,7 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
     const sig = req.headers['stripe-signature'];
     const webhookSecret = config_1.default.stripe.stripe_webhook_secret;
     if (!webhookSecret) {
-        console.error('Stripe webhook secret not set');
-        res.status(500).send('Webhook secret not configured');
+        res.status(500).send('Stripe webhook secret not configured');
         return;
     }
     let event;
@@ -32,62 +31,73 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
         event = stripe_config_1.default.webhooks.constructEvent(req.body, sig, webhookSecret);
     }
     catch (err) {
-        console.error('Webhook signature verification failed:', err.message);
+        logger_1.logger.error('Webhook signature verification failed', err.message);
         res.status(400).send(`Webhook Error: ${err.message}`);
         return;
     }
-    if (!event) {
-        logger_1.logger.error('Invalid event received - event object is null or undefined');
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid event received!');
-    }
-    console.log('event.type', event.type);
     try {
         switch (event.type) {
+            // ======================================
+            // ✅ CHECKOUT PAYMENT COMPLETED
+            // ======================================
             case 'checkout.session.completed': {
                 const session = event.data.object;
                 const metadata = session.metadata || {};
-                // Ensure attendee info is included before calling handler
-                session.attendeeInformation = {
-                    email: metadata.email,
-                    phone: metadata.phone,
-                };
+                // 🔑 Get PaymentIntent
+                const paymentIntentId = session.payment_intent;
+                if (!paymentIntentId) {
+                    throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'PaymentIntent not found in checkout session');
+                }
+                const paymentIntent = yield stripe_config_1.default.paymentIntents.retrieve(paymentIntentId);
+                // ✅ Ensure payment success
+                if (paymentIntent.status !== 'succeeded') {
+                    logger_1.logger.warn(`Payment not successful. Status: ${paymentIntent.status}`);
+                    break;
+                }
+                console.log("session", session);
+                console.log("metadata", metadata);
+                // 🔁 Route by payment type
                 if (metadata.type === 'resellPurchase') {
-                    yield handlePaymentSuccess_1.handlePayment.repurchaseTicket(session);
+                    yield handlePaymentSuccess_1.handlePayment.repurchaseTicket(session, paymentIntent);
                 }
                 else if (metadata.eventId && metadata.userId) {
-                    yield handlePaymentSuccess_1.handlePayment.handleEvent(session);
+                    yield handlePaymentSuccess_1.handlePayment.handleEvent(session, paymentIntent);
                 }
                 else {
-                    console.log('⚠️ Unknown payment type received in webhook');
+                    logger_1.logger.warn('Unknown payment type received in webhook metadata');
                 }
                 break;
             }
+            // ======================================
+            // 💸 STRIPE TRANSFER CREATED
+            // ======================================
             case 'transfer.created':
-                console.log(`Transfer created for:`, event.data.object);
+                logger_1.logger.info('Transfer created', event.data.object);
                 break;
-            case 'account.updated':
-                const data = event.data.object;
-                console.log('session', event.data.object);
-                const email = data.email;
-                const accountId = data.id;
-                const loginLink = yield stripe_config_1.default.accounts.createLoginLink(accountId);
-                console.log('loginLink', loginLink.url);
-                // await User.updateOne({ email }, { $set: { 'stripeAccountInfo.$.loginUrl': loginLink.url } });
-                yield user_model_1.User.updateOne({ email }, {
+            // ======================================
+            // 🏦 CONNECTED ACCOUNT UPDATED
+            // ======================================
+            case 'account.updated': {
+                const account = event.data.object;
+                if (!account.email)
+                    break;
+                const loginLink = yield stripe_config_1.default.accounts.createLoginLink(account.id);
+                yield user_model_1.User.updateOne({ email: account.email }, {
                     $set: {
-                        "stripeAccountInfo.loginUrl": loginLink.url
-                    }
+                        'stripeAccountInfo.loginUrl': loginLink.url,
+                    },
                 });
                 break;
+            }
             default:
-                console.log(`Unhandled event type: ${event.type}`);
+                logger_1.logger.info(`Unhandled event type: ${event.type}`);
                 break;
         }
         res.status(200).json({ received: true });
     }
     catch (err) {
-        console.error('Error handling the event:', err);
-        res.status(500).send(`Internal Server Error: ${err.message}`);
+        logger_1.logger.error('Webhook processing error', err);
+        res.status(500).send(`Webhook Error: ${err.message}`);
     }
 });
 exports.default = webhookHandler;

@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { JwtPayload, Secret } from 'jsonwebtoken';
 import config from '../../config';
-import ApiError from '../../errors/ApiError';
+import AppError from '../../errors/AppError';
 import { jwtHelper } from '../../helpers/jwtHelper';
 
 const auth =
@@ -13,12 +13,12 @@ const auth =
 
         // Check if token exists
         if (!tokenWithBearer) {
-          throw new ApiError(StatusCodes.UNAUTHORIZED, 'You are not authorized');
+          throw new AppError(StatusCodes.UNAUTHORIZED, 'You are not authorized');
         }
 
         // Check if token starts with Bearer
         if (!tokenWithBearer.startsWith('Bearer ')) {
-          throw new ApiError(StatusCodes.UNAUTHORIZED, 'Invalid token format');
+          throw new AppError(StatusCodes.UNAUTHORIZED, 'Invalid token format');
         }
 
         // Extract token
@@ -41,7 +41,7 @@ const auth =
 
         // Guard user - check role authorization
         if (roles.length && !roles.includes(verifyUser.role)) {
-          throw new ApiError(
+          throw new AppError(
             StatusCodes.FORBIDDEN,
             "You don't have permission to access this api"
           );

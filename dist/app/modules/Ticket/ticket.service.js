@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TicketService = void 0;
 const http_status_codes_1 = require("http-status-codes");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const user_model_1 = require("../user/user.model");
 const ticket_model_1 = require("./ticket.model");
 const QueryBuilder_1 = require("../../builder/QueryBuilder");
@@ -24,10 +24,13 @@ const ticket_interface_1 = require("./ticket.interface");
 const transactionHistory_1 = require("../Payment/transactionHistory");
 const Event_model_1 = require("../ORGANIZER/Event/Event.model");
 const user_1 = require("../../../enums/user");
+const notificatio_helper_1 = require("../../../helpers/notificatio-helper");
+const emailHelper_1 = require("../../../helpers/emailHelper");
+const emailTemplate_1 = require("../../../shared/emailTemplate");
 const getAllTicket = (userId, query) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
     }
     // 2️⃣ Initialize base query
     const baseQuery = ticket_model_1.TicketPurchase.find({ ownerId: userId, }).populate('eventId', 'image eventName');
@@ -51,13 +54,13 @@ const getAllTicket = (userId, query) => __awaiter(void 0, void 0, void 0, functi
 const getOneTicket = (userId, ticeketId) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
     }
     // 2️⃣ Initialize base query
     const baseQuery = ticket_model_1.TicketPurchase.find({ ownerId: userId, });
     const ticket = yield baseQuery.findOne({ _id: ticeketId }).populate('eventId', 'image eventName');
     if (!ticket) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Ticket not found');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Ticket not found');
     }
     // 5️⃣ Return result
     return ticket;
@@ -68,7 +71,7 @@ const getUniqueEvents = (userId, query) => __awaiter(void 0, void 0, void 0, fun
     // 1️⃣ Check user exists
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     // 2️⃣ Aggregation pipeline
     const baseQuery = ticket_model_1.TicketPurchase.aggregate([
@@ -123,14 +126,37 @@ const getSoldEvent = (userId) => __awaiter(void 0, void 0, void 0, function* () 
     // 1️⃣ User exists check
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     // 2️⃣ Aggregation pipeline
     const result = yield transactionHistory_1.TransactionHistory.aggregate([
+        // {
+        //   $match: {
+        //     userId: user._id,
+        //     type: { $in: ["directPurchase", "resellPurchase"] },
+        //   }
+        // },
         {
             $match: {
-                userId: user._id,
-                type: "resellPurchase",
+                type: { $in: ["directPurchase", "resellPurchase"] },
+                $expr: {
+                    $or: [
+                        // ✅ sellerId থাকলে sellerId দিয়ে match
+                        {
+                            $and: [
+                                { $ne: ["$sellerId", null] },
+                                { $eq: ["$sellerId", user._id] }
+                            ]
+                        },
+                        // ✅ sellerId না থাকলে userId দিয়ে match
+                        {
+                            $and: [
+                                { $eq: ["$sellerId", null] },
+                                { $eq: ["$userId", user._id] }
+                            ]
+                        }
+                    ]
+                }
             }
         },
         {
@@ -179,7 +205,7 @@ const sellTicketInfoUsers = (userId, eventId, query) => __awaiter(void 0, void 0
     // 1️⃣ Check user exists
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     // 2️⃣ Base query (no status filtering here!)
     let baseQuery = ticket_model_1.TicketPurchase.find({
@@ -203,7 +229,7 @@ const sellTicketInfoUsers = (userId, eventId, query) => __awaiter(void 0, void 0
     const tickets = yield qb.build();
     console.log("Tickets after QueryBuilder:", tickets.length);
     if (!tickets || tickets.length === 0) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No tickets found for this event");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No tickets found for this event");
     }
     // 5️⃣ Group tickets by type & price
     const grouped = {};
@@ -227,11 +253,10 @@ const sellTicketInfoUsers = (userId, eventId, query) => __awaiter(void 0, void 0
 const sellTicketInfoUsersOnsell = (userId, eventId, query) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     // Base query
     const baseQuery = ticket_model_1.TicketPurchase.find({
-        ownerId: userId,
         eventId: eventId,
     }).populate("ownerId", "name");
     ;
@@ -245,7 +270,7 @@ const sellTicketInfoUsersOnsell = (userId, eventId, query) => __awaiter(void 0, 
         .paginate();
     const tickets = yield qb.build();
     if (!tickets || tickets.length === 0) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No tickets found for this event");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No tickets found for this event");
     }
     // Group by ticketType + purchaseAmount
     const grouped = {};
@@ -272,7 +297,7 @@ const availableTypeHistory = (userId, eventId) => __awaiter(void 0, void 0, void
     // 1️⃣ Check user exists
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     // 2️⃣ Get all 'onsell' tickets for the event
     const tickets = yield ticket_model_1.TicketPurchase.find({
@@ -306,7 +331,7 @@ const availableTypeHistory = (userId, eventId) => __awaiter(void 0, void 0, void
 const allOnsellTicketInfo = (userId, query) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     // 1️⃣ Base query - sob tickets
     const baseQuery = ticket_model_1.TicketPurchase.find({
@@ -323,7 +348,7 @@ const allOnsellTicketInfo = (userId, query) => __awaiter(void 0, void 0, void 0,
     // 3️⃣ Execute filtered query
     const tickets = yield qb.build();
     if (!tickets || tickets.length === 0) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No tickets found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No tickets found");
     }
     // 4️⃣ Check if ticketType query exists
     const hasTicketTypeQuery = query.ticketType !== undefined;
@@ -377,55 +402,63 @@ const allOnsellTicketInfo = (userId, query) => __awaiter(void 0, void 0, void 0,
 });
 // ResellTicket
 const resellTicket = (userId, eventId, tickets) => __awaiter(void 0, void 0, void 0, function* () {
-    // 1️⃣ Check user exists
+    var _a;
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     const results = [];
     let totalSellAmount = 0;
-    // 2️⃣ Loop through each ticket type
+    let totalTickets = 0;
     for (const ticket of tickets) {
         const { ticketType, quantity, resellAmount } = ticket;
-        // 3️⃣ Find available tickets
         const availableTickets = yield ticket_model_1.TicketPurchase.find({
             ownerId: userId,
-            eventId: eventId,
-            ticketType: ticketType,
-            status: ticket_interface_1.ITicketStatus.available
+            eventId,
+            ticketType,
+            status: ticket_interface_1.ITicketStatus.available,
         }).limit(quantity);
-        // 4️⃣ Check if enough tickets available
         if (availableTickets.length < quantity) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Not enough tickets available. You have ${availableTickets.length} ${ticketType} tickets, but requested ${quantity}`);
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Not enough ${ticketType} tickets available`);
         }
-        // 5️⃣ Update tickets status to 'onsell' and set resell amount
         const ticketIds = availableTickets.map(t => t._id);
-        const updatedTickets = yield ticket_model_1.TicketPurchase.updateMany({ _id: { $in: ticketIds } }, {
+        yield ticket_model_1.TicketPurchase.updateMany({ _id: { $in: ticketIds } }, {
             $set: {
                 status: ticket_interface_1.ITicketStatus.onsell,
-                sellAmount: resellAmount
-            }
+                sellAmount: resellAmount,
+            },
         });
-        // 6️⃣ Add to results
         results.push({
-            message: `Successfully listed ${quantity} ${ticketType} ticket(s) for resale`,
-            ticketsUpdated: updatedTickets.modifiedCount,
-            resellAmount: resellAmount,
-            ticketType: ticketType
+            ticketType,
+            quantity,
+            resellAmount,
         });
-        totalSellAmount += resellAmount;
+        totalSellAmount += resellAmount * quantity;
+        totalTickets += quantity;
     }
-    // 7️⃣ Update user's total sell amount
-    yield user.updateOne({
-        $inc: {
-            sellAmount: totalSellAmount
-        }
-    });
-    // 8️⃣ Return all results
+    yield user_model_1.User.updateOne({ _id: userId }, { $inc: { sellAmount: totalSellAmount } });
+    // 📧 EMAIL
+    if ((_a = user.notification) === null || _a === void 0 ? void 0 : _a.isSellTicketNotificationEnabled) {
+        yield emailHelper_1.emailHelper.sendEmail(emailTemplate_1.emailTemplate.sellTicket({
+            name: user.name,
+            email: user.email,
+            totalTickets,
+            totalSellAmount,
+        }));
+    }
+    yield (0, notificatio_helper_1.sendNotifications)({
+        userId: user._id,
+        title: "Tickets Listed for Resale",
+        message: `You listed ${totalTickets} ticket(s) for resale.`,
+        eventTitle: "Ticket Resale",
+        type: "SELL_TICKET",
+        status: "success",
+    }, "notification");
     return {
         totalTicketTypes: tickets.length,
-        totalSellAmount: totalSellAmount,
-        details: results
+        totalTickets,
+        totalSellAmount,
+        details: results,
     };
 });
 // withdrawPro
@@ -433,7 +466,7 @@ const withdrawPro = (userId, eventId) => __awaiter(void 0, void 0, void 0, funct
     // 1️⃣ Check user exists
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     // 2️⃣ Find resold (live) tickets to withdraw
     const liveTickets = yield ticket_model_1.TicketPurchase.find({
@@ -462,13 +495,13 @@ const soldTicket = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     // 1️⃣ Check user exists
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     const transactions = yield transactionHistory_1.TransactionHistory.find({ resellerId: ownerId }).populate('eventId', 'name image').populate('ticketId', ' ticketType')
         .sort({ createdAt: -1 })
         .limit(10);
     if (!transactions) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No transactions found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No transactions found");
     }
     return transactions;
 });
@@ -476,7 +509,7 @@ const ticketExpired = (userId) => __awaiter(void 0, void 0, void 0, function* ()
     const ownerId = new mongoose_1.default.Types.ObjectId(userId);
     const user = yield user_model_1.User.findById(ownerId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -520,20 +553,20 @@ const eventSummary = (_a) => __awaiter(void 0, [_a], void 0, function* ({ userId
     const ownerId = new mongoose_1.default.Types.ObjectId(userId);
     const user = yield user_model_1.User.findById(ownerId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     let allEventsTicketHistory;
     if (sellerType === 'organizer') {
         allEventsTicketHistory = yield Event_model_1.Event.findById(eventId).select('tickets.availableUnits tickets.type tickets.price -_id');
         if (!allEventsTicketHistory) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
         }
         return allEventsTicketHistory;
     }
     if (sellerType === 'user') {
         allEventsTicketHistory = yield ticket_model_1.TicketPurchase.find({ ownerId: ownerId }).select('tickets.availableUnits tickets.type tickets.price -_id');
         if (!allEventsTicketHistory) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
         }
         return allEventsTicketHistory;
     }
@@ -544,7 +577,7 @@ const promocode = (userId, id, code) => __awaiter(void 0, void 0, void 0, functi
     // User check
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     // Event find
     const event = yield Event_model_1.Event.findOne({
@@ -552,12 +585,12 @@ const promocode = (userId, id, code) => __awaiter(void 0, void 0, void 0, functi
         "discountCodes.code": code
     });
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Promo code not found or invalid");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Promo code not found or invalid");
     }
     // 🚀 Safely handle undefined discountCodes
     const discountCode = (_a = event.discountCodes) === null || _a === void 0 ? void 0 : _a.find((dc) => dc.code === code);
     if (!discountCode) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Discount code not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Discount code not found");
     }
     return discountCode;
 });
@@ -565,11 +598,11 @@ const promocode = (userId, id, code) => __awaiter(void 0, void 0, void 0, functi
 const checkEvent = (userId, eventId) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     const tickets = yield Event_model_1.Event.findOne({ eventCode: eventId, userId: user._id });
     if (!tickets) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
     }
     if (tickets) {
         return true;
@@ -580,16 +613,17 @@ const soldTicketHistory = (userId, eventId, expired) => __awaiter(void 0, void 0
     var _a, _b;
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
-    const tickets = yield transactionHistory_1.TransactionHistory.findOne({
+    const tickets = yield transactionHistory_1.TransactionHistory.find({
         eventId: new mongoose_1.default.Types.ObjectId(eventId),
-        userId: user._id,
+        sellerId: user._id,
     }).populate("eventId", "eventName eventDate");
-    if (!tickets) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Ticket not found");
+    if (!tickets || tickets.length === 0) {
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Ticket not found");
     }
-    const eventDate = new Date(tickets.eventId.eventDate);
+    // Get event info from first ticket
+    const eventDate = new Date(tickets[0].eventId.eventDate);
     const now = new Date();
     const isExpiredEvent = eventDate < now;
     // ----------------------------------------------------
@@ -597,51 +631,72 @@ const soldTicketHistory = (userId, eventId, expired) => __awaiter(void 0, void 0
     // ----------------------------------------------------
     if (expired === "true" && !isExpiredEvent) {
         return {
-            eventName: ((_a = tickets.eventId) === null || _a === void 0 ? void 0 : _a.eventName) || "",
+            eventName: ((_a = tickets[0].eventId) === null || _a === void 0 ? void 0 : _a.eventName) || "",
             expired: false,
             message: "Event not expired yet",
             summary: {},
             details: [],
         };
     }
-    // ----------------------------------------------------
-    // CASE 2: expired=true AND event is expired → return full data
-    // CASE 3: expired not provided → return full data
-    // ----------------------------------------------------
-    // COUNT UNIQUE TICKET TYPES
+    // Aggregate all data from multiple transactions
+    let totalSellAmount = 0;
+    let totalMainlandFee = 0;
+    let totalTickets = 0;
     const typeCount = {};
-    tickets.ticketInfo.forEach((t) => {
-        typeCount[t.ticketType] = (typeCount[t.ticketType] || 0) + 1;
+    // Use Map to group by ticketType + price + commission
+    const detailsMap = new Map();
+    tickets.forEach((transaction) => {
+        totalSellAmount += transaction.purchaseAmount || 0;
+        totalMainlandFee += transaction.mainLandFee || 0;
+        totalTickets += transaction.ticketInfo.reduce((total, t) => total + t.quantity, 0) || 0;
+        transaction.ticketInfo.forEach((t) => {
+            // Count ticket types
+            typeCount[t.ticketType] = (typeCount[t.ticketType] || 0) + t.quantity;
+            // Create unique key: ticketType + price + commission
+            const key = `${t.ticketType}-${t.ticketPrice}-${t.commission}`;
+            if (detailsMap.has(key)) {
+                // If same type, price, and commission exist, add quantity
+                const existing = detailsMap.get(key);
+                existing.quantity += t.quantity;
+            }
+            else {
+                // Create new entry
+                detailsMap.set(key, {
+                    ticketType: t.ticketType,
+                    quantity: t.quantity,
+                    price: t.ticketPrice,
+                    commission: t.commission,
+                });
+            }
+        });
     });
     const typeSummary = Object.entries(typeCount).map(([ticketType, count]) => ({
         ticketType,
         count,
     }));
+    // Convert Map to array
+    const allDetails = Array.from(detailsMap.values());
     return {
-        eventName: ((_b = tickets.eventId) === null || _b === void 0 ? void 0 : _b.eventName) || "",
+        eventName: ((_b = tickets[0].eventId) === null || _b === void 0 ? void 0 : _b.eventName) || "",
         expired: isExpiredEvent,
         summary: {
-            totalSellAmount: tickets.purchaseAmount,
-            totalMainlandFee: tickets.mainLandFee,
+            totalSellAmount,
+            totalMainlandFee,
+            totalTickets,
             types: typeSummary,
         },
-        details: tickets.ticketInfo.map((t) => ({
-            ticketType: t.ticketType,
-            quantity: t.quantity,
-            price: t.ticketPrice,
-            commission: t.commission,
-        })),
+        details: allDetails,
     };
 });
 const historyTickets = (userId, eventId) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User not found");
     }
     if (user.role === user_1.USER_ROLES.USER) {
         const tickets = yield ticket_model_1.TicketPurchase.find({ resellerId: user._id, eventId });
         if (!tickets) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Ticket not found");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Ticket not found");
         }
         return tickets;
     }

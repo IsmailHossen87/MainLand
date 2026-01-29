@@ -13,6 +13,7 @@ router.get("/dashboard", (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionCon
 router.get("/account-delete-history", (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.accountDeleteHistory);
 router.get("/all-notification", (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.allNotification);
 router.get("/all-user", (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.AllTicketBuyerUser);
+router.get("/all-event-notification", (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.allEventNotification);
 router.patch('/block-user/:id', (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.blockUser);
 router.get("/ticket-activity/:id", (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.ticketActivity);
 router.get("/ticket-history/:id", (0, auth_1.default)(user_1.USER_ROLES.ADMIN), ActionController_1.ActionController.ticketHistory);

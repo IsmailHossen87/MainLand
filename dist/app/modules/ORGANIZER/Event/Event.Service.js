@@ -14,21 +14,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EventService = void 0;
 const http_status_codes_1 = require("http-status-codes");
-const ApiError_1 = __importDefault(require("../../../../errors/ApiError"));
 const user_model_1 = require("../../user/user.model");
 const Event_model_1 = require("./Event.model");
 const user_1 = require("../../../../enums/user");
-const QueryBuilder_1 = require("../../../builder/QueryBuilder");
 const constrant_1 = require("../../../../shared/constrant");
 const mongoose_1 = require("mongoose");
 const Event_interface_1 = require("./Event.interface");
 const unlinkFile_1 = __importDefault(require("../../../../shared/unlinkFile"));
 const Favourite_model_1 = require("../../Favoutite/Favourite.model");
 const ticket_model_1 = require("../../Ticket/ticket.model");
+const chat_model_1 = require("../../Chat/chat.model");
+const AppError_1 = __importDefault(require("../../../../errors/AppError"));
+const QueryBuilder_1 = require("../../../builder/QueryBuilder");
 const creteSubCategory = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const isExistUser = yield user_model_1.User.findById(payload.userId);
     if (!isExistUser || isExistUser.role != 'ADMIN') {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "User doesn't exist!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "User doesn't exist!");
     }
     const createCategory = yield Event_model_1.SubCategory.create(payload);
     return createCategory;
@@ -36,7 +37,7 @@ const creteSubCategory = (payload) => __awaiter(void 0, void 0, void 0, function
 const creteCategory = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const isExistUser = yield user_model_1.User.findById(payload.userId);
     if (!isExistUser || isExistUser.role != 'ADMIN') {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "User doesn't exist!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "User doesn't exist!");
     }
     const createCategory = yield Event_model_1.Category.create(payload);
     return createCategory;
@@ -45,11 +46,11 @@ const creteCategory = (payload) => __awaiter(void 0, void 0, void 0, function* (
 const updateCategory = (categoryId, updateData) => __awaiter(void 0, void 0, void 0, function* () {
     const category = yield Event_model_1.Category.findById(categoryId);
     if (!category) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Category not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Category not found");
     }
     const updatedCategory = yield Event_model_1.Category.findByIdAndUpdate(categoryId, { $set: updateData }, { new: true, runValidators: true });
     if (!updateCategory) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Updated Category failed");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Updated Category failed");
     }
     if (updateData.coverImage && category.coverImage) {
         (0, unlinkFile_1.default)(category.coverImage);
@@ -60,74 +61,145 @@ const updateCategory = (categoryId, updateData) => __awaiter(void 0, void 0, voi
 const updateSubCategory = (categoryId, updateData) => __awaiter(void 0, void 0, void 0, function* () {
     const category = yield Event_model_1.SubCategory.findByIdAndUpdate(categoryId, { $set: updateData }, { new: true, runValidators: true });
     if (!category) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "SubCategory not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "SubCategory not found");
     }
     return category;
 });
 // UPDATEcategory
 const deleteCategory = (id, type) => __awaiter(void 0, void 0, void 0, function* () {
     if (type !== 'category' && type !== 'subCategory') {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Invalid type");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Invalid type");
     }
     if (type === 'category') {
         const category = yield Event_model_1.Category.findByIdAndDelete(id);
         if (!category) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Category not found");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Category not found");
         }
         return category;
     }
     if (type === 'subCategory') {
         const subCategory = yield Event_model_1.SubCategory.findByIdAndDelete(id);
         if (!subCategory) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "SubCategory not found");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "SubCategory not found");
         }
         return subCategory;
     }
     return subCategory;
 });
-// CREATE EVENT
+// // CREATE EVENT
+// const createEvent = async (payload: any) => {
+//   const { userId, eventName, isDraft } = payload;
+//   // Check user exist
+//   const isExistUser = await User.findById(userId);
+//   if (!isExistUser) {
+//     throw new AppError(StatusCodes.FORBIDDEN, "User doesn't exist!");
+//   }
+//   if (
+//     isExistUser.role !== USER_ROLES.ORGANIZER &&
+//     isExistUser.role !== USER_ROLES.USER
+//   ) {
+//     throw new AppError(
+//       StatusCodes.FORBIDDEN,
+//       "Only organizer and User can create Event"
+//     );
+//   }
+//   // Category validation
+//   if (payload.category?.length) {
+//     const categoryIds = payload.category.map((c: any) => c.categoryId);
+//     const categories = await Category.find({ _id: { $in: categoryIds } });
+//     if (categories.length !== payload.category.length) {
+//       throw new AppError(
+//         StatusCodes.NOT_FOUND,
+//         "One or more categories do not exist!"
+//       );
+//     }
+//     payload.category = payload.category.map((c: any) => ({
+//       categoryId: c.categoryId,
+//       subCategory: c.subCategory,
+//     }));
+//   }
+//   // If Event is a draft and already exists → update instead of creating new
+//   if (isDraft) {
+//     let event = await Event.findOne({ userId, eventName, isDraft: true });
+//     if (event) {
+//       // Auto-set outstandingUnits
+//       if (payload.tickets?.length) {
+//         payload.tickets = payload.tickets.map((t: any) => ({
+//           ...t,
+//           outstandingUnits: t.availableUnits,
+//         }));
+//       }
+//       event = await Event.findByIdAndUpdate(
+//         event._id,
+//         { $set: payload },
+//         { new: true, runValidators: true }
+//       );
+//       return event;
+//     }
+//   }
+//   // New Event → Set EventStatus
+//   payload.EventStatus = isDraft ? "Draft" : "UnderReview";
+//   // Auto-set outstandingUnits for new event
+//   if (payload.tickets?.length) {
+//     payload.tickets = payload.tickets.map((t: any) => ({
+//       ...t,
+//       outstandingUnits: t.availableUnits,
+//     }));
+//   }
+//   const event = await Event.create(payload);
+//   return event;
+// };
 const createEvent = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     const { userId, eventName, isDraft } = payload;
-    // Check user exist
+    // ✅ Check if user exists
     const isExistUser = yield user_model_1.User.findById(userId);
     if (!isExistUser) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "User doesn't exist!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "User doesn't exist!");
     }
+    // ✅ Check user role - শুধু Organizer এবং User event create করতে পারবে
     if (isExistUser.role !== user_1.USER_ROLES.ORGANIZER &&
         isExistUser.role !== user_1.USER_ROLES.USER) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only organizer and User can create Event");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "Only organizer and User can create Event");
     }
-    // Category validation
+    // ✅ Category validation - categories exist করে কিনা check
     if ((_a = payload.category) === null || _a === void 0 ? void 0 : _a.length) {
         const categoryIds = payload.category.map((c) => c.categoryId);
         const categories = yield Event_model_1.Category.find({ _id: { $in: categoryIds } });
         if (categories.length !== payload.category.length) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "One or more categories do not exist!");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "One or more categories do not exist!");
         }
         payload.category = payload.category.map((c) => ({
             categoryId: c.categoryId,
             subCategory: c.subCategory,
         }));
     }
-    // If Event is a draft and already exists → update instead of creating new
+    // ✅ If Event is a draft and already exists → update instead of creating new
     if (isDraft) {
         let event = yield Event_model_1.Event.findOne({ userId, eventName, isDraft: true });
         if (event) {
-            // Auto-set outstandingUnits
+            // ✅ FIX: শুধুমাত্র tickets থাকলেই outstandingUnits set করবে
             if ((_b = payload.tickets) === null || _b === void 0 ? void 0 : _b.length) {
                 payload.tickets = payload.tickets.map((t) => (Object.assign(Object.assign({}, t), { outstandingUnits: t.availableUnits })));
             }
+            // Update existing draft
             event = yield Event_model_1.Event.findByIdAndUpdate(event._id, { $set: payload }, { new: true, runValidators: true });
             return event;
         }
     }
-    // New Event → Set EventStatus
+    // ✅ New Event → Set EventStatus based on draft
     payload.EventStatus = isDraft ? "Draft" : "UnderReview";
-    // Auto-set outstandingUnits for new event
+    // ✅ FIX: শুধুমাত্র tickets থাকলেই outstandingUnits set করবে
+    // Free event এ tickets না থাকলে skip হবে
     if ((_c = payload.tickets) === null || _c === void 0 ? void 0 : _c.length) {
         payload.tickets = payload.tickets.map((t) => (Object.assign(Object.assign({}, t), { outstandingUnits: t.availableUnits })));
     }
+    // ✅ FIX: Free event হলে tickets empty array set করা (optional)
+    // Model এ default empty array আছে, তবে explicitly set করা ভালো
+    if (payload.isFreeEvent && !payload.tickets) {
+        payload.tickets = [];
+    }
+    // ✅ Create new event
     const event = yield Event_model_1.Event.create(payload);
     return event;
 });
@@ -137,14 +209,14 @@ const updateEvent = (eventId, userId, payload) => __awaiter(void 0, void 0, void
     // Check event exists
     const event = yield Event_model_1.Event.findOne({ _id: eventId, userId });
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
     }
     // Category validation
     if ((_a = payload.category) === null || _a === void 0 ? void 0 : _a.length) {
         const categoryIds = payload.category.map((c) => c.categoryId);
         const categories = yield Event_model_1.Category.find({ _id: { $in: categoryIds } });
         if (categories.length !== payload.category.length) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "One or more categories do not exist!");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "One or more categories do not exist!");
         }
     }
     // Update EventStatus based on isDraft
@@ -159,20 +231,20 @@ const updateEvent = (eventId, userId, payload) => __awaiter(void 0, void 0, void
     return updatedEvent;
 });
 // UPDATE Notification
-const updateNotification = (eventId, userId, payload) => __awaiter(void 0, void 0, void 0, function* () {
+const updateNotification = (eventId, userId, notification) => __awaiter(void 0, void 0, void 0, function* () {
     // Check event exists
     const event = yield Event_model_1.Event.findOne({ _id: eventId, userId });
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
     }
-    const updatedEvent = yield Event_model_1.Event.findByIdAndUpdate(eventId, { $notification: payload, $set: payload }, { new: true, runValidators: true });
+    const updatedEvent = yield Event_model_1.Event.findByIdAndUpdate(eventId, { $set: { notification: notification } }, { new: true, runValidators: true });
     return updatedEvent;
 });
 const allLiveEvent = (query) => __awaiter(void 0, void 0, void 0, function* () {
     const eventsToUpdate = yield Event_model_1.Event.find({ EventStatus: 'Live' }).select("eventDate EventStatus");
     for (const event of eventsToUpdate) {
         if (!event) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Event is not available');
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Event is not available');
         }
         if (event.eventDate && event.eventDate < new Date()) {
             event.EventStatus = Event_interface_1.IEventStatus.Expired;
@@ -203,15 +275,17 @@ const popularEvent = (query) => __awaiter(void 0, void 0, void 0, function* () {
     const skip = (page - 1) * limit;
     // Search setup
     const searchTerm = query.searchTerm || '';
-    const searchCondition = searchTerm ? {
-        eventName: { $regex: searchTerm, $options: 'i' }
-    } : {};
+    const searchCondition = searchTerm
+        ? { eventName: { $regex: searchTerm, $options: 'i' } }
+        : {};
     // Sort setup
     const sortField = query.sortBy || 'totalTicketBuyers';
     const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
     const pipeline = [
-        // Search filter (if searchTerm exists)
-        ...(searchTerm ? [{ $match: searchCondition }] : []),
+        // ✅ ONLY LIVE EVENTS
+        {
+            $match: Object.assign({ EventStatus: "Live" }, searchCondition)
+        },
         // Calculate total ticket buyers
         {
             $addFields: {
@@ -285,12 +359,11 @@ const popularEvent = (query) => __awaiter(void 0, void 0, void 0, function* () {
     const totalPipeline = [...pipeline, { $count: 'total' }];
     const totalResult = yield Event_model_1.Event.aggregate(totalPipeline);
     const total = ((_a = totalResult[0]) === null || _a === void 0 ? void 0 : _a.total) || 0;
-    // Add pagination to main pipeline
+    // Pagination
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
-    // Execute main query
+    // Execute query
     const data = yield Event_model_1.Event.aggregate(pipeline);
-    // Calculate meta
     const meta = {
         page,
         limit,
@@ -303,27 +376,32 @@ const popularEvent = (query) => __awaiter(void 0, void 0, void 0, function* () {
 const singleEvent = (userID, eventId) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userID);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User is not Available");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User is not Available");
     }
+    // ✅ Chat only if userID exists in participants (2 IDs)
+    const chat = yield chat_model_1.Chat.findOne({
+        participants: { $in: [userID] },
+    }).select("_id");
     const event = yield Event_model_1.Event.findById(eventId)
         .populate({
         path: "category.categoryId",
-        select: "_id title"
+        select: "_id title",
     })
         .populate({
         path: "category.subCategory",
-        select: "_id title"
-    });
+        select: "_id title",
+    })
+        .lean(); // 🔥 important
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event is not Available");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event is not Available");
     }
-    return event;
+    return Object.assign(Object.assign({}, event), { chatId: chat ? chat._id : "" });
 });
 // all Closed ✅✅✅✅
 const closedEvent = (userID, query) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userID);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User is not Available');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User is not Available');
     }
     const todaysDate = new Date();
     // Query builder for closed events
@@ -348,7 +426,7 @@ const closedEvent = (userID, query) => __awaiter(void 0, void 0, void 0, functio
         closedEvents.build(),
     ]);
     if (!data || data.length === 0) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No closed events found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "No closed events found");
     }
     return { meta, data };
 });
@@ -356,7 +434,7 @@ const closedEvent = (userID, query) => __awaiter(void 0, void 0, void 0, functio
 const allDataUseQuery = (userID, query) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userID);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User is not Available');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User is not Available');
     }
     const { EventStatus: status, isDraft } = query;
     console.log(status);
@@ -399,7 +477,7 @@ const allDataUseQuery = (userID, query) => __awaiter(void 0, void 0, void 0, fun
 const allUndewReview = (userID, query) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userID);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User is not Available");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User is not Available");
     }
     const { EventStatus: status, searchTerm } = query;
     const today = new Date();
@@ -521,7 +599,7 @@ const allCategory = (userId, query) => __awaiter(void 0, void 0, void 0, functio
 const eventTicketHistory = (eventId) => __awaiter(void 0, void 0, void 0, function* () {
     const event = yield Event_model_1.Event.findById(eventId);
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Event is not Available');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Event is not Available');
     }
     const ticketHistory = event.tickets;
     return ticketHistory;
@@ -529,11 +607,11 @@ const eventTicketHistory = (eventId) => __awaiter(void 0, void 0, void 0, functi
 const barCodeCheck = (ownerId, userId, eventId, isUpdate) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.User.findById(userId);
     if (!user) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User is not Available");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "User is not Available");
     }
     const event = yield Event_model_1.Event.findOne({ _id: new mongoose_1.Types.ObjectId(eventId), userId: new mongoose_1.Types.ObjectId(userId), }).select("eventName");
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event is not Available for this user");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event is not Available for this user");
     }
     const tickets = yield ticket_model_1.TicketPurchase.find({
         ownerId: new mongoose_1.Types.ObjectId(ownerId),
@@ -541,7 +619,7 @@ const barCodeCheck = (ownerId, userId, eventId, isUpdate) => __awaiter(void 0, v
         status: "available",
     }).select("ticketType");
     if (!tickets || tickets.length === 0) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Ticket is not Available");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Ticket is not Available");
     }
     console.log("ISUPDATE", isUpdate);
     if (isUpdate === "true") {
@@ -566,7 +644,7 @@ const perticipentCount = (eventCode) => __awaiter(void 0, void 0, void 0, functi
     // 1️⃣ Find the event by code
     const event = yield Event_model_1.Event.findOne({ eventCode });
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Event is not Available');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Event is not Available');
     }
     // 2️⃣ Get all used tickets for this event
     const tickets = yield ticket_model_1.TicketPurchase.find({ eventId: event._id, status: 'used' })

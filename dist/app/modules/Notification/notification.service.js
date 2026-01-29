@@ -16,7 +16,7 @@ exports.NotificationService = void 0;
 const http_status_codes_1 = require("http-status-codes");
 const mongoose_1 = __importDefault(require("mongoose"));
 const Event_model_1 = require("../ORGANIZER/Event/Event.model");
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const user_model_1 = require("../user/user.model");
 const notificatio_helper_1 = require("../../../helpers/notificatio-helper");
 const user_1 = require("../../../enums/user");
@@ -24,31 +24,32 @@ const QueryBuilder_1 = require("../../builder/QueryBuilder");
 const notification_model_1 = require("./notification.model");
 const constrant_1 = require("../../../shared/constrant");
 const message_model_1 = require("../Message/message-model");
+const firebaseAdmin_1 = require("../../../helpers/firebaseAdmin");
 /* **************************************
      ADMIN SEND NOTIFICATION TO ORGANIZER
 *****************************************/
 const sendAdminNotification = (eventId, user, status) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     if (user_1.USER_ROLES.ADMIN !== user.role) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "You are not permitted for this API");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "You are not permitted for this API");
     }
     if (!eventId) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Event ID is required");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Event ID is required");
     }
     const event = yield Event_model_1.Event.findById(eventId);
     if (!event) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event not found");
     }
     const organizerId = (_a = event.userId) === null || _a === void 0 ? void 0 : _a.toString();
     if (!organizerId) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Organizer not found in event");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Organizer not found in event");
     }
     const organizer = yield user_model_1.User.findById(organizerId);
     if (!organizer) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Organizer user not found");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Organizer user not found");
     }
     if (!event.notification) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "No notification message found on event");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "No notification message found on event");
     }
     const title = status === "rejected"
         ? "Your notification broadcast has been rejected"
@@ -71,6 +72,14 @@ const sendAdminNotification = (eventId, user, status) => __awaiter(void 0, void 
         yield event.save();
     }
     yield (0, notificatio_helper_1.sendNotifications)(notificationData, "notification");
+    // 🔥 Firebase Push Notification
+    if (organizer === null || organizer === void 0 ? void 0 : organizer.fcmToken) {
+        yield (0, firebaseAdmin_1.sendFirebaseNotification)(organizer.fcmToken, title, message, {
+            type: "NOTIFICATION",
+            eventId: event._id.toString(),
+            status,
+        });
+    }
     return true;
 });
 /* **************************************

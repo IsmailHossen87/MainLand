@@ -3,7 +3,7 @@ import fs from 'fs';
 import { StatusCodes } from 'http-status-codes';
 import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
-import ApiError from '../../errors/ApiError';
+import AppError from '../../errors/AppError';
 
 const fileUploadHandler = () => {
   //create upload folder
@@ -34,7 +34,7 @@ const fileUploadHandler = () => {
           uploadDir = path.join(baseUploadDir, 'document');
           break;
         default:
-          throw new ApiError(StatusCodes.BAD_REQUEST, 'File is not supported');
+          throw new AppError(StatusCodes.BAD_REQUEST, 'File is not supported');
       }
       createDir(uploadDir);
       cb(null, uploadDir);
@@ -64,7 +64,7 @@ const fileUploadHandler = () => {
         cb(null, true);
       } else {
         cb(
-          new ApiError(
+          new AppError(
             StatusCodes.BAD_REQUEST,
             'Only .jpeg, .png, .jpg file supported'
           )
@@ -75,7 +75,7 @@ const fileUploadHandler = () => {
         cb(null, true);
       } else {
         cb(
-          new ApiError(
+          new AppError(
             StatusCodes.BAD_REQUEST,
             'Only .mp4, .mp3, file supported'
           )
@@ -85,10 +85,10 @@ const fileUploadHandler = () => {
       if (file.mimetype === 'application/pdf') {
         cb(null, true);
       } else {
-        cb(new ApiError(StatusCodes.BAD_REQUEST, 'Only pdf supported'));
+        cb(new AppError(StatusCodes.BAD_REQUEST, 'Only pdf supported'));
       }
     } else {
-      cb(new ApiError(StatusCodes.BAD_REQUEST, 'This file is not supported'));
+      cb(new AppError(StatusCodes.BAD_REQUEST, 'This file is not supported'));
     }
   };
 

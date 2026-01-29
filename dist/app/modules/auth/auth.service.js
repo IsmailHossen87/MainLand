@@ -16,7 +16,7 @@ exports.AuthService = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const http_status_codes_1 = require("http-status-codes");
 const config_1 = __importDefault(require("../../../config"));
-const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const emailHelper_1 = require("../../../helpers/emailHelper");
 const jwtHelper_1 = require("../../../helpers/jwtHelper");
 const emailTemplate_1 = require("../../../shared/emailTemplate");
@@ -31,14 +31,14 @@ const loginUserFromDB = (payload) => __awaiter(void 0, void 0, void 0, function*
     const { email, password } = payload;
     const isExistUser = yield user_model_1.User.findOne({ email }).select("+password");
     if (!isExistUser) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
     }
     if (!isExistUser.verified) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Please verify your account, then try to login again");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Please verify your account, then try to login again");
     }
     const isMatch = yield user_model_1.User.isMatchPassword(password, isExistUser.password);
     if (!isMatch) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Password is incorrect!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Password is incorrect!");
     }
     // Create Access Token
     const accessToken = jwtHelper_1.jwtHelper.createToken({ id: isExistUser._id, role: isExistUser.role, email: isExistUser.email }, config_1.default.jwt.jwt_secret, config_1.default.jwt.jwt_expire_in);
@@ -54,12 +54,12 @@ const getNewAccessToken = (token) => __awaiter(void 0, void 0, void 0, function*
         // 1️⃣ Verify Refresh Token
         const decoded = jwtHelper_1.jwtHelper.verifyToken(token, config_1.default.jwt.jwt_secret);
         if (!(decoded === null || decoded === void 0 ? void 0 : decoded.id) || !(decoded === null || decoded === void 0 ? void 0 : decoded.role) || !(decoded === null || decoded === void 0 ? void 0 : decoded.email)) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, "Invalid refresh token payload");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, "Invalid refresh token payload");
         }
         // 2️⃣ Check if user actually exists
         const user = yield user_model_1.User.findById(decoded.id);
         if (!user) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, "User no longer exists");
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, "User no longer exists");
         }
         // 3️⃣ Create a new access token
         const newAccessToken = jwtHelper_1.jwtHelper.createToken({ id: user._id.toString(), role: user.role }, config_1.default.jwt.jwt_secret, config_1.default.jwt.jwt_expire_in);
@@ -70,14 +70,14 @@ const getNewAccessToken = (token) => __awaiter(void 0, void 0, void 0, function*
         };
     }
     catch (error) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, "Invalid or expired refresh token");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, "Invalid or expired refresh token");
     }
 });
 // Verify Email or OTP
 const resendOtpToDB = (email) => __awaiter(void 0, void 0, void 0, function* () {
     const isExistUser = yield user_model_1.User.isExistUserByEmail(email);
     if (!isExistUser) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
     }
     const otp = (0, generateOTP_1.default)();
     const redisKey = `otp:verify:${email}`;
@@ -91,7 +91,7 @@ const verifyEmailToDB = (payload) => __awaiter(void 0, void 0, void 0, function*
     const { email, oneTimeCode } = payload;
     const isExistUser = yield user_model_1.User.findOne({ email }).select('+authentication');
     if (!isExistUser) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
     }
     // Redis OTP check (both for verify and forget)
     const redisVerifyKey = `otp:verify:${email}`;
@@ -103,10 +103,10 @@ const verifyEmailToDB = (payload) => __awaiter(void 0, void 0, void 0, function*
         redisKeyUsed = redisResetKey;
     }
     if (!storedOTP) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'OTP expired or not found');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'OTP expired or not found');
     }
     if (storedOTP !== String(oneTimeCode)) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Wrong OTP');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Wrong OTP');
     }
     // OTP valid, delete from Redis
     yield radisConfig_1.redisClient.del(redisKeyUsed);
@@ -139,7 +139,7 @@ const verifyEmailToDB = (payload) => __awaiter(void 0, void 0, void 0, function*
 const forgetPasswordToDB = (email) => __awaiter(void 0, void 0, void 0, function* () {
     const isExistUser = yield user_model_1.User.isExistUserByEmail(email);
     if (!isExistUser) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
     }
     const otp = (0, generateOTP_1.default)();
     const redisKey = `otp:reset:${email}`;
@@ -155,18 +155,18 @@ const resetPasswordToDB = (token, payload) => __awaiter(void 0, void 0, void 0, 
     const { newPassword, confirmPassword } = payload;
     const isExistToken = yield resetToken_model_1.ResetToken.isExistToken(token);
     if (!isExistToken) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'You are not authorized.');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'You are not authorized.');
     }
     const isExistUser = yield user_model_1.User.findById(isExistToken.user).select('+authentication');
     if (!((_a = isExistUser === null || isExistUser === void 0 ? void 0 : isExistUser.authentication) === null || _a === void 0 ? void 0 : _a.isResetPassword)) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, "You don't have permission to reset the password. Please try 'Forgot Password' again.");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, "You don't have permission to reset the password. Please try 'Forgot Password' again.");
     }
     const isValid = yield resetToken_model_1.ResetToken.isExpireToken(token);
     if (!isValid) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Token expired. Please try again.');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Token expired. Please try again.');
     }
     if (newPassword !== confirmPassword) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "New password and Confirm password don't match!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "New password and Confirm password don't match!");
     }
     const hashPassword = yield bcrypt_1.default.hash(newPassword, Number(config_1.default.bcrypt_salt_rounds));
     const updateData = {
@@ -182,17 +182,17 @@ const changePasswordToDB = (user, payload) => __awaiter(void 0, void 0, void 0, 
     const { currentPassword, newPassword, confirmPassword } = payload;
     const isExistUser = yield user_model_1.User.findById(user.id).select('+password');
     if (!isExistUser) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "User doesn't exist!");
     }
     const isMatch = yield user_model_1.User.isMatchPassword(currentPassword, isExistUser.password);
     if (!isMatch) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Password is incorrect.');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Password is incorrect.');
     }
     if (currentPassword === newPassword) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Please choose a different password.');
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Please choose a different password.');
     }
     if (newPassword !== confirmPassword) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Password and Confirm password don't match.");
+        throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Password and Confirm password don't match.");
     }
     const hashPassword = yield bcrypt_1.default.hash(newPassword, Number(config_1.default.bcrypt_salt_rounds));
     yield user_model_1.User.findOneAndUpdate({ _id: user.id }, { password: hashPassword }, { new: true });

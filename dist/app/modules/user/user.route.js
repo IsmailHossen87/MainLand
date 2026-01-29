@@ -20,6 +20,7 @@ router
     .patch(allUser, (0, fileUploadHandler_1.default)(), ParseFormData_1.parseFormDataMiddleware, (0, validateRequest_1.default)(user_validation_1.UserValidation.updateUserZodSchema), user_controller_1.UserController.updateProfile);
 router.route('/').get(user_controller_1.UserController.getAllUser);
 router.put("/mainland-fee", ((0, auth_1.default)(user_1.USER_ROLES.ADMIN)), user_controller_1.UserController.CreateAndUpdateMainlandFee);
+router.get("/mainland-fee", ((0, auth_1.default)(user_1.USER_ROLES.ADMIN)), user_controller_1.UserController.getMainlandFee);
 router
     .route('/create')
     .post((0, validateRequest_1.default)(user_validation_1.UserValidation.createUserZodSchema), user_controller_1.UserController.createUser);

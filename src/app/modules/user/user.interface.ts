@@ -67,6 +67,7 @@ export type IUser = {
     expireAt: Date | null;
   };
   terAndCondition: boolean;
+  fcmToken?: string;
 };
 
 export type UserModal = {
