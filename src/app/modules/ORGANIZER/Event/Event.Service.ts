@@ -12,6 +12,8 @@ import { TicketPurchase } from '../../Ticket/ticket.model';
 import { Chat } from '../../Chat/chat.model';
 import AppError from '../../../../errors/AppError';
 import { QueryBuilder } from '../../../builder/QueryBuilder';
+import { socketHelper } from '../../../../helpers/socketHelper';
+import { sendNotifications } from '../../../../helpers/notificatio-helper';
 export interface EventTicket {
   type: string;
   price: number;
@@ -235,7 +237,6 @@ const createEvent = async (payload: any) => {
   // ✅ New Event → Set EventStatus based on draft
   payload.EventStatus = isDraft ? "Draft" : "UnderReview";
 
-  // ✅ FIX: শুধুমাত্র tickets থাকলেই outstandingUnits set করবে
   // Free event এ tickets না থাকলে skip হবে
   if (payload.tickets?.length) {
     payload.tickets = payload.tickets.map((t: any) => ({
@@ -243,8 +244,6 @@ const createEvent = async (payload: any) => {
       outstandingUnits: t.availableUnits, // সব tickets initially available
     }));
   }
-
-  // ✅ FIX: Free event হলে tickets empty array set করা (optional)
   // Model এ default empty array আছে, তবে explicitly set করা ভালো
   if (payload.isFreeEvent && !payload.tickets) {
     payload.tickets = [];
@@ -252,6 +251,7 @@ const createEvent = async (payload: any) => {
 
   // ✅ Create new event
   const event = await Event.create(payload);
+
   return event;
 };
 
@@ -798,7 +798,6 @@ const barCodeCheck = async (ownerId: string, userId: string, eventId: string, is
   if (!tickets || tickets.length === 0) {
     throw new AppError(StatusCodes.NOT_FOUND, "Ticket is not Available");
   }
-  console.log("ISUPDATE", isUpdate)
 
   if (isUpdate === "true") {
     await TicketPurchase.updateMany({ ownerId: new Types.ObjectId(ownerId), eventId: event._id, status: "available" }, { status: "used" });
@@ -817,6 +816,21 @@ const barCodeCheck = async (ownerId: string, userId: string, eventId: string, is
   const groupedData = Object.entries(ticketCountMap).map(
     ([type, count]) => ({ type, count })
   );
+
+
+  sendNotifications(
+    {
+      eventId: `${event._id.toString()}`,
+      eventCode: event.eventCode,
+      eventStatus: event.EventStatus as string,
+      type: 'NOTIFICATION',
+      receiver: ownerId as string,
+      read: false,
+      title: "Event Participant",
+      message: `Your tickets for ${event.eventName} have been verified and marked as used.`,
+    },
+    "notification"
+  )
 
   return {
     eventName: event.eventName,

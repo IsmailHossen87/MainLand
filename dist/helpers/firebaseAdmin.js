@@ -9,18 +9,45 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendFirebaseNotification = void 0;
+exports.saveNotification = exports.sendFirebaseNotification = exports.firebaseNotificationBuilder = void 0;
+const notification_model_1 = require("../app/modules/Notification/notification.model");
 const firebase_1 = require("./firebase");
-const sendFirebaseNotification = (token, title, body, data) => __awaiter(void 0, void 0, void 0, function* () {
+const firebaseNotificationBuilder = ({ user, title, message, data, }) => {
+    const sound = user.isSoundNotificationEnabled ? "default" : undefined;
+    const notification = (0, exports.sendFirebaseNotification)(user.fcmToken, title, message, sound, Object.assign({ isSoundNotificationEnabled: `${user.isSoundNotificationEnabled}`, isVibrationNotificationEnabled: `${user.isVibrationNotificationEnabled}` }, data));
+    return notification;
+};
+exports.firebaseNotificationBuilder = firebaseNotificationBuilder;
+const sendFirebaseNotification = (token, title, body, sound, data) => __awaiter(void 0, void 0, void 0, function* () {
     if (!token)
         return;
-    yield firebase_1.firebaseAdmin.messaging().send({
+    const notification = {
         token,
-        notification: {
-            title,
-            body,
+        data: data !== null && data !== void 0 ? data : {},
+        android: {
+            priority: "high",
         },
-        data,
-    });
+        apns: {
+            headers: {
+                "apns-push-type": "alert",
+                "apns-priority": "10",
+            },
+            payload: {
+                aps: Object.assign({ alert: {
+                        title,
+                        body,
+                    } }, (sound && { sound })),
+            },
+        },
+    };
+    yield firebase_1.firebaseAdmin.messaging().send(notification);
 });
 exports.sendFirebaseNotification = sendFirebaseNotification;
+const saveNotification = (data) => __awaiter(void 0, void 0, void 0, function* () {
+    const notification = yield notification_model_1.Notification.findOneAndUpdate({ eventId: data.eventId }, { $set: data }, {
+        new: true,
+        upsert: true,
+    });
+    return notification;
+});
+exports.saveNotification = saveNotification;

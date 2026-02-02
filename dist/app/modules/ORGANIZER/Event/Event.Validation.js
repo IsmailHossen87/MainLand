@@ -103,7 +103,6 @@ const UpdateEventZodSchema = zod_1.z.object({
             .optional(), tags: zod_1.z.array(zod_1.z.string().trim()).optional(), eventDate: exports.IValidateDate.nullable().optional(), startTime: zod_1.z.string().optional(), endTime: zod_1.z.string().optional(), notification: zod_1.z.string().optional(), streetAddress: zod_1.z.string().trim().optional(), streetAddress2: zod_1.z.string().optional(), city: zod_1.z.string().trim().optional(), state: zod_1.z.string().trim().optional(), country: zod_1.z.string().trim().optional(), isFreeEvent: zod_1.z.boolean().optional(), tickets: zod_1.z.array(TicketSchema).optional(), ticketSaleStart: exports.IValidateDate.nullable().optional(), preSaleStart: exports.IValidateDate.nullable().optional(), preSaleEnd: exports.IValidateDate.nullable().optional(), discountCodes: zod_1.z.array(DiscountCodeSchema).nullable().optional() }, OrganizerSchema.shape), { description: zod_1.z.string().trim().optional(), isDraft: zod_1.z.boolean().optional() }))
         // ✅ Update এর সময়ও paid event check করবে (যদি isFreeEvent update করা হয়)
         .refine((data) => {
-        // যদি isFreeEvent explicitly false করা হয় তাহলে tickets check করবে
         if (data.isFreeEvent === false) {
             return data.tickets && data.tickets.length > 0;
         }

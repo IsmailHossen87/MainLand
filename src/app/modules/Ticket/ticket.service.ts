@@ -593,6 +593,18 @@ const withdrawPro = async (
     }
   );
 
+  await sendNotifications(
+    {
+      receiver: user._id,
+      title: "Tickets Withdrawn",
+      message: `Your tickets have been withdrawn successfully.`,
+      eventTitle: "Ticket Withdrawal",
+      type: "WITHDRAW_TICKET",
+      status: "success",
+    },
+    "notification"
+  );
+
   return {
     success: true,
     message: `Tickets withdrawn successfully.`,

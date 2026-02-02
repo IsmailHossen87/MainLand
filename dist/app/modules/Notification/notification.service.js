@@ -24,7 +24,6 @@ const QueryBuilder_1 = require("../../builder/QueryBuilder");
 const notification_model_1 = require("./notification.model");
 const constrant_1 = require("../../../shared/constrant");
 const message_model_1 = require("../Message/message-model");
-const firebaseAdmin_1 = require("../../../helpers/firebaseAdmin");
 /* **************************************
      ADMIN SEND NOTIFICATION TO ORGANIZER
 *****************************************/
@@ -74,11 +73,16 @@ const sendAdminNotification = (eventId, user, status) => __awaiter(void 0, void 
     yield (0, notificatio_helper_1.sendNotifications)(notificationData, "notification");
     // 🔥 Firebase Push Notification
     if (organizer === null || organizer === void 0 ? void 0 : organizer.fcmToken) {
-        yield (0, firebaseAdmin_1.sendFirebaseNotification)(organizer.fcmToken, title, message, {
-            type: "NOTIFICATION",
-            eventId: event._id.toString(),
-            status,
-        });
+        // await sendFirebaseNotification(
+        //   organizer.fcmToken,
+        //   title,
+        //   message,
+        //   {
+        //     type: "NOTIFICATION",
+        //     eventId: event._id.toString(),
+        //     status,
+        //   }
+        // );
     }
     return true;
 });

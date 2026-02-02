@@ -25,6 +25,8 @@ const transactionHistory_1 = require("../../Payment/transactionHistory");
 const constrant_1 = require("../../../../shared/constrant");
 const notification_model_1 = require("../../Notification/notification.model");
 const userExcludeField_1 = __importDefault(require("./userExcludeField"));
+const notificatio_helper_1 = require("../../../../helpers/notificatio-helper");
+const firebaseAdmin_1 = require("../../../../helpers/firebaseAdmin");
 const statusChange = (userId, eventId) => __awaiter(void 0, void 0, void 0, function* () {
     // ✅ Check user
     const isExistUser = yield user_model_1.User.findById(userId);
@@ -36,6 +38,7 @@ const statusChange = (userId, eventId) => __awaiter(void 0, void 0, void 0, func
     }
     // ✅ Check event
     const event = yield Event_model_1.Event.findById(eventId);
+    const eventOwner = yield user_model_1.User.findById(event === null || event === void 0 ? void 0 : event.userId);
     if (!event) {
         throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Event doesn't exist!");
     }
@@ -57,7 +60,31 @@ const statusChange = (userId, eventId) => __awaiter(void 0, void 0, void 0, func
     const updatedEvent = yield Event_model_1.Event.findByIdAndUpdate(eventId, {
         EventStatus: newStatus,
         eventCode: generateEvent,
-    }, { new: true, runValidators: true });
+    }, { new: true, runValidators: true }).select("-createdAt -updatedAt -__v -category -discountCodes -category -tickets");
+    // 🔔🔔🔔
+    if (eventOwner === null || eventOwner === void 0 ? void 0 : eventOwner.fcmToken) {
+        (0, firebaseAdmin_1.firebaseNotificationBuilder)({
+            user: eventOwner,
+            title: "Event Status Updated",
+            message: "Your event status has been updated to " + newStatus,
+            data: {
+                eventId: `${event._id.toString()}`,
+                eventStatus: `${newStatus}`,
+                type: 'NOTIFICATION'
+            }
+        });
+    }
+    (0, notificatio_helper_1.sendNotifications)({
+        eventId: `${event._id.toString()}`,
+        eventCode: event.eventCode,
+        eventStatus: event.EventStatus,
+        type: 'NOTIFICATION',
+        receiver: eventOwner === null || eventOwner === void 0 ? void 0 : eventOwner._id.toString(),
+        read: false,
+        title: "Event Status Updated",
+        message: "Your event status has been updated to " + newStatus,
+        status: "success",
+    }, "notification");
     return updatedEvent;
 });
 const blockUser = (userId, adminInfo) => __awaiter(void 0, void 0, void 0, function* () {

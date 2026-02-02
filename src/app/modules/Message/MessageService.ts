@@ -115,22 +115,22 @@ const sendMessageToDB = async (payload: any): Promise<IMessage> => {
                 const senderName =
                     firebaseMessageData?.sender?.name || "New message";
 
-                const response = await sendFirebaseNotification(
-                    otherParticipant.fcmToken,
-                    senderName.slice(0, 50),
-                    payload.text || "You received a new message",
-                    {
-                        type: "CHAT_MESSAGE",
-                        chatId: payload.chatId.toString(),
-                        message: JSON.stringify({
-                            ...firebaseMessageData,
-                            image: [...(payload.image || []), ...(payload.files || [])],
-                        }),
-                    }
-                );
+                // const response = await sendFirebaseNotification(
+                //     otherParticipant.fcmToken,
+                //     senderName.slice(0, 50),
+                //     payload.text || "You received a new message",
+                //     // {
+                //     //     type: "CHAT_MESSAGE",
+                //     //     chatId: payload.chatId.toString(),
+                //     //     message: JSON.stringify({
+                //     //         ...firebaseMessageData,
+                //     //         image: [...(payload.image || []), ...(payload.files || [])],
+                //     //     }),
+                //     // }
+                // );
 
 
-                console.log("✅ Firebase Success:", response);
+                // console.log("✅ Firebase Success:", response);
             } catch (err) {
                 console.error("❌ Firebase Failed:", err);
             }

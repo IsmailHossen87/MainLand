@@ -26,6 +26,7 @@ const ticket_model_1 = require("../../Ticket/ticket.model");
 const chat_model_1 = require("../../Chat/chat.model");
 const AppError_1 = __importDefault(require("../../../../errors/AppError"));
 const QueryBuilder_1 = require("../../../builder/QueryBuilder");
+const notificatio_helper_1 = require("../../../../helpers/notificatio-helper");
 const creteSubCategory = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const isExistUser = yield user_model_1.User.findById(payload.userId);
     if (!isExistUser || isExistUser.role != 'ADMIN') {
@@ -189,12 +190,10 @@ const createEvent = (payload) => __awaiter(void 0, void 0, void 0, function* () 
     }
     // ✅ New Event → Set EventStatus based on draft
     payload.EventStatus = isDraft ? "Draft" : "UnderReview";
-    // ✅ FIX: শুধুমাত্র tickets থাকলেই outstandingUnits set করবে
     // Free event এ tickets না থাকলে skip হবে
     if ((_c = payload.tickets) === null || _c === void 0 ? void 0 : _c.length) {
         payload.tickets = payload.tickets.map((t) => (Object.assign(Object.assign({}, t), { outstandingUnits: t.availableUnits })));
     }
-    // ✅ FIX: Free event হলে tickets empty array set করা (optional)
     // Model এ default empty array আছে, তবে explicitly set করা ভালো
     if (payload.isFreeEvent && !payload.tickets) {
         payload.tickets = [];
@@ -621,7 +620,6 @@ const barCodeCheck = (ownerId, userId, eventId, isUpdate) => __awaiter(void 0, v
     if (!tickets || tickets.length === 0) {
         throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Ticket is not Available");
     }
-    console.log("ISUPDATE", isUpdate);
     if (isUpdate === "true") {
         yield ticket_model_1.TicketPurchase.updateMany({ ownerId: new mongoose_1.Types.ObjectId(ownerId), eventId: event._id, status: "available" }, { status: "used" });
     }
@@ -634,6 +632,16 @@ const barCodeCheck = (ownerId, userId, eventId, isUpdate) => __awaiter(void 0, v
         ticketCountMap[type] += 1;
     });
     const groupedData = Object.entries(ticketCountMap).map(([type, count]) => ({ type, count }));
+    (0, notificatio_helper_1.sendNotifications)({
+        eventId: `${event._id.toString()}`,
+        eventCode: event.eventCode,
+        eventStatus: event.EventStatus,
+        type: 'NOTIFICATION',
+        receiver: ownerId,
+        read: false,
+        title: "Event Participant",
+        message: `Your tickets for ${event.eventName} have been verified and marked as used.`,
+    }, "notification");
     return {
         eventName: event.eventName,
         data: groupedData,

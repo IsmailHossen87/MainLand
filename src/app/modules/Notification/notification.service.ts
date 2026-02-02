@@ -85,16 +85,16 @@ const sendAdminNotification = async (
 
   // 🔥 Firebase Push Notification
   if (organizer?.fcmToken) {
-    await sendFirebaseNotification(
-      organizer.fcmToken,
-      title,
-      message,
-      {
-        type: "NOTIFICATION",
-        eventId: event._id.toString(),
-        status,
-      }
-    );
+    // await sendFirebaseNotification(
+    //   organizer.fcmToken,
+    //   title,
+    //   message,
+    //   {
+    //     type: "NOTIFICATION",
+    //     eventId: event._id.toString(),
+    //     status,
+    //   }
+    // );
   }
 
 

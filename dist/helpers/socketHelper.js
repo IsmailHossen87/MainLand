@@ -6,13 +6,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.socketHelper = void 0;
 const colors_1 = __importDefault(require("colors"));
 const logger_1 = require("../shared/logger");
+let ioInstance;
 const socket = (io) => {
+    ioInstance = io;
     io.on('connection', socket => {
         logger_1.logger.info(colors_1.default.blue('A user connected'));
-        //disconnect
         socket.on('disconnect', () => {
-            logger_1.logger.info(colors_1.default.red('A user disconnect'));
+            logger_1.logger.info(colors_1.default.red('A user disconnected'));
         });
     });
 };
-exports.socketHelper = { socket };
+// 🔥 emit helper
+const emit = (title, data) => {
+    if (!ioInstance) {
+        logger_1.logger.error('Socket.io not initialized');
+        return;
+    }
+    ioInstance.emit(title, data);
+};
+exports.socketHelper = {
+    socket,
+    emit,
+};

@@ -29,7 +29,6 @@ const unlinkFile_1 = __importDefault(require("../../../shared/unlinkFile"));
 const chat_model_1 = require("../Chat/chat.model");
 const message_model_1 = require("./message-model");
 const mongoose_1 = __importDefault(require("mongoose"));
-const firebaseAdmin_1 = require("../../../helpers/firebaseAdmin");
 const AppError_1 = __importDefault(require("../../../errors/AppError"));
 const sendMessageToDB = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
@@ -99,12 +98,20 @@ const sendMessageToDB = (payload) => __awaiter(void 0, void 0, void 0, function*
                 // Receiver perspective message
                 const firebaseMessageData = createMessageForParticipant(otherParticipant._id.toString());
                 const senderName = ((_a = firebaseMessageData === null || firebaseMessageData === void 0 ? void 0 : firebaseMessageData.sender) === null || _a === void 0 ? void 0 : _a.name) || "New message";
-                const response = yield (0, firebaseAdmin_1.sendFirebaseNotification)(otherParticipant.fcmToken, senderName.slice(0, 50), payload.text || "You received a new message", {
-                    type: "CHAT_MESSAGE",
-                    chatId: payload.chatId.toString(),
-                    message: JSON.stringify(Object.assign(Object.assign({}, firebaseMessageData), { image: [...(payload.image || []), ...(payload.files || [])] })),
-                });
-                console.log("✅ Firebase Success:", response);
+                // const response = await sendFirebaseNotification(
+                //     otherParticipant.fcmToken,
+                //     senderName.slice(0, 50),
+                //     payload.text || "You received a new message",
+                //     // {
+                //     //     type: "CHAT_MESSAGE",
+                //     //     chatId: payload.chatId.toString(),
+                //     //     message: JSON.stringify({
+                //     //         ...firebaseMessageData,
+                //     //         image: [...(payload.image || []), ...(payload.files || [])],
+                //     //     }),
+                //     // }
+                // );
+                // console.log("✅ Firebase Success:", response);
             }
             catch (err) {
                 console.error("❌ Firebase Failed:", err);

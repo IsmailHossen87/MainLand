@@ -11,6 +11,8 @@ import { TransactionHistory } from '../../Payment/transactionHistory';
 import { excludeField } from '../../../../shared/constrant';
 import { Notification } from '../../Notification/notification.model';
 import userSearchableFields from './userExcludeField';
+import { sendNotifications } from '../../../../helpers/notificatio-helper';
+import { firebaseNotificationBuilder } from '../../../../helpers/firebaseAdmin';
 
 
 
@@ -26,6 +28,7 @@ const statusChange = async (userId: string, eventId: string) => {
 
   // ✅ Check event
   const event = await Event.findById(eventId);
+  const eventOwner = await User.findById(event?.userId);
   if (!event) {
     throw new AppError(StatusCodes.NOT_FOUND, "Event doesn't exist!");
   }
@@ -53,7 +56,39 @@ const statusChange = async (userId: string, eventId: string) => {
       eventCode: generateEvent,
     },
     { new: true, runValidators: true }
-  );
+  ).select("-createdAt -updatedAt -__v -category -discountCodes -category -tickets");
+
+  // 🔔🔔🔔
+  if (eventOwner?.fcmToken) {
+    firebaseNotificationBuilder(
+      {
+        user: eventOwner,
+        title: "Event Status Updated",
+        message: "Your event status has been updated to " + newStatus,
+        data: {
+          eventId: `${event._id.toString()}`,
+          eventStatus: `${newStatus}`,
+          type: 'NOTIFICATION'
+        }
+      }
+    )
+  }
+  sendNotifications(
+    {
+      eventId: `${event._id.toString()}`,
+      eventCode: event.eventCode,
+      eventStatus: event.EventStatus as string,
+      type: 'NOTIFICATION',
+      receiver: eventOwner?._id.toString() as string,
+      read: false,
+      title: "Event Status Updated",
+      message: "Your event status has been updated to " + newStatus,
+      status: "success",
+    },
+    "notification"
+  )
+
+
 
   return updatedEvent;
 };

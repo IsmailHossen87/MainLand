@@ -14,14 +14,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.closeRedisConnection = exports.connectRedis = exports.redisClient = void 0;
 const redis_1 = require("redis");
-const config_1 = __importDefault(require("./../../src/config"));
+const index_1 = __importDefault(require("./index"));
 // Redis client configuration
 exports.redisClient = (0, redis_1.createClient)({
-    username: config_1.default.REDIS_USERNAME,
-    password: config_1.default.REDIS_PASSWORD,
+    username: index_1.default.REDIS_USERNAME,
+    password: index_1.default.REDIS_PASSWORD,
     socket: {
-        host: config_1.default.REDIS_HOST,
-        port: Number(config_1.default.REDIS_PORT),
+        host: index_1.default.REDIS_HOST,
+        port: Number(index_1.default.REDIS_PORT),
     },
 });
 // Error handling for Redis client
