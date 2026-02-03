@@ -1,6 +1,5 @@
 import admin from "firebase-admin";
-import config from "../config"; // তোমার config file import করো
-
+import config from "../config";
 const serviceAccount = config.firebaseInfo;
 
 if (!serviceAccount) {
