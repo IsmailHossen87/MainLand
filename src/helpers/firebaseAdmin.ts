@@ -9,6 +9,7 @@ export const firebaseNotificationBuilder = ({ user, title, message, data, }: {
     message: string;
     data: Record<string, string>;
 }) => {
+    console.log("check data", data)
     const sound = user.isSoundNotificationEnabled ? "default" : undefined;
     const notification = sendFirebaseNotification(
         user.fcmToken,

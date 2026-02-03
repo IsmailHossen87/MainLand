@@ -6,11 +6,10 @@ import { Message } from "./message-model";
 import mongoose from "mongoose";
 import AppError from "../../../errors/AppError";
 import { firebaseNotificationBuilder } from "../../../helpers/firebaseAdmin";
+import { sendNotifications } from "../../../helpers/notificatio-helper";
 
 
 const sendMessageToDB = async (payload: any) => {
-
-    console.log("🚀 sendMessageToDB payload:", payload);
     try {
         if (!payload.chatId) {
             throw new AppError(StatusCodes.BAD_REQUEST, "Chat ID is required");
@@ -100,7 +99,7 @@ const sendMessageToDB = async (payload: any) => {
                 const senderName =
                     firebaseMessageData?.sender?.name || "New message";
 
-                const response = await firebaseNotificationBuilder(
+                await firebaseNotificationBuilder(
                     {
                         user: otherParticipant,
                         title: senderName.slice(0, 50),
@@ -115,21 +114,22 @@ const sendMessageToDB = async (payload: any) => {
                         }
                     }
                 );
-                // const response = await sendFirebaseNotification(
-                //     otherParticipant.fcmToken,
-                //     senderName.slice(0, 50),
-                //     payload.text || "You received a new message",
-                //     // {
-                //     //     type: "CHAT_MESSAGE",
-                //     //     chatId: payload.chatId.toString(),
-                //     //     message: JSON.stringify({
-                //     //         ...firebaseMessageData,
-                //     //         image: [...(payload.image || []), ...(payload.files || [])],
-                //     //     }),
-                //     // }
-                // );
 
+                const io = (global as any).io;
+                if (io) {
+                    chat.participants.forEach((participant: any) => {
+                        const participantId = participant._id.toString();
+                        const messageForParticipant =
+                            createMessageForParticipant(participantId);
 
+                        console.log("🚀 messageForParticipant:", messageForParticipant.sender.name);
+
+                        io.emit(`message::${participantId}`, {
+                            ...messageForParticipant,
+                            image: [...(payload.image || []), ...(payload.files || [])],
+                        });
+                    });
+                }
                 // console.log("✅ Firebase Success:", response);
             } catch (err) {
                 console.error("❌ Firebase Failed:", err);

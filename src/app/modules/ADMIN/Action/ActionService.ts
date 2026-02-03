@@ -58,21 +58,7 @@ const statusChange = async (userId: string, eventId: string) => {
     { new: true, runValidators: true }
   ).select("-createdAt -updatedAt -__v -category -discountCodes -category -tickets");
 
-  // 🔔🔔🔔
-  // if (eventOwner?.fcmToken) {
-  //   firebaseNotificationBuilder(
-  //     {
-  //       user: eventOwner,
-  //       title: "Event Status Updated",
-  //       message: "Your event status has been updated to " + newStatus,
-  //       data: {
-  //         eventId: `${event._id.toString()}`,
-  //         eventStatus: `${newStatus}`,
-  //         type: 'NOTIFICATION'
-  //       }
-  //     }
-  //   )
-  // } 
+
   if (eventOwner?.fcmToken) {
     firebaseNotificationBuilder(
       {
@@ -82,6 +68,7 @@ const statusChange = async (userId: string, eventId: string) => {
         data: {
           eventId: `${event._id.toString()}`,
           eventStatus: `${newStatus}`,
+          message: "Your event status has been updated to " + newStatus,
           type: 'NOTIFICATION'
         }
       }
