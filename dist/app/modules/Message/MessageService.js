@@ -29,21 +29,20 @@ const unlinkFile_1 = __importDefault(require("../../../shared/unlinkFile"));
 const chat_model_1 = require("../Chat/chat.model");
 const message_model_1 = require("./message-model");
 const mongoose_1 = __importDefault(require("mongoose"));
-const firebaseAdmin_1 = require("../../../helpers/firebaseAdmin");
 const AppError_1 = __importDefault(require("../../../errors/AppError"));
+const firebaseAdmin_1 = require("../../../helpers/firebaseAdmin");
 const sendMessageToDB = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
+    console.log("🚀 sendMessageToDB payload:", payload);
     try {
         if (!payload.chatId) {
             throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Chat ID is required");
         }
-        if (!payload.text &&
-            (!payload.image || payload.image.length === 0) &&
-            (!payload.files || payload.files.length === 0)) {
-            throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Message must contain text, image, or document");
-        }
         /* -------------------- CHAT FETCH -------------------- */
         const chat = yield chat_model_1.Chat.findById(payload.chatId).populate("participants", "_id name email image isReported fcmToken");
+        if (!chat) {
+            throw new AppError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, "Chat not found");
+        }
         if (!chat) {
             if (payload.image)
                 payload.image.forEach((i) => (0, unlinkFile_1.default)(i));
@@ -54,18 +53,11 @@ const sendMessageToDB = (payload) => __awaiter(void 0, void 0, void 0, function*
         if (chat.isReported) {
             throw new AppError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Chat is reported");
         }
-        /* -------------------- OTHER PARTICIPANT -------------------- */
+        // /* -------------------- OTHER PARTICIPANT -------------------- */
         const otherParticipant = chat.participants.find((p) => { var _a; return p._id.toString() !== ((_a = payload.sender) === null || _a === void 0 ? void 0 : _a.toString()); });
-        /* -------------------- MESSAGE CREATE -------------------- */
+        // /* -------------------- MESSAGE CREATE -------------------- */
         const message = yield message_model_1.Message.create(payload);
-        if (!message) {
-            if (payload.image)
-                payload.image.forEach((i) => (0, unlinkFile_1.default)(i));
-            if (payload.files)
-                payload.files.forEach((f) => (0, unlinkFile_1.default)(f));
-            throw new AppError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, "Failed to send message");
-        }
-        /* -------------------- POPULATE MESSAGE -------------------- */
+        console.log("🚀 message:", message);
         const populatedMessage = yield message_model_1.Message.findById(message._id)
             .populate("sender", "_id name email image")
             .populate("replyTo", "_id sender text image files")
@@ -73,17 +65,17 @@ const sendMessageToDB = (payload) => __awaiter(void 0, void 0, void 0, function*
         if (!populatedMessage) {
             throw new AppError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, "Failed to populate message");
         }
-        /* -------------------- TRANSFORM MESSAGE -------------------- */
+        // /* -------------------- TRANSFORM MESSAGE -------------------- */
         const createMessageForParticipant = (participantId) => {
             var _a;
             const isSender = participantId === ((_a = payload.sender) === null || _a === void 0 ? void 0 : _a.toString());
             return Object.assign(Object.assign({}, populatedMessage), { sender: isSender ? otherParticipant : populatedMessage.sender, isOwnMessage: isSender, ownerId: populatedMessage.sender._id });
         };
-        /* -------------------- CHAT UPDATE -------------------- */
+        // /* -------------------- CHAT UPDATE -------------------- */
         chat.lastText = payload.text || "";
         chat.lastImage = [...(payload.image || []), ...(payload.files || [])];
         yield chat.save();
-        /* -------------------- SOCKET.IO -------------------- */
+        // /* -------------------- SOCKET.IO -------------------- */
         const io = global.io;
         if (io) {
             chat.participants.forEach((participant) => {
@@ -93,18 +85,22 @@ const sendMessageToDB = (payload) => __awaiter(void 0, void 0, void 0, function*
                 io.emit(`message::${participantId}`, Object.assign(Object.assign({}, messageForParticipant), { image: [...(payload.image || []), ...(payload.files || [])] }));
             });
         }
-        /* -------------------- FIREBASE NOTIFICATION -------------------- */
+        // /* -------------------- FIREBASE NOTIFICATION -------------------- */
         if (otherParticipant === null || otherParticipant === void 0 ? void 0 : otherParticipant.fcmToken) {
             try {
                 // Receiver perspective message
                 const firebaseMessageData = createMessageForParticipant(otherParticipant._id.toString());
                 const senderName = ((_a = firebaseMessageData === null || firebaseMessageData === void 0 ? void 0 : firebaseMessageData.sender) === null || _a === void 0 ? void 0 : _a.name) || "New message";
-                const response = yield (0, firebaseAdmin_1.sendFirebaseNotification)(otherParticipant.fcmToken, senderName.slice(0, 50), payload.text || "You received a new message", {
-                    type: "CHAT_MESSAGE",
-                    chatId: payload.chatId.toString(),
-                    message: JSON.stringify(Object.assign(Object.assign({}, firebaseMessageData), { image: [...(payload.image || []), ...(payload.files || [])] })),
+                const response = yield (0, firebaseAdmin_1.firebaseNotificationBuilder)({
+                    user: otherParticipant,
+                    title: senderName.slice(0, 50),
+                    message: payload.text || "You received a new message",
+                    data: {
+                        type: "CHAT_MESSAGE",
+                        chatId: payload.chatId.toString(),
+                        message: JSON.stringify(Object.assign(Object.assign({}, firebaseMessageData), { image: [...(payload.image || []), ...(payload.files || [])] })),
+                    }
                 });
-                console.log("✅ Firebase Success:", response);
             }
             catch (err) {
                 console.error("❌ Firebase Failed:", err);
@@ -113,7 +109,7 @@ const sendMessageToDB = (payload) => __awaiter(void 0, void 0, void 0, function*
         else {
             console.warn("⚠️ No FCM Token found. Firebase skipped.");
         }
-        /* -------------------- RETURN FOR SENDER -------------------- */
+        // /* -------------------- RETURN FOR SENDER -------------------- */
         return createMessageForParticipant(((_b = payload.sender) === null || _b === void 0 ? void 0 : _b.toString()) || "");
     }
     catch (error) {

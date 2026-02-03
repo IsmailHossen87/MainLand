@@ -189,4 +189,10 @@ const getReportsByUser = (userId) => __awaiter(void 0, void 0, void 0, function*
         .sort({ createdAt: -1 });
     return reports;
 });
-exports.ChatService = { createOneToOneChatToDB, createReport, getAllReports, getReportsByUser, getAllChatList };
+exports.ChatService = {
+    createOneToOneChatToDB,
+    createReport,
+    getAllReports,
+    getReportsByUser,
+    getAllChatList
+};

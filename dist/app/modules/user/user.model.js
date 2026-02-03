@@ -130,6 +130,14 @@ const userSchema = new mongoose_1.Schema({
         type: String,
         default: null,
     },
+    isSoundNotificationEnabled: {
+        type: Boolean,
+        default: true,
+    },
+    isVibrationNotificationEnabled: {
+        type: Boolean,
+        default: false,
+    },
     personalInfo: {
         firstName: { type: String, default: '' },
         lastName: { type: String, default: '' },

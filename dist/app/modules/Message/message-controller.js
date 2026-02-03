@@ -23,7 +23,7 @@ const sendMessage = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, vo
     const imageFiles = (0, getFilePath_1.getMultipleFilesPath)(req.files, 'image');
     const documentFiles = (0, getFilePath_1.getMultipleFilesPath)(req.files, 'document');
     const user = req.user;
-    const payload = Object.assign(Object.assign({}, req.body), { image: imageFiles && (imageFiles === null || imageFiles === void 0 ? void 0 : imageFiles.length) > 0 ? imageFiles : [], files: documentFiles && (documentFiles === null || documentFiles === void 0 ? void 0 : documentFiles.length) > 0 ? documentFiles : [], sender: user.id });
+    const payload = Object.assign(Object.assign({}, JSON.parse(req.body.data)), { image: imageFiles && (imageFiles === null || imageFiles === void 0 ? void 0 : imageFiles.length) > 0 ? imageFiles : [], files: documentFiles && (documentFiles === null || documentFiles === void 0 ? void 0 : documentFiles.length) > 0 ? documentFiles : [], sender: user.id });
     const result = yield MessageService_1.MessageService.sendMessageToDB(payload);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

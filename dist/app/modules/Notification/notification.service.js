@@ -73,11 +73,28 @@ const sendAdminNotification = (eventId, user, status) => __awaiter(void 0, void 
     }
     yield (0, notificatio_helper_1.sendNotifications)(notificationData, "notification");
     // 🔥 Firebase Push Notification
+    // if (organizer?.fcmToken) {
+    //   await sendFirebaseNotification(
+    //     organizer.fcmToken,
+    //     title,
+    //     message,
+    //     {
+    //       type: "NOTIFICATION",
+    //       eventId: event._id.toString(),
+    //       status,
+    //     }
+    //   );
+    // }
     if (organizer === null || organizer === void 0 ? void 0 : organizer.fcmToken) {
-        yield (0, firebaseAdmin_1.sendFirebaseNotification)(organizer.fcmToken, title, message, {
-            type: "NOTIFICATION",
-            eventId: event._id.toString(),
-            status,
+        yield (0, firebaseAdmin_1.firebaseNotificationBuilder)({
+            user: organizer,
+            title,
+            message,
+            data: {
+                type: "NOTIFICATION",
+                eventId: event._id.toString(),
+                status,
+            },
         });
     }
     return true;

@@ -7,13 +7,19 @@ const notificationSchema = new mongoose_1.Schema({
         type: String,
         required: true,
     },
+    senderId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "User",
+    },
     receiver: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "User",
     },
     eventTitle: {
         type: String,
-        required: true,
+    },
+    eventStatus: {
+        type: String,
     },
     eventId: {
         type: mongoose_1.Schema.Types.ObjectId,
@@ -23,10 +29,13 @@ const notificationSchema = new mongoose_1.Schema({
         type: Boolean,
         default: false,
     },
+    title: {
+        type: String,
+    },
     type: {
         type: String,
         title: {
-            enum: ["EVENT", "NOTIFICATION", 'SELL_TICKET'],
+            enum: ["EVENT", "NOTIFICATION", 'SELL_TICKET', 'MESSAGE', 'WITHDRAW_TICKET'],
             default: "NOTIFICATION",
         },
         isDraft: {
