@@ -45,6 +45,9 @@ const createOneToOneChatToDB = async (payload: string[]): Promise<IChat> => {
     return chat;
 };
 
+
+
+
 const getAllChatList = async (userId: string, search?: string) => {
     const chats = await Chat.find({ participants: userId })
         .populate("participants", "name image")
@@ -231,4 +234,10 @@ const getReportsByUser = async (userId: string) => {
 
     return reports;
 };
-export const ChatService = { createOneToOneChatToDB, createReport, getAllReports, getReportsByUser, getAllChatList };
+export const ChatService = {
+    createOneToOneChatToDB,
+    createReport,
+    getAllReports,
+    getReportsByUser,
+    getAllChatList
+};

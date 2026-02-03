@@ -66,6 +66,8 @@ export type IUser = {
     oneTimeCode: number | null;
     expireAt: Date | null;
   };
+  isSoundNotificationEnabled: boolean;
+  isVibrationNotificationEnabled: boolean;
   terAndCondition: boolean;
   fcmToken?: string;
 };

@@ -14,7 +14,7 @@ const sendMessage = catchAsync(async (req: Request, res: Response) => {
 
 
     const payload = {
-        ...req.body,
+        ...JSON.parse(req.body.data),
         image: imageFiles && imageFiles?.length > 0 ? imageFiles : [],
         files: documentFiles && documentFiles?.length > 0 ? documentFiles : [],
         sender: user.id,

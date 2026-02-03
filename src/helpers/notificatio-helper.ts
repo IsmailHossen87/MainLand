@@ -5,22 +5,37 @@ import { Notification } from "../app/modules/Notification/notification.model";
 export type IChanelType = "message" | "notification";
 
 export const sendNotifications = async (
-    data: Partial<INotification>,
+    data: any,
     chanelType: IChanelType
 ): Promise<INotification> => {
 
-    const result = await Notification.create(data);
+    let notification;
+    if (data.eventId) {
+        notification = await Notification.findOneAndUpdate(
+            { eventId: data.eventId },
+            { $set: data },
+            {
+                new: true,
+                upsert: true,
+            }
+        );
+    }
+    else {
+        notification = await Notification.create(data);
+    }
 
+
+    console.log(data, chanelType)
     // @ts-ignore
     const socketIo = global.io;
 
     if (socketIo) {
         const channel = chanelType === "notification" ? `notification::${data.receiver}` : `message::${data.receiver}`;
 
-        socketIo.emit(channel, result);
+        socketIo.emit(channel, data);
     }
 
-    return result;
+    return notification;
 };
 
 

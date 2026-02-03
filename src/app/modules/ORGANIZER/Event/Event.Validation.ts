@@ -186,7 +186,6 @@ const UpdateEventZodSchema = z.object({
     // ✅ Update এর সময়ও paid event check করবে (যদি isFreeEvent update করা হয়)
     .refine(
       (data) => {
-        // যদি isFreeEvent explicitly false করা হয় তাহলে tickets check করবে
         if (data.isFreeEvent === false) {
           return data.tickets && data.tickets.length > 0;
         }

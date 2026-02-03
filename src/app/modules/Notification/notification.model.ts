@@ -8,13 +8,19 @@ const notificationSchema = new Schema<INotification>(
             type: String,
             required: true,
         },
+        senderId: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+        },
         receiver: {
             type: Schema.Types.ObjectId,
             ref: "User",
         },
         eventTitle: {
             type: String,
-            required: true,
+        },
+        eventStatus: {
+            type: String,
         },
         eventId: {
             type: Schema.Types.ObjectId,
@@ -24,10 +30,13 @@ const notificationSchema = new Schema<INotification>(
             type: Boolean,
             default: false,
         },
+        title: {
+            type: String,
+        },
         type: {
             type: String,
             title: {
-                enum: ["EVENT", "NOTIFICATION", 'SELL_TICKET'],
+                enum: ["EVENT", "NOTIFICATION", 'SELL_TICKET', 'MESSAGE', 'WITHDRAW_TICKET'],
                 default: "NOTIFICATION",
             },
             isDraft: {

@@ -1,21 +1,15 @@
-import fs from "fs";
 import admin from "firebase-admin";
-import dotenv from "dotenv";
+import config from "../config"; // তোমার config file import করো
 
-dotenv.config();
+const serviceAccount = config.firebaseInfo;
 
-const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-
-if (!serviceAccountPath) {
-    throw new Error("FIREBASE_SERVICE_ACCOUNT_PATH is not defined in .env");
+if (!serviceAccount) {
+    throw new Error("Firebase configuration is not properly defined in .env");
 }
-// shakalaka
-// JSON file read & parse
-const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
 
 if (!admin.apps.length) {
     admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
     });
 }
 

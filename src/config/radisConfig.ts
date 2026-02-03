@@ -1,5 +1,5 @@
 import { createClient } from 'redis';
-import config from "./../../src/config";
+import config from './index';
 
 // Redis client configuration
 export const redisClient = createClient({
@@ -13,7 +13,7 @@ export const redisClient = createClient({
 
 // Error handling for Redis client
 redisClient.on('error', (err) => {
-  console.error('Redis Client Error:', err); 
+  console.error('Redis Client Error:', err);
 });
 
 

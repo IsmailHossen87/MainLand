@@ -4,32 +4,28 @@ import { Chat } from "../Chat/chat.model";
 import { IMessage } from "./message-interface";
 import { Message } from "./message-model";
 import mongoose from "mongoose";
-import { sendFirebaseNotification } from "../../../helpers/firebaseAdmin";
 import AppError from "../../../errors/AppError";
+import { firebaseNotificationBuilder } from "../../../helpers/firebaseAdmin";
 
 
-const sendMessageToDB = async (payload: any): Promise<IMessage> => {
+const sendMessageToDB = async (payload: any) => {
+
+    console.log("🚀 sendMessageToDB payload:", payload);
     try {
         if (!payload.chatId) {
             throw new AppError(StatusCodes.BAD_REQUEST, "Chat ID is required");
         }
 
-        if (
-            !payload.text &&
-            (!payload.image || payload.image.length === 0) &&
-            (!payload.files || payload.files.length === 0)
-        ) {
-            throw new AppError(
-                StatusCodes.BAD_REQUEST,
-                "Message must contain text, image, or document"
-            );
-        }
 
         /* -------------------- CHAT FETCH -------------------- */
         const chat = await Chat.findById(payload.chatId).populate(
             "participants",
             "_id name email image isReported fcmToken"
         );
+
+        if (!chat) {
+            throw new AppError(StatusCodes.NOT_FOUND, "Chat not found");
+        }
 
         if (!chat) {
             if (payload.image) payload.image.forEach((i: string) => unlinkFile(i));
@@ -41,37 +37,25 @@ const sendMessageToDB = async (payload: any): Promise<IMessage> => {
             throw new AppError(StatusCodes.BAD_REQUEST, "Chat is reported");
         }
 
-        /* -------------------- OTHER PARTICIPANT -------------------- */
+        // /* -------------------- OTHER PARTICIPANT -------------------- */
         const otherParticipant: any = chat.participants.find(
             (p: any) => p._id.toString() !== payload.sender?.toString()
         );
 
-        /* -------------------- MESSAGE CREATE -------------------- */
+        // /* -------------------- MESSAGE CREATE -------------------- */
         const message = await Message.create(payload);
+        console.log("🚀 message:", message);
 
-        if (!message) {
-            if (payload.image) payload.image.forEach((i: string) => unlinkFile(i));
-            if (payload.files) payload.files.forEach((f: string) => unlinkFile(f));
-            throw new AppError(
-                StatusCodes.INTERNAL_SERVER_ERROR,
-                "Failed to send message"
-            );
-        }
-
-        /* -------------------- POPULATE MESSAGE -------------------- */
         const populatedMessage = await Message.findById(message._id)
             .populate("sender", "_id name email image")
             .populate("replyTo", "_id sender text image files")
             .lean();
 
         if (!populatedMessage) {
-            throw new AppError(
-                StatusCodes.INTERNAL_SERVER_ERROR,
-                "Failed to populate message"
-            );
+            throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to populate message");
         }
 
-        /* -------------------- TRANSFORM MESSAGE -------------------- */
+        // /* -------------------- TRANSFORM MESSAGE -------------------- */
         const createMessageForParticipant = (participantId: string) => {
             const isSender = participantId === payload.sender?.toString();
 
@@ -83,12 +67,12 @@ const sendMessageToDB = async (payload: any): Promise<IMessage> => {
             };
         };
 
-        /* -------------------- CHAT UPDATE -------------------- */
+        // /* -------------------- CHAT UPDATE -------------------- */
         chat.lastText = payload.text || "";
         chat.lastImage = [...(payload.image || []), ...(payload.files || [])];
         await chat.save();
 
-        /* -------------------- SOCKET.IO -------------------- */
+        // /* -------------------- SOCKET.IO -------------------- */
         const io = (global as any).io;
         if (io) {
             chat.participants.forEach((participant: any) => {
@@ -104,7 +88,8 @@ const sendMessageToDB = async (payload: any): Promise<IMessage> => {
                 });
             });
         }
-        /* -------------------- FIREBASE NOTIFICATION -------------------- */
+
+        // /* -------------------- FIREBASE NOTIFICATION -------------------- */
         if (otherParticipant?.fcmToken) {
             try {
                 // Receiver perspective message
@@ -115,22 +100,21 @@ const sendMessageToDB = async (payload: any): Promise<IMessage> => {
                 const senderName =
                     firebaseMessageData?.sender?.name || "New message";
 
-                const response = await sendFirebaseNotification(
-                    otherParticipant.fcmToken,
-                    senderName.slice(0, 50),
-                    payload.text || "You received a new message",
+                const response = await firebaseNotificationBuilder(
                     {
-                        type: "CHAT_MESSAGE",
-                        chatId: payload.chatId.toString(),
-                        message: JSON.stringify({
-                            ...firebaseMessageData,
-                            image: [...(payload.image || []), ...(payload.files || [])],
-                        }),
+                        user: otherParticipant,
+                        title: senderName.slice(0, 50),
+                        message: payload.text || "You received a new message",
+                        data: {
+                            type: "CHAT_MESSAGE",
+                            chatId: payload.chatId.toString(),
+                            message: JSON.stringify({
+                                ...firebaseMessageData,
+                                image: [...(payload.image || []), ...(payload.files || [])],
+                            }),
+                        }
                     }
                 );
-
-
-                console.log("✅ Firebase Success:", response);
             } catch (err) {
                 console.error("❌ Firebase Failed:", err);
             }
@@ -139,7 +123,7 @@ const sendMessageToDB = async (payload: any): Promise<IMessage> => {
         }
 
 
-        /* -------------------- RETURN FOR SENDER -------------------- */
+        // /* -------------------- RETURN FOR SENDER -------------------- */
         return createMessageForParticipant(
             payload.sender?.toString() || ""
         ) as IMessage;

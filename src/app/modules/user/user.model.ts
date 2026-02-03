@@ -122,6 +122,14 @@ const userSchema = new Schema<IUser, UserModal>(
       type: String,
       default: null,
     },
+    isSoundNotificationEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    isVibrationNotificationEnabled: {
+      type: Boolean,
+      default: false,
+    },
     personalInfo: {
       firstName: { type: String, default: '' },
       lastName: { type: String, default: '' },
