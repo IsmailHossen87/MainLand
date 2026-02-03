@@ -190,9 +190,6 @@ router.put(
   EventController.updateCategory
 );
 
-router.patch("/bar-code-check/:id", (req, res, next) => {
-  console.log("Ticket Information", req.body)
-  next()
-}, auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), EventController.barCodeCheck)
+router.patch("/bar-code-check/:id", auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), EventController.barCodeCheck)
 router.get("/perticipent-count/:eventCode", auth(USER_ROLES.ORGANIZER, USER_ROLES.USER), EventController.perticipentCount)
 export const EventRoutes = router;

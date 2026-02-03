@@ -886,6 +886,7 @@ const perticipentCount = async (eventCode: string) => {
 };
 
 
+
 export const EventService = {
   creteSubCategory,
   createEvent,
