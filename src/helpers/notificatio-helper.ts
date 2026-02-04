@@ -20,7 +20,6 @@ export const sendNotifications = async (
             }
         );
     }
-<<<<<<< HEAD
     else if (data.chatId) {
         notification = await Notification.findOneAndUpdate(
             { chatId: data.chatId },
@@ -31,8 +30,6 @@ export const sendNotifications = async (
             }
         );
     }
-=======
->>>>>>> 9f6a712c2ce34eaabda8dbd316a9c751c25ad6d8
     else {
         notification = await Notification.create(data);
     }

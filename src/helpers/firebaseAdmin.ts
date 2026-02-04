@@ -3,7 +3,6 @@ import { Notification } from "../app/modules/Notification/notification.model";
 import { firebaseAdmin } from "./firebase";
 
 
-<<<<<<< HEAD
 
 export const firebaseNotificationBuilder = ({ user, title, body, image = "", chatId = '', eventId = '', type = '', avatar = '' }: {
     user: any;
@@ -19,25 +18,10 @@ export const firebaseNotificationBuilder = ({ user, title, body, image = "", cha
     const sound = user.isSoundNotificationEnabled ? "default" : undefined;
     const notification = sendFirebaseNotification(
         user.fcmToken,
-=======
-export const firebaseNotificationBuilder = ({ user, title, message, data, }: {
-    user: any;
-    title: string;
-    message: string;
-    data: Record<string, string>;
-}) => {
-    console.log("check data", data)
-    const sound = user.isSoundNotificationEnabled ? "default" : undefined;
-    const notification = sendFirebaseNotification(
-        user.fcmToken,
-        title,
-        message,
->>>>>>> 9f6a712c2ce34eaabda8dbd316a9c751c25ad6d8
         sound,
         {
             isSoundNotificationEnabled: `${user.isSoundNotificationEnabled}`,
             isVibrationNotificationEnabled: `${user.isVibrationNotificationEnabled}`,
-<<<<<<< HEAD
             title,
             body,
             image,
@@ -45,10 +29,6 @@ export const firebaseNotificationBuilder = ({ user, title, message, data, }: {
             eventId,
             type,
             avatar
-=======
-
-            ...data,
->>>>>>> 9f6a712c2ce34eaabda8dbd316a9c751c25ad6d8
         }
     );
 
@@ -58,11 +38,6 @@ export const firebaseNotificationBuilder = ({ user, title, message, data, }: {
 
 export const sendFirebaseNotification = async (
     token: string,
-<<<<<<< HEAD
-=======
-    title: string,
-    body: string,
->>>>>>> 9f6a712c2ce34eaabda8dbd316a9c751c25ad6d8
     sound: string | undefined,
     data?: Record<string, string>
 ) => {
@@ -70,10 +45,6 @@ export const sendFirebaseNotification = async (
 
     const notification: any = {
         token,
-<<<<<<< HEAD
-=======
-
->>>>>>> 9f6a712c2ce34eaabda8dbd316a9c751c25ad6d8
         data: data ?? {},
         android: {
             priority: "high",
@@ -87,13 +58,8 @@ export const sendFirebaseNotification = async (
 
                 aps: {
                     alert: {
-<<<<<<< HEAD
                         title: data?.title,
                         body: data?.body,
-=======
-                        title,
-                        body,
->>>>>>> 9f6a712c2ce34eaabda8dbd316a9c751c25ad6d8
                     },
                     // sound: "default",
                     ...(sound && { sound }),

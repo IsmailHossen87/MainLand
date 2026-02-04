@@ -28,11 +28,7 @@ async function main() {
     const port =
       typeof config.port === 'number' ? config.port : Number(config.port);
 
-<<<<<<< HEAD
     server = app.listen(port, config.ip_address as string, () => {
-=======
-    server = app.listen(port, () => {
->>>>>>> 9f6a712c2ce34eaabda8dbd316a9c751c25ad6d8
       logger.info(
         colors.yellow(`♻️  Application listening on port:${config.port}`)
       );
