@@ -20,8 +20,6 @@ const sendMessage = catchAsync(async (req: Request, res: Response) => {
         sender: user.id,
     }
 
-    console.log("Message Data", payload);
-
     const result = await MessageService.sendMessageToDB(payload);
 
     sendResponse(res, {

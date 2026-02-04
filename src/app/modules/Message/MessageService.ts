@@ -44,7 +44,6 @@ const sendMessageToDB = async (payload: any) => {
         // /* -------------------- MESSAGE CREATE -------------------- */
         const message = await Message.create(payload);
 
-
         const populatedMessage = await Message.findById(message._id)
             .populate("sender", "_id name email image")
             .populate("replyTo", "_id sender text image files")
@@ -85,6 +84,22 @@ const sendMessageToDB = async (payload: any) => {
         //         });
         //     });
         // }
+
+        const io = (global as any).io;
+        if (io) {
+            chat.participants.forEach((participant: any) => {
+                const participantId = participant._id.toString();
+                const messageForParticipant =
+                    createMessageForParticipant(participantId);
+
+                console.log("🚀 messageForParticipant:", messageForParticipant.sender.name);
+
+                io.emit(`message::${participantId}`, {
+                    ...messageForParticipant,
+                    image: [...(payload.image || []), ...(payload.files || [])],
+                });
+            });
+        }
 
         // /* -------------------- FIREBASE NOTIFICATION -------------------- */
         if (otherParticipant?.fcmToken) {
@@ -127,7 +142,6 @@ const sendMessageToDB = async (payload: any) => {
         return createMessageForParticipant(
             payload.sender?.toString() || ""
         ) as IMessage;
-
     } catch (error) {
         if (payload.image) payload.image.forEach((i: string) => unlinkFile(i));
         if (payload.files) payload.files.forEach((f: string) => unlinkFile(f));
