@@ -1,0 +1,79 @@
+import express from 'express';
+import { AuthRoutes } from '../app/modules/auth/auth.route';
+import { UserRoutes } from '../app/modules/user/user.route';
+import { PaymentRouter } from '../app/modules/Payment/Payment.route';
+import { EventRoutes } from '../app/modules/ORGANIZER/Event/Event.Route';
+import { ActionRouter } from '../app/modules/ADMIN/Action/Action.Router';
+import { SettingRouter } from '../app/modules/Setting/SettingRoute';
+import { TicketRouter } from '../app/modules/Ticket/ticket.route';
+import { FavouriteRouter } from '../app/modules/Favoutite/Favourite.route';
+import { NotificationRoutes } from '../app/modules/Notification/notification.route';
+import { MessageRouter } from '../app/modules/Message/message-route';
+import { ChatRoutes } from '../app/modules/Chat/chat.router';
+import stripeAccountRoutes from '../app/modules/stripeAccount/stripeAccount.route';
+import { payoutRoutes } from '../app/modules/Payout/Payout.route';
+
+
+
+const router = express.Router();
+
+const apiRoutes = [
+  {
+    path: '/user',
+    route: UserRoutes,
+  },
+  {
+    path: '/auth',
+    route: AuthRoutes,
+  },
+
+  {
+    path: '/notification',
+    route: NotificationRoutes,
+  },
+  {
+    path: '/event',
+    route: EventRoutes,
+  },
+  {
+    path: '/payment',
+    route: PaymentRouter,
+  },
+  {
+    path: '/payout',
+    route: payoutRoutes,
+  },
+  {
+    path: '/action',
+    route: ActionRouter,
+  },
+  {
+    path: '/ticket',
+    route: TicketRouter,
+  },
+
+  {
+    path: '/settings',
+    route: SettingRouter,
+  },
+  {
+    path: '/favourite',
+    route: FavouriteRouter,
+  },
+  {
+    path: '/chat',
+    route: ChatRoutes,
+  },
+  {
+    path: '/message',
+    route: MessageRouter,
+  },
+  {
+    path: '/stripe-account',
+    route: stripeAccountRoutes,
+  }
+];
+
+apiRoutes.forEach(route => router.use(route.path, route.route));
+
+export default router;
