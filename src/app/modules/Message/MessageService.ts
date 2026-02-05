@@ -19,7 +19,7 @@ const sendMessageToDB = async (payload: any) => {
         /* -------------------- CHAT FETCH -------------------- */
         const chat = await Chat.findById(payload.chatId).populate(
             "participants",
-            "_id name email image isReported fcmToken"
+            "_id name email image isReported fcmToken isSoundNotificationEnabled isVibrationNotificationEnabled"
         );
 
         if (!chat) {
@@ -45,7 +45,7 @@ const sendMessageToDB = async (payload: any) => {
         const message = await Message.create(payload);
 
         const populatedMessage = await Message.findById(message._id)
-            .populate("sender", "_id name email image")
+            .populate("sender", "_id name email image ")
             .populate("replyTo", "_id sender text image files")
             .lean();
 
@@ -71,6 +71,7 @@ const sendMessageToDB = async (payload: any) => {
         await chat.save();
 
         // /* -------------------- SOCKET.IO -------------------- */
+
         // const io = (global as any).io;
         // if (io) {
         //     chat.participants.forEach((participant: any) => {
@@ -84,22 +85,6 @@ const sendMessageToDB = async (payload: any) => {
         //         });
         //     });
         // }
-
-        const io = (global as any).io;
-        if (io) {
-            chat.participants.forEach((participant: any) => {
-                const participantId = participant._id.toString();
-                const messageForParticipant =
-                    createMessageForParticipant(participantId);
-
-                console.log("🚀 messageForParticipant:", messageForParticipant.sender.name);
-
-                io.emit(`message::${participantId}`, {
-                    ...messageForParticipant,
-                    image: [...(payload.image || []), ...(payload.files || [])],
-                });
-            });
-        }
 
         // /* -------------------- FIREBASE NOTIFICATION -------------------- */
         if (otherParticipant?.fcmToken) {

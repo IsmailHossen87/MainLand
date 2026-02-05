@@ -8,23 +8,15 @@ import { successHTMLstripeConnection } from './stripeAccount.utils';
 import config from '../../../config';
 
 const createConnectedStripeAccount = async (user: JwtPayload, host: string, protocol: string): Promise<any> => {
-     console.log('user', user, "host", host, "protocol", protocol);
 
-
-     let accountId = null;
-     // const existingAccount = await StripeAccount.findOne({
-     //      user: user?.id
-     // }).select('user accountId isCompleted');
      const existingAccount = await User.findById(user.id);
-     console.log('existingAccount', existingAccount);
+     const baseUrl = config.BACKEND_URL
 
      if (existingAccount && existingAccount.stripeAccountInfo?.stripeAccountId) {
-
-
           const onboardingLink = await stripe.accountLinks.create({
                account: existingAccount.stripeAccountInfo?.stripeAccountId,
-               refresh_url: `${protocol}://${host}/api/v1/stripe/refreshAccountConnect/${existingAccount.stripeAccountInfo?.stripeAccountId}`,
-               return_url: `${protocol}://${host}/api/v1/stripe/success-account/${existingAccount.stripeAccountInfo?.stripeAccountId}`,
+               refresh_url: `${baseUrl}/api/v1/stripe/refreshAccountConnect/${existingAccount.stripeAccountInfo.stripeAccountId}`,
+               return_url: `${baseUrl}/api/v1/stripe/success-account/${existingAccount.stripeAccountInfo.stripeAccountId}`,
                type: 'account_onboarding',
           });
           // console.log('onboardingLink-1', onboardingLink);
@@ -49,8 +41,8 @@ const createConnectedStripeAccount = async (user: JwtPayload, host: string, prot
 
           const onboardingLink = await stripe.accountLinks.create({
                account: account.id,
-               refresh_url: `${protocol}://${host}/api/v1/stripe/refreshAccountConnect/${account.id}`,
-               return_url: `${protocol}://${host}/api/v1/stripe/success-account/${account.id}`,
+               refresh_url: `${baseUrl}/api/v1/stripe/refreshAccountConnect/${account.id}`,
+               return_url: `${baseUrl}/api/v1/stripe/success-account/${account.id}`,
                type: 'account_onboarding',
           });
 

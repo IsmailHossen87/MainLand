@@ -7,6 +7,7 @@ import { socketHelper } from './helpers/socketHelper';
 import { errorLogger, logger } from './shared/logger';
 import { connectRedis } from './config/radisConfig';
 import { payoutService } from './app/modules/Payment/ProcessEventPayout';
+import { seedSuperAdmin } from './DB/seedAdmin';
 
 //uncaught exception
 process.on('uncaughtException', error => {
@@ -65,6 +66,7 @@ async function main() {
 (async () => {
   await connectRedis()
   await main()
+  await seedSuperAdmin()
 }
 )()
 

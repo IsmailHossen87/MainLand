@@ -23,10 +23,9 @@ const firebaseInfo = {
 export default {
   ip_address: process.env.IP_ADDRESS,
   database_url: process.env.DATABASE_URL,
+  super_admin_email: process.env.SUPER_ADMIN_EMAIL,
+  super_admin_password: process.env.SUPER_ADMIN_PASSWORD,
   node_env: process.env.NODE_ENV,
-  FRONTEND_URL: process.env.FRONTEND_URL,
-  FRONTEND_URL_DASHBOARD: process.env.FRONTEND_URL_DASHBOARD,
-  BACKEND_URL: process.env.BACKEND_URL,
   port: process.env.PORT,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
@@ -45,13 +44,15 @@ export default {
     pass: process.env.EMAIL_PASS,
   },
   stripe: {
-    stripe_secret_key: process.env.STRIPE_SECRET_KEY, // typo fix: KYE -> KEY
-    success_url: process.env.STRIPE_SUCCESS_URL,
-    cancel_url: process.env.STRIPE_CANCEL_URL, // typo fix: CANCLE -> CANCEL
-    stripe_webhook_secret: process.env.STRIPE_WEBHOOK_SECRET,
-    stripe_webhook_url: process.env.STRIPE_WEBHOOK_URL,
-    stripe_product_id: process.env.STRIPE_PRODUCT_ID,
+    secret_key: process.env.STRIPE_SECRET_KEY!,
+    publishable_key: process.env.STRIPE_PUBLISHABLE_KEY!,
+    stripe_webhook_secret: process.env.STRIPE_WEBHOOK_SECRET!,
+    success_url: process.env.STRIPE_SUCCESS_URL || 'http://localhost:3000/payment-success',
+    cancel_url: process.env.STRIPE_CANCEL_URL || 'http://localhost:3000/payment-cancel',
   },
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  FRONTEND_URL_DASHBOARD: process.env.FRONTEND_URL_DASHBOARD || 'http://localhost:3000/dashboard',
+  BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:5000',
   super_admin: {
     email: process.env.SUPER_ADMIN_EMAIL,
     password: process.env.SUPER_ADMIN_PASSWORD,

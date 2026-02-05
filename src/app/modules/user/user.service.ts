@@ -109,7 +109,7 @@ const getAllUser = async (query: Record<string, string>) => {
 };
 
 const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Promise<Partial<IUser | null>> => {
-
+  console.log("PROFILE DATA UPDATRED", payload)
   const { id } = user;
   const isExistUser = await User.isExistUserById(id);
   if (!isExistUser) {
